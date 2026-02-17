@@ -26,7 +26,9 @@
       "edgeToEdgeEnabled": true,
       "package": "com.gymcore.scanner",
       "permissions": [
-        "CAMERA"
+        "CAMERA",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "plugins": [
@@ -36,6 +38,12 @@
           "cameraPermission": "GymCore necesita acceso a la cámara para escanear códigos QR de los clientes."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "b5887aed-8f11-408d-9f9a-aaa3756a5524"
+      }
+    },
+    "owner": "hernandezpremh"
   }
 }

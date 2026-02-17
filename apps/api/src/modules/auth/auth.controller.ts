@@ -5,7 +5,7 @@ import { AuthService } from './auth.service';
 import { CurrentUser, Roles } from '../../common/decorators';
 import { RolesGuard } from '../../common/guards';
 import { IsEmail, IsString, MinLength, IsOptional, IsEnum } from 'class-validator';
-import { UserRole } from '@gymcore/shared';
+import { UserRole } from '../../common/types';
 
 class LoginDto {
     @IsEmail()

@@ -15,7 +15,7 @@ export class SalesService {
         return this.prisma.$transaction(async (tx) => {
             // Validate and calculate items
             let total = 0;
-            const saleItems = [];
+            const saleItems: { productId: string; quantity: number; unitPrice: any; subtotal: number }[] = [];
 
             for (const item of data.items) {
                 const product = await tx.product.findUnique({ where: { id: item.productId } });
