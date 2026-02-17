@@ -121,7 +121,7 @@ export default function FinancePage() {
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" />
                         <XAxis dataKey="date" stroke="#64748B" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => v.slice(5)} />
                         <YAxis stroke="#64748B" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `S/${v}`} />
-                        <Tooltip contentStyle={{ background: '#1F2937', border: '1px solid rgba(148,163,184,0.12)', borderRadius: '10px', fontSize: '12px' }} formatter={(value: number) => [`S/${value.toFixed(2)}`]} />
+                        <Tooltip contentStyle={{ background: '#1F2937', border: '1px solid rgba(148,163,184,0.12)', borderRadius: '10px', fontSize: '12px' }} formatter={(value: any) => [`S/${Number(value).toFixed(2)}`]} />
                         <Legend wrapperStyle={{ fontSize: '11px' }} />
                         <Bar dataKey="memberships" name="Membresías" fill="#7C3AED" radius={[4, 4, 0, 0]} />
                         <Bar dataKey="sales" name="Ventas" fill="#06B6D4" radius={[4, 4, 0, 0]} />

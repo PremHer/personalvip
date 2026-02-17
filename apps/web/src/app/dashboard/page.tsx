@@ -310,7 +310,7 @@ export default function DashboardPage() {
                                 tickFormatter={(v) => `S/${v}`} />
                             <Tooltip
                                 contentStyle={{ background: '#1F2937', border: '1px solid rgba(148,163,184,0.12)', borderRadius: '10px', fontSize: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}
-                                formatter={(value: number) => [`S/${value.toFixed(2)}`, 'Ingresos']}
+                                formatter={(value: any) => [`S/${Number(value).toFixed(2)}`, 'Ingresos']}
                                 labelFormatter={(label) => new Date(label).toLocaleDateString('es-ES')}
                             />
                             <Area type="monotone" dataKey="total" stroke="#7C3AED" strokeWidth={2} fill="url(#colorIncome)" />
@@ -337,7 +337,7 @@ export default function DashboardPage() {
                                     </Pie>
                                     <Tooltip
                                         contentStyle={{ background: '#1F2937', border: '1px solid rgba(148,163,184,0.12)', borderRadius: '10px', fontSize: '12px' }}
-                                        formatter={(value: number) => [`S/${value.toFixed(2)}`]}
+                                        formatter={(value: any) => [`S/${Number(value).toFixed(2)}`]}
                                     />
                                 </PieChart>
                             </ResponsiveContainer>
@@ -374,7 +374,7 @@ export default function DashboardPage() {
                             <YAxis stroke="#64748B" fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
                             <Tooltip
                                 contentStyle={{ background: '#1F2937', border: '1px solid rgba(148,163,184,0.12)', borderRadius: '10px', fontSize: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}
-                                formatter={(value: number) => [value, 'Asistencias']}
+                                formatter={(value: any) => [value, 'Asistencias']}
                                 labelFormatter={(label) => label}
                             />
                             <Bar dataKey="count" name="Asistencias" fill="#7C3AED" radius={[6, 6, 0, 0]} />
@@ -396,7 +396,7 @@ export default function DashboardPage() {
                                 <YAxis stroke="#64748B" fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
                                 <Tooltip
                                     contentStyle={{ background: '#1F2937', border: '1px solid rgba(148,163,184,0.12)', borderRadius: '10px', fontSize: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}
-                                    formatter={(value: number) => [value, 'Check-ins']}
+                                    formatter={(value: any) => [value, 'Check-ins']}
                                 />
                                 <Bar dataKey="count" name="Check-ins" fill="#06B6D4" radius={[6, 6, 0, 0]} />
                             </BarChart>
