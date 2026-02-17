@@ -1,0 +1,304 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  OWNER
+  TRAINER
+  RECEPTIONIST
+  CLIENT
+}
+
+enum MembershipStatus {
+  ACTIVE
+  EXPIRED
+  FROZEN
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+}
+
+enum AttendanceMethod {
+  QR
+  MANUAL
+}
+
+enum AssetStatus {
+  ACTIVE
+  MAINTENANCE
+  RETIRED
+}
+
+// ===== USERS & AUTH =====
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole @default(CLIENT)
+  name         String
+  phone        String?
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  client        Client?
+  trainer       Trainer?
+  auditLogs     AuditLog[]
+  validatedAttendances Attendance[] @relation("ValidatedBy")
+  cashierSales  Sale[]         @relation("CashierSales")
+  createdMemberships Membership[] @relation("CreatedBy")
+  openedRegisters  CashRegister[] @relation("OpenedBy")
+  closedRegisters  CashRegister[] @relation("ClosedBy")
+
+  @@map("users")
+}
+
+// ===== CLIENTS =====
+model Client {
+  id               String   @id @default(uuid())
+  userId           String?  @unique @map("user_id")
+  name             String
+  email            String?
+  phone            String?
+  emergencyContact String?  @map("emergency_contact")
+  birthDate        DateTime? @map("birth_date") @db.Date
+  medicalNotes     String?  @map("medical_notes")
+  qrCode           String   @unique @map("qr_code")
+  photoUrl         String?  @map("photo_url")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user             User?    @relation(fields: [userId], references: [id])
+  memberships      Membership[]
+  attendances      Attendance[]
+  sales            Sale[]
+  physicalProgress PhysicalProgress[]
+  trainerClients   TrainerClient[]
+
+  @@map("clients")
+}
+
+// ===== MEMBERSHIP PLANS =====
+model MembershipPlan {
+  id           String  @id @default(uuid())
+  name         String
+  price        Decimal @db.Decimal(10, 2)
+  durationDays Int     @map("duration_days")
+  description  String?
+  isActive     Boolean @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  memberships  Membership[]
+
+  @@map("membership_plans")
+}
+
+// ===== MEMBERSHIPS =====
+model Membership {
+  id         String           @id @default(uuid())
+  clientId   String           @map("client_id")
+  planId     String           @map("plan_id")
+  startDate  DateTime         @map("start_date") @db.Date
+  endDate    DateTime         @map("end_date") @db.Date
+  status     MembershipStatus @default(ACTIVE)
+  amountPaid Decimal          @map("amount_paid") @db.Decimal(10, 2)
+  createdBy  String           @map("created_by")
+  createdAt  DateTime         @default(now()) @map("created_at")
+  updatedAt  DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  client     Client         @relation(fields: [clientId], references: [id])
+  plan       MembershipPlan @relation(fields: [planId], references: [id])
+  creator    User           @relation("CreatedBy", fields: [createdBy], references: [id])
+
+  @@map("memberships")
+}
+
+// ===== ATTENDANCE =====
+model Attendance {
+  id          String           @id @default(uuid())
+  clientId    String           @map("client_id")
+  checkIn     DateTime         @default(now()) @map("check_in")
+  checkOut    DateTime?        @map("check_out")
+  validatedBy String           @map("validated_by")
+  method      AttendanceMethod @default(QR)
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  // Relations
+  client      Client @relation(fields: [clientId], references: [id])
+  validator   User   @relation("ValidatedBy", fields: [validatedBy], references: [id])
+
+  @@map("attendances")
+}
+
+// ===== PRODUCTS & INVENTORY =====
+model Product {
+  id        String  @id @default(uuid())
+  name      String
+  barcode   String? @unique
+  price     Decimal @db.Decimal(10, 2)
+  stock     Int     @default(0)
+  category  String?
+  imageUrl  String? @map("image_url")
+  isActive  Boolean @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  saleItems SaleItem[]
+
+  @@map("products")
+}
+
+// ===== ASSETS (Fixed) =====
+model Asset {
+  id            String      @id @default(uuid())
+  name          String
+  serialNumber  String?     @map("serial_number")
+  purchaseDate  DateTime?   @map("purchase_date") @db.Date
+  purchasePrice Decimal?    @map("purchase_price") @db.Decimal(10, 2)
+  status        AssetStatus @default(ACTIVE)
+  notes         String?
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@map("assets")
+}
+
+// ===== SALES =====
+model Sale {
+  id            String        @id @default(uuid())
+  clientId      String?       @map("client_id")
+  cashierId     String        @map("cashier_id")
+  total         Decimal       @db.Decimal(10, 2)
+  paymentMethod PaymentMethod @map("payment_method")
+  discount      Decimal       @default(0) @db.Decimal(10, 2)
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  // Relations
+  client   Client?    @relation(fields: [clientId], references: [id])
+  cashier  User       @relation("CashierSales", fields: [cashierId], references: [id])
+  items    SaleItem[]
+
+  @@map("sales")
+}
+
+model SaleItem {
+  id        String  @id @default(uuid())
+  saleId    String  @map("sale_id")
+  productId String  @map("product_id")
+  quantity  Int
+  unitPrice Decimal @map("unit_price") @db.Decimal(10, 2)
+  subtotal  Decimal @db.Decimal(10, 2)
+
+  // Relations
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("sale_items")
+}
+
+// ===== CASH REGISTER =====
+model CashRegister {
+  id             String    @id @default(uuid())
+  openedById     String    @map("opened_by")
+  closedById     String?   @map("closed_by")
+  openingAmount  Decimal   @map("opening_amount") @db.Decimal(10, 2)
+  closingAmount  Decimal?  @map("closing_amount") @db.Decimal(10, 2)
+  expectedAmount Decimal?  @map("expected_amount") @db.Decimal(10, 2)
+  openedAt       DateTime  @default(now()) @map("opened_at")
+  closedAt       DateTime? @map("closed_at")
+  notes          String?
+
+  // Relations
+  openedBy User  @relation("OpenedBy", fields: [openedById], references: [id])
+  closedBy User? @relation("ClosedBy", fields: [closedById], references: [id])
+
+  @@map("cash_registers")
+}
+
+// ===== TRAINERS =====
+model Trainer {
+  id          String @id @default(uuid())
+  userId      String @unique @map("user_id")
+  specialties String?
+  schedule    Json?  @map("schedule_json")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user           User            @relation(fields: [userId], references: [id])
+  trainerClients TrainerClient[]
+
+  @@map("trainers")
+}
+
+model TrainerClient {
+  id        String  @id @default(uuid())
+  trainerId String  @map("trainer_id")
+  clientId  String  @map("client_id")
+  routine   Json?   @map("routine_json")
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  trainer Trainer @relation(fields: [trainerId], references: [id])
+  client  Client  @relation(fields: [clientId], references: [id])
+
+  @@unique([trainerId, clientId])
+  @@map("trainer_clients")
+}
+
+// ===== PHYSICAL PROGRESS =====
+model PhysicalProgress {
+  id             String   @id @default(uuid())
+  clientId       String   @map("client_id")
+  recordDate     DateTime @map("record_date") @db.Date
+  weightKg       Decimal? @map("weight_kg") @db.Decimal(5, 2)
+  bodyFatPct     Decimal? @map("body_fat_pct") @db.Decimal(5, 2)
+  muscleMassKg   Decimal? @map("muscle_mass_kg") @db.Decimal(5, 2)
+  measurements   Json?    @map("measurements_json")
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // Relations
+  client Client @relation(fields: [clientId], references: [id])
+
+  @@map("physical_progress")
+}
+
+// ===== AUDIT LOG =====
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  oldValues  Json?    @map("old_values")
+  newValues  Json?    @map("new_values")
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

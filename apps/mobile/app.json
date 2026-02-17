@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "GymCore Scanner",
+    "slug": "gymcore-scanner",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f0a1a"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSCameraUsageDescription": "GymCore necesita acceso a la cámara para escanear códigos QR de los clientes."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f0a1a"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.gymcore.scanner",
+      "permissions": [
+        "CAMERA"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "GymCore necesita acceso a la cámara para escanear códigos QR de los clientes."
+        }
+      ]
+    ]
+  }
+}
