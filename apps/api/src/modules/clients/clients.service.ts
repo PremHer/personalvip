@@ -78,6 +78,14 @@ export class ClientsService {
                     orderBy: { recordDate: 'desc' },
                     take: 10,
                 },
+                sales: {
+                    include: {
+                        items: { include: { product: true } },
+                        cashier: { select: { name: true } },
+                    },
+                    orderBy: { createdAt: 'desc' },
+                    take: 15,
+                },
                 trainerClients: {
                     include: {
                         trainer: {

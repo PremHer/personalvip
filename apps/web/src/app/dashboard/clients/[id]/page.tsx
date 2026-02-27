@@ -6,7 +6,7 @@ import { clientsApi, attendanceApi, membershipsApi } from '@/lib/api';
 import {
     ArrowLeft, User, Mail, Phone, Calendar, Activity,
     Clock, Shield, AlertTriangle, Heart, UserCheck,
-    TrendingUp, Star,
+    TrendingUp, Star, DollarSign,
 } from 'lucide-react';
 
 export default function ClientProfilePage() {
@@ -237,6 +237,49 @@ export default function ClientProfilePage() {
                             </div>
                         ) : (
                             <div className="empty-state" style={{ padding: '30px' }}>Sin membresías</div>
+                        )}
+                    </div>
+
+                    {/* Payment History */}
+                    <div className="glass-card" style={{ padding: '20px' }}>
+                        <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <DollarSign size={16} color="#10B981" /> Historial de Pagos
+                            {(client.sales?.length || 0) > 0 && (
+                                <span className="badge badge-active" style={{ fontSize: '10px' }}>{client.sales.length}</span>
+                            )}
+                        </h3>
+                        {(client.sales?.length || 0) > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                {client.sales.map((s: any) => (
+                                    <div key={s.id} style={{
+                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                        padding: '10px 12px', borderRadius: '8px', background: 'var(--color-surface-2)',
+                                    }}>
+                                        <div>
+                                            <div style={{ fontSize: '13px', fontWeight: 500 }}>
+                                                {s.items?.map((i: any) => i.product?.name || 'Producto').join(', ') || 'Venta'}
+                                            </div>
+                                            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                                                {formatDate(s.createdAt)} · {s.cashier?.name || '—'}
+                                            </div>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ fontSize: '14px', fontWeight: 700, color: '#10B981' }}>
+                                                S/{Number(s.total).toFixed(2)}
+                                            </div>
+                                            <span style={{
+                                                fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '4px',
+                                                background: s.paymentMethod === 'CASH' ? 'rgba(16,185,129,0.1)' : s.paymentMethod === 'CARD' ? 'rgba(124,58,237,0.1)' : 'rgba(6,182,212,0.1)',
+                                                color: s.paymentMethod === 'CASH' ? '#10B981' : s.paymentMethod === 'CARD' ? '#7C3AED' : '#06B6D4',
+                                            }}>
+                                                {s.paymentMethod === 'CASH' ? 'Efectivo' : s.paymentMethod === 'CARD' ? 'Tarjeta' : 'Transf.'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="empty-state" style={{ padding: '30px' }}>Sin compras registradas</div>
                         )}
                     </div>
 

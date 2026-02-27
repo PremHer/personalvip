@@ -16,6 +16,7 @@ export default function ClientsPage() {
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
+    const [memberFilter, setMemberFilter] = useState('');
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingClient, setEditingClient] = useState<any>(null);
@@ -230,6 +231,20 @@ export default function ClientsPage() {
                     onChange={(e) => { setSearch(e.target.value); setPage(1); }} style={{ paddingLeft: '38px' }} />
             </div>
 
+            {/* Filters */}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '4px', background: 'var(--color-surface)', borderRadius: '10px', padding: '3px', border: '1px solid var(--color-border)' }}>
+                    {[{ val: '', label: 'Todos' }, { val: 'active', label: 'Con Membresía' }, { val: 'expired', label: 'Vencida' }, { val: 'none', label: 'Sin Membresía' }].map(f => (
+                        <button key={f.val} onClick={() => setMemberFilter(f.val)} style={{
+                            padding: '5px 12px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                            background: memberFilter === f.val ? 'var(--color-primary)' : 'transparent',
+                            color: memberFilter === f.val ? 'white' : 'var(--color-text-muted)',
+                            transition: 'all 0.15s',
+                        }}>{f.label}</button>
+                    ))}
+                </div>
+            </div>
+
             {/* Table */}
             {loading ? (
                 <SkeletonTable rows={8} cols={5} />
@@ -240,7 +255,13 @@ export default function ClientsPage() {
                             <tr><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Membresía</th><th>Vence</th><th>Estado</th><th style={{ width: '120px' }}>Acciones</th></tr>
                         </thead>
                         <tbody>
-                            {clients.map((c) => (
+                            {clients.filter(c => {
+                                if (!memberFilter) return true;
+                                if (memberFilter === 'active') return c.activeMembership?.status === 'ACTIVE';
+                                if (memberFilter === 'expired') return c.activeMembership && c.activeMembership.status !== 'ACTIVE';
+                                if (memberFilter === 'none') return !c.activeMembership;
+                                return true;
+                            }).map((c) => (
                                 <tr key={c.id}>
                                     <td style={{ fontWeight: 500, color: 'var(--color-text)' }}>{c.name}</td>
                                     <td>{c.email || '—'}</td>

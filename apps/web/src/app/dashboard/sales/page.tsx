@@ -17,6 +17,7 @@ export default function SalesPage() {
     const [saleItems, setSaleItems] = useState<{ productId: string; quantity: number; name: string; price: number }[]>([]);
     const [paymentMethod, setPaymentMethod] = useState('CASH');
     const [clientName, setClientName] = useState('');
+    const [payFilter, setPayFilter] = useState('');
 
     useEffect(() => { loadSales(); }, [page]);
 
@@ -59,12 +60,24 @@ export default function SalesPage() {
                 <button className="btn-primary" onClick={openNewSale}><ShoppingCart size={16} /> Nueva Venta</button>
             </div>
 
+            {/* Payment filter */}
+            <div style={{ display: 'flex', gap: '4px', marginBottom: '16px', background: 'var(--color-surface)', borderRadius: '10px', padding: '3px', border: '1px solid var(--color-border)', width: 'fit-content' }}>
+                {[{ val: '', label: 'Todos' }, { val: 'CASH', label: 'Efectivo' }, { val: 'CARD', label: 'Tarjeta' }, { val: 'TRANSFER', label: 'Transf.' }].map(f => (
+                    <button key={f.val} onClick={() => setPayFilter(f.val)} style={{
+                        padding: '5px 12px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                        background: payFilter === f.val ? 'var(--color-primary)' : 'transparent',
+                        color: payFilter === f.val ? 'white' : 'var(--color-text-muted)',
+                        transition: 'all 0.15s',
+                    }}>{f.label}</button>
+                ))}
+            </div>
+
             {loading ? <SkeletonTable rows={6} cols={6} /> : (
                 <div className="table-container">
                     <table className="data-table">
                         <thead><tr><th>ID</th><th>Fecha</th><th>Cliente</th><th>Items</th><th>Método</th><th>Total</th></tr></thead>
                         <tbody>
-                            {sales.map((s) => (
+                            {sales.filter(s => !payFilter || s.paymentMethod === payFilter).map((s) => (
                                 <tr key={s.id}>
                                     <td style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{s.id.slice(0, 8)}</td>
                                     <td>{new Date(s.createdAt).toLocaleDateString('es-ES')} {new Date(s.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</td>
