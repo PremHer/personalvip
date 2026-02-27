@@ -176,7 +176,7 @@ export default function DashboardPage() {
             )}
 
             {/* KPI Cards - Row 1 */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '16px' }}>
                 {[
                     {
                         label: 'Ingresos Hoy',
@@ -247,7 +247,7 @@ export default function DashboardPage() {
             </div>
 
             {/* KPI Cards - Row 2: Clients */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', marginBottom: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
                 <div className="stat-card teal" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(6,182,212,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Users size={22} color="#06B6D4" />
@@ -269,7 +269,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Charts Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '16px', marginBottom: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', marginBottom: '16px' }}>
                 {/* Area Chart - Income */}
                 <div className="glass-card" style={{ padding: '20px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -360,7 +360,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Charts Row 2 - Attendance */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', marginBottom: '24px' }}>
                 {/* Attendance Trend 7 days */}
                 <div className="glass-card" style={{ padding: '20px' }}>
                     <div style={{ marginBottom: '16px' }}>
@@ -408,7 +408,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Alerts Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
                 {/* Expiring Memberships */}
                 <div className="glass-card" style={{ padding: '20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>

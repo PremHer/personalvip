@@ -156,8 +156,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
     return (
         <div style={{ display: 'flex', minHeight: '100vh' }}>
+            {/* Mobile sidebar overlay */}
+            <div
+                className={`sidebar-overlay ${!sidebarOpen ? 'hidden' : ''}`}
+                onClick={() => setSidebarOpen(false)}
+            />
+
             {/* Sidebar */}
-            <aside style={{
+            <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`} style={{
                 width: '240px', minWidth: '240px', height: '100vh', position: 'sticky', top: 0,
                 background: 'var(--color-surface)', borderRight: '1px solid var(--color-border)',
                 display: 'flex', flexDirection: 'column', overflowY: 'auto',
@@ -246,19 +252,28 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             {/* Main content */}
             <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                 {/* Top bar */}
-                <header style={{
+                <header className="top-header" style={{
                     height: '56px', background: 'var(--color-surface)',
                     borderBottom: '1px solid var(--color-border)',
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     padding: '0 24px', position: 'sticky', top: 0, zIndex: 30,
                 }}>
-                    <div style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
-                        {new Date().toLocaleDateString('es-PE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <button
+                            className="hamburger-btn"
+                            onClick={() => setSidebarOpen(!sidebarOpen)}
+                            aria-label="Toggle menu"
+                        >
+                            {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
+                        </button>
+                        <div className="date-text" style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
+                            {new Date().toLocaleDateString('es-PE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        </div>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         {/* Global Search */}
-                        <div ref={searchRef} style={{ position: 'relative' }}>
+                        <div ref={searchRef} className="search-box" style={{ position: 'relative' }}>
                             <div style={{
                                 display: 'flex', alignItems: 'center', gap: '8px',
                                 padding: '6px 12px', borderRadius: '8px',
@@ -434,7 +449,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 </header>
 
                 {/* Page content */}
-                <div style={{ flex: 1, padding: '24px', overflowY: 'auto', background: 'var(--color-bg)' }}>
+                <div className="page-content" style={{ flex: 1, padding: '24px', overflowY: 'auto', background: 'var(--color-bg)' }}>
                     <div className="animate-in">
                         {children}
                     </div>

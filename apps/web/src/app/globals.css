@@ -578,3 +578,200 @@
     color: var(--color-info);
   }
 }
+
+/* ============================================ */
+/* ========== RESPONSIVE DESIGN =============== */
+/* ============================================ */
+
+/* --- Tablet (≤1024px) --- */
+@media (max-width: 1024px) {
+  .stat-card {
+    padding: 16px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  .modal-card {
+    max-width: 90%;
+    padding: 20px;
+  }
+}
+
+/* --- Mobile (≤768px) --- */
+@media (max-width: 768px) {
+
+  /* Sidebar: hidden by default, overlay when open */
+  .sidebar {
+    position: fixed !important;
+    left: -260px;
+    top: 0;
+    bottom: 0;
+    width: 260px !important;
+    min-width: 260px !important;
+    z-index: 100;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: none;
+  }
+
+  .sidebar.open {
+    left: 0;
+    box-shadow: 4px 0 40px rgba(0, 0, 0, 0.5);
+  }
+
+  .sidebar-overlay {
+    display: block !important;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+    backdrop-filter: blur(2px);
+  }
+
+  .sidebar-overlay.hidden {
+    display: none !important;
+  }
+
+  /* Hamburger button */
+  .hamburger-btn {
+    display: flex !important;
+  }
+
+  /* Header adjustments */
+  .top-header {
+    padding: 0 12px !important;
+  }
+
+  .top-header .date-text {
+    display: none;
+  }
+
+  .top-header .search-box {
+    display: none;
+  }
+
+  /* Page content padding */
+  .page-content {
+    padding: 16px !important;
+  }
+
+  /* Stat cards */
+  .stat-card {
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  /* Tables */
+  .table-container {
+    border-radius: 10px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    padding: 12px;
+    align-items: flex-end;
+  }
+
+  .modal-card {
+    max-width: 100%;
+    border-radius: 16px 16px 0 0;
+    max-height: 85vh;
+    padding: 20px 16px;
+  }
+
+  /* Page headers */
+  .page-header h1 {
+    font-size: 18px;
+  }
+
+  /* Buttons */
+  .btn-primary,
+  .btn-secondary {
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+
+  /* Form inputs */
+  .input-field {
+    padding: 9px 12px;
+    font-size: 14px;
+  }
+
+  /* Notification dropdown */
+  .noti-dropdown {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    border-radius: 16px 16px 0 0 !important;
+    max-height: 70vh;
+  }
+
+  /* Search results dropdown */
+  .search-dropdown {
+    position: fixed !important;
+    top: 56px !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    border-radius: 0 0 12px 12px !important;
+  }
+}
+
+/* --- Small Mobile (≤480px) --- */
+@media (max-width: 480px) {
+  .page-content {
+    padding: 12px !important;
+  }
+
+  .stat-card {
+    padding: 12px;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 7px 10px;
+    font-size: 11px;
+  }
+
+  .modal-card {
+    padding: 16px 14px;
+  }
+}
+
+/* Hamburger button - hidden on desktop */
+.hamburger-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hamburger-btn:hover {
+  background: var(--color-surface-3);
+  color: var(--color-text);
+}
