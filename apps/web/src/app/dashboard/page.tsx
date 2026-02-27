@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
 import { financeApi, membershipsApi, productsApi, attendanceApi } from '@/lib/api';
 import {
     DollarSign, TrendingUp, Users, AlertTriangle, Clock,
@@ -28,6 +29,9 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const [showExpiring, setShowExpiring] = useState(false);
     const router = useRouter();
+    const { user } = useAuth();
+    const role = user?.role || 'CLIENT';
+    const isAdmin = role === 'ADMIN' || role === 'OWNER';
 
     useEffect(() => {
         Promise.all([
@@ -89,9 +93,11 @@ export default function DashboardPage() {
             {/* Header */}
             <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                 <div>
-                    <h1 style={{ fontSize: '22px', fontWeight: 700, letterSpacing: '-0.02em' }}>Dashboard</h1>
+                    <h1 style={{ fontSize: '22px', fontWeight: 700, letterSpacing: '-0.02em' }}>
+                        {isAdmin ? 'Dashboard' : `Hola, ${user?.name?.split(' ')[0] || 'Usuario'}`}
+                    </h1>
                     <p style={{ color: 'var(--color-text-muted)', fontSize: '13px', marginTop: '2px' }}>
-                        Resumen del día — {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                        {isAdmin ? 'Resumen del día' : role === 'TRAINER' ? 'Panel de entrenador' : 'Panel de recepción'} — {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                     </p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -215,7 +221,11 @@ export default function DashboardPage() {
                         trendUp: expiring.length === 0,
                         accent: 'orange',
                     },
-                ].map((kpi, i) => (
+                ].filter(kpi => {
+                    if (isAdmin) return true;
+                    // Non-admins don't see income KPIs
+                    return !kpi.label.includes('Ingreso');
+                }).map((kpi, i) => (
                     <div key={i} className={`stat-card ${kpi.accent}`} style={{ animationDelay: `${i * 80}ms` }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                             <div style={{
@@ -265,96 +275,98 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            {/* Charts Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', marginBottom: '16px' }}>
-                {/* Area Chart - Income */}
-                <div className="glass-card" style={{ padding: '20px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <div>
-                            <h3 style={{ fontSize: '14px', fontWeight: 600 }}>Ingresos</h3>
-                            <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px' }}>Tendencia de ingresos por período</p>
-                        </div>
-                        <div style={{ display: 'flex', gap: '4px', background: 'var(--color-surface-2)', borderRadius: '8px', padding: '2px' }}>
-                            {(['week', 'month', 'year'] as const).map((p) => (
-                                <button
-                                    key={p}
-                                    onClick={() => setChartPeriod(p)}
-                                    style={{
-                                        padding: '5px 12px', borderRadius: '6px', border: 'none',
-                                        fontSize: '11px', fontWeight: 600, cursor: 'pointer',
-                                        background: chartPeriod === p ? 'var(--color-primary)' : 'transparent',
-                                        color: chartPeriod === p ? 'white' : 'var(--color-text-muted)',
-                                        transition: 'all 0.15s ease',
-                                    }}
-                                >
-                                    {p === 'week' ? '7D' : p === 'month' ? '30D' : '1A'}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                    <ResponsiveContainer width="100%" height={240}>
-                        <AreaChart data={chartData}>
-                            <defs>
-                                <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#7C3AED" stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor="#7C3AED" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" />
-                            <XAxis dataKey="date" stroke="#64748B" fontSize={10} tickLine={false} axisLine={false}
-                                tickFormatter={(v) => { const d = new Date(v); return `${d.getDate()}/${d.getMonth() + 1}`; }} />
-                            <YAxis stroke="#64748B" fontSize={10} tickLine={false} axisLine={false}
-                                tickFormatter={(v) => `S/${v}`} />
-                            <Tooltip
-                                contentStyle={{ background: '#1F2937', border: '1px solid rgba(148,163,184,0.12)', borderRadius: '10px', fontSize: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}
-                                formatter={(value: any) => [`S/${Number(value).toFixed(2)}`, 'Ingresos']}
-                                labelFormatter={(label) => new Date(label).toLocaleDateString('es-ES')}
-                            />
-                            <Area type="monotone" dataKey="total" stroke="#7C3AED" strokeWidth={2} fill="url(#colorIncome)" />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </div>
-
-                {/* Pie Chart */}
-                <div className="glass-card" style={{ padding: '20px' }}>
-                    <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '4px' }}>Métodos de Pago</h3>
-                    <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>Distribución del día</p>
-                    {paymentData.length > 0 ? (
-                        <>
-                            <ResponsiveContainer width="100%" height={160}>
-                                <PieChart>
-                                    <Pie
-                                        data={paymentData} cx="50%" cy="50%"
-                                        innerRadius={45} outerRadius={70}
-                                        dataKey="value" stroke="none"
+            {/* Charts Row - Financial (Admin only) */}
+            {isAdmin && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+                    {/* Area Chart - Income */}
+                    <div className="glass-card" style={{ padding: '20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <div>
+                                <h3 style={{ fontSize: '14px', fontWeight: 600 }}>Ingresos</h3>
+                                <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px' }}>Tendencia de ingresos por período</p>
+                            </div>
+                            <div style={{ display: 'flex', gap: '4px', background: 'var(--color-surface-2)', borderRadius: '8px', padding: '2px' }}>
+                                {(['week', 'month', 'year'] as const).map((p) => (
+                                    <button
+                                        key={p}
+                                        onClick={() => setChartPeriod(p)}
+                                        style={{
+                                            padding: '5px 12px', borderRadius: '6px', border: 'none',
+                                            fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                                            background: chartPeriod === p ? 'var(--color-primary)' : 'transparent',
+                                            color: chartPeriod === p ? 'white' : 'var(--color-text-muted)',
+                                            transition: 'all 0.15s ease',
+                                        }}
                                     >
-                                        {paymentData.map((_, i) => (
-                                            <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip
-                                        contentStyle={{ background: '#1F2937', border: '1px solid rgba(148,163,184,0.12)', borderRadius: '10px', fontSize: '12px' }}
-                                        formatter={(value: any) => [`S/${Number(value).toFixed(2)}`]}
-                                    />
-                                </PieChart>
-                            </ResponsiveContainer>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
-                                {paymentData.map((d, i) => (
-                                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: PIE_COLORS[i] }} />
-                                            <span style={{ color: 'var(--color-text-secondary)' }}>{d.name}</span>
-                                        </div>
-                                        <span style={{ fontWeight: 600 }}>S/{d.value.toFixed(2)}</span>
-                                    </div>
+                                        {p === 'week' ? '7D' : p === 'month' ? '30D' : '1A'}
+                                    </button>
                                 ))}
                             </div>
-                        </>
-                    ) : (
-                        <div className="empty-state">Sin ventas hoy</div>
-                    )}
+                        </div>
+                        <ResponsiveContainer width="100%" height={240}>
+                            <AreaChart data={chartData}>
+                                <defs>
+                                    <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#7C3AED" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#7C3AED" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" />
+                                <XAxis dataKey="date" stroke="#64748B" fontSize={10} tickLine={false} axisLine={false}
+                                    tickFormatter={(v) => { const d = new Date(v); return `${d.getDate()}/${d.getMonth() + 1}`; }} />
+                                <YAxis stroke="#64748B" fontSize={10} tickLine={false} axisLine={false}
+                                    tickFormatter={(v) => `S/${v}`} />
+                                <Tooltip
+                                    contentStyle={{ background: '#1F2937', border: '1px solid rgba(148,163,184,0.12)', borderRadius: '10px', fontSize: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)' }}
+                                    formatter={(value: any) => [`S/${Number(value).toFixed(2)}`, 'Ingresos']}
+                                    labelFormatter={(label) => new Date(label).toLocaleDateString('es-ES')}
+                                />
+                                <Area type="monotone" dataKey="total" stroke="#7C3AED" strokeWidth={2} fill="url(#colorIncome)" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                    {/* Pie Chart */}
+                    <div className="glass-card" style={{ padding: '20px' }}>
+                        <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '4px' }}>Métodos de Pago</h3>
+                        <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>Distribución del día</p>
+                        {paymentData.length > 0 ? (
+                            <>
+                                <ResponsiveContainer width="100%" height={160}>
+                                    <PieChart>
+                                        <Pie
+                                            data={paymentData} cx="50%" cy="50%"
+                                            innerRadius={45} outerRadius={70}
+                                            dataKey="value" stroke="none"
+                                        >
+                                            {paymentData.map((_, i) => (
+                                                <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip
+                                            contentStyle={{ background: '#1F2937', border: '1px solid rgba(148,163,184,0.12)', borderRadius: '10px', fontSize: '12px' }}
+                                            formatter={(value: any) => [`S/${Number(value).toFixed(2)}`]}
+                                        />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
+                                    {paymentData.map((d, i) => (
+                                        <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '12px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: PIE_COLORS[i] }} />
+                                                <span style={{ color: 'var(--color-text-secondary)' }}>{d.name}</span>
+                                            </div>
+                                            <span style={{ fontWeight: 600 }}>S/{d.value.toFixed(2)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        ) : (
+                            <div className="empty-state">Sin ventas hoy</div>
+                        )}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Charts Row 2 - Attendance */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', marginBottom: '24px' }}>
@@ -444,39 +456,41 @@ export default function DashboardPage() {
                     )}
                 </div>
 
-                {/* Low Stock */}
-                <div className="glass-card" style={{ padding: '20px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                        <Package size={16} color="var(--color-danger)" />
-                        <h3 style={{ fontSize: '14px', fontWeight: 600 }}>Stock Bajo</h3>
-                        {lowStock.length > 0 && (
-                            <span className="badge badge-expired">{lowStock.length}</span>
+                {/* Low Stock (Admin only) */}
+                {isAdmin && (
+                    <div className="glass-card" style={{ padding: '20px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                            <Package size={16} color="var(--color-danger)" />
+                            <h3 style={{ fontSize: '14px', fontWeight: 600 }}>Stock Bajo</h3>
+                            {lowStock.length > 0 && (
+                                <span className="badge badge-expired">{lowStock.length}</span>
+                            )}
+                        </div>
+                        {lowStock.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {lowStock.slice(0, 5).map((p) => (
+                                    <div key={p.id} style={{
+                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                        padding: '10px 12px', borderRadius: '10px', background: 'var(--color-surface-2)',
+                                    }}>
+                                        <div>
+                                            <div style={{ fontSize: '13px', fontWeight: 500 }}>{p.name}</div>
+                                            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{p.category}</div>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-danger)' }}>{p.stock}</div>
+                                            <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>mín: {p.minStock}</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="empty-state" style={{ padding: '24px' }}>
+                                📦 Todo el stock en orden
+                            </div>
                         )}
                     </div>
-                    {lowStock.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            {lowStock.slice(0, 5).map((p) => (
-                                <div key={p.id} style={{
-                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                    padding: '10px 12px', borderRadius: '10px', background: 'var(--color-surface-2)',
-                                }}>
-                                    <div>
-                                        <div style={{ fontSize: '13px', fontWeight: 500 }}>{p.name}</div>
-                                        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{p.category}</div>
-                                    </div>
-                                    <div style={{ textAlign: 'right' }}>
-                                        <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-danger)' }}>{p.stock}</div>
-                                        <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>mín: {p.minStock}</div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="empty-state" style={{ padding: '24px' }}>
-                            📦 Todo el stock en orden
-                        </div>
-                    )}
-                </div>
+                )}
             </div>
         </div>
     );
