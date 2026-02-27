@@ -115,7 +115,7 @@ async function main() {
         { name: 'Diego Castro', email: 'diego@email.com', phone: '0995555555', qrCode: 'GYM-DIEG0005' },
     ];
 
-    const createdClients = [];
+    const createdClients: any[] = [];
     for (const client of clients) {
         const c = await prisma.client.upsert({
             where: { qrCode: client.qrCode },
