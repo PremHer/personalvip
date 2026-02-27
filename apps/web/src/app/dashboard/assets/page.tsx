@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { assetsApi } from '@/lib/api';
+import { useUI } from '@/lib/ui-context';
 import { Plus, Edit, Trash2, X, Wrench } from 'lucide-react';
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
@@ -11,6 +12,7 @@ const STATUS_MAP: Record<string, { label: string; cls: string }> = {
 };
 
 export default function AssetsPage() {
+    const { toast, confirm } = useUI();
     const [assets, setAssets] = useState<any[]>([]);
     const [filter, setFilter] = useState('');
     const [loading, setLoading] = useState(true);
@@ -30,9 +32,9 @@ export default function AssetsPage() {
         e.preventDefault();
         try {
             const data = { ...form, purchasePrice: Number(form.purchasePrice), purchaseDate: form.purchaseDate ? new Date(form.purchaseDate).toISOString() : undefined };
-            if (editing) { await assetsApi.update(editing.id, data); } else { await assetsApi.create(data); }
+            if (editing) { await assetsApi.update(editing.id, data); toast('Activo actualizado'); } else { await assetsApi.create(data); toast('Activo creado correctamente'); }
             setShowModal(false); setEditing(null); loadAssets();
-        } catch (e: any) { alert(e.message); }
+        } catch (e: any) { toast(e.message || 'Error al guardar', 'error'); }
     };
 
     const openEdit = (a: any) => {
@@ -79,7 +81,7 @@ export default function AssetsPage() {
                                     <td>
                                         <div style={{ display: 'flex', gap: '4px' }}>
                                             <button className="btn-icon" onClick={() => openEdit(a)} title="Editar"><Edit size={14} /></button>
-                                            <button className="btn-icon danger" onClick={async () => { if (confirm(`¿Eliminar ${a.name}?`)) { await assetsApi.delete(a.id); loadAssets(); } }} title="Eliminar"><Trash2 size={14} /></button>
+                                            <button className="btn-icon danger" onClick={async () => { const ok = await confirm({ title: '¿Eliminar activo?', message: `Se eliminará "${a.name}" permanentemente.`, confirmText: 'Eliminar', danger: true }); if (ok) { await assetsApi.delete(a.id); toast('Activo eliminado'); loadAssets(); } }} title="Eliminar"><Trash2 size={14} /></button>
                                         </div>
                                     </td>
                                 </tr>

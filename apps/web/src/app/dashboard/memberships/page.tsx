@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { plansApi, membershipsApi, clientsApi } from '@/lib/api';
+import { useUI } from '@/lib/ui-context';
 import { CreditCard, Plus, X, Snowflake, Play, Ban, AlertTriangle, DollarSign, Tag } from 'lucide-react';
 
 export default function MembershipsPage() {
+    const { toast, confirm } = useUI();
     const [plans, setPlans] = useState<any[]>([]);
     const [expiring, setExpiring] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -34,7 +36,8 @@ export default function MembershipsPage() {
         try {
             await plansApi.create({ ...planForm, durationDays: Number(planForm.durationDays), price: Number(planForm.price) });
             setShowPlanModal(false); setPlanForm({ name: '', durationDays: 30, price: 0, description: '' }); loadData();
-        } catch (e: any) { alert(e.message); }
+            toast('Plan creado correctamente');
+        } catch (e: any) { toast(e.message || 'Error al crear plan', 'error'); }
     };
 
     const handleAssign = async (e: React.FormEvent) => {
@@ -42,12 +45,13 @@ export default function MembershipsPage() {
         try {
             await membershipsApi.assign({ ...assignForm, amountPaid: Number(assignForm.amountPaid) });
             setShowAssignModal(false); setAssignForm({ clientId: '', planId: '', amountPaid: 0 }); loadData();
-        } catch (e: any) { alert(e.message); }
+            toast('Membresía asignada correctamente');
+        } catch (e: any) { toast(e.message || 'Error al asignar', 'error'); }
     };
 
-    const handleFreeze = async (id: string) => { if (confirm('¿Congelar esta membresía?')) { await membershipsApi.freeze(id); loadData(); } };
-    const handleUnfreeze = async (id: string) => { await membershipsApi.unfreeze(id); loadData(); };
-    const handleCancel = async (id: string) => { if (confirm('¿Cancelar esta membresía?')) { await membershipsApi.cancel(id); loadData(); } };
+    const handleFreeze = async (id: string) => { const ok = await confirm({ title: '¿Congelar membresía?', message: 'La membresía se pausará temporalmente.', confirmText: 'Congelar' }); if (ok) { await membershipsApi.freeze(id); toast('Membresía congelada'); loadData(); } };
+    const handleUnfreeze = async (id: string) => { await membershipsApi.unfreeze(id); toast('Membresía reactivada'); loadData(); };
+    const handleCancel = async (id: string) => { const ok = await confirm({ title: '¿Cancelar membresía?', message: 'Esta acción no se puede deshacer.', confirmText: 'Cancelar Membresía', danger: true }); if (ok) { await membershipsApi.cancel(id); toast('Membresía cancelada'); loadData(); } };
 
     if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '100px' }}><div className="spinner spinner-lg" /></div>;
 

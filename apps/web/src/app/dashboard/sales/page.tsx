@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { salesApi, productsApi } from '@/lib/api';
+import { useUI } from '@/lib/ui-context';
 import { Plus, X, DollarSign, Package, ShoppingCart, Minus } from 'lucide-react';
 
 export default function SalesPage() {
+    const { toast } = useUI();
     const [sales, setSales] = useState<any[]>([]);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
@@ -41,11 +43,12 @@ export default function SalesPage() {
 
     const handleCreateSale = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (saleItems.length === 0) return alert('Agrega al menos un producto');
+        if (saleItems.length === 0) return toast('Agrega al menos un producto', 'warning');
         try {
             await salesApi.create({ items: saleItems.map(i => ({ productId: i.productId, quantity: i.quantity })), paymentMethod, clientName: clientName || undefined });
             setShowModal(false); loadSales();
-        } catch (e: any) { alert(e.message); }
+            toast('Venta registrada correctamente');
+        } catch (e: any) { toast(e.message || 'Error al registrar venta', 'error'); }
     };
 
     return (

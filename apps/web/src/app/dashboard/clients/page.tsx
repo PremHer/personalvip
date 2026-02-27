@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { clientsApi, plansApi, membershipsApi } from '@/lib/api';
+import { useUI } from '@/lib/ui-context';
 import { exportToCSV } from '@/lib/export';
 import { Search, Plus, Edit, Trash2, X, UserPlus, Users, CreditCard, Eye, QrCode, Download, Printer } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
 export default function ClientsPage() {
     const router = useRouter();
+    const { toast, confirm } = useUI();
     const [clients, setClients] = useState<any[]>([]);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
@@ -92,16 +94,17 @@ export default function ClientsPage() {
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            if (editingClient) { await clientsApi.update(editingClient.id, form); }
-            else { await clientsApi.create(form); }
+            if (editingClient) { await clientsApi.update(editingClient.id, form); toast('Cliente actualizado correctamente'); }
+            else { await clientsApi.create(form); toast('Cliente creado correctamente'); }
             setShowModal(false); setEditingClient(null);
             setForm({ name: '', email: '', phone: '', emergencyContact: '', medicalNotes: '' });
             loadClients();
-        } catch (e: any) { alert(e.message); }
+        } catch (e: any) { toast(e.message || 'Error al guardar', 'error'); }
     };
 
     const handleDelete = async (id: string, name: string) => {
-        if (confirm(`¿Eliminar al cliente ${name}?`)) { await clientsApi.delete(id); loadClients(); }
+        const ok = await confirm({ title: '¿Eliminar cliente?', message: `Se eliminará permanentemente a "${name}" y todos sus datos asociados.`, confirmText: 'Eliminar', danger: true });
+        if (ok) { await clientsApi.delete(id); toast('Cliente eliminado'); loadClients(); }
     };
 
     const openEdit = (c: any) => {
@@ -140,7 +143,8 @@ export default function ClientsPage() {
             setShowAssignModal(false);
             setAssignClient(null);
             loadClients();
-        } catch (e: any) { alert(e.message); }
+            toast('Membresía asignada correctamente');
+        } catch (e: any) { toast(e.message || 'Error al asignar membresía', 'error'); }
         finally { setAssigning(false); }
     };
 

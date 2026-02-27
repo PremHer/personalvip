@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usersApi } from '@/lib/api';
+import { useUI } from '@/lib/ui-context';
 import { Search, Plus, Edit, X, UserCog, Shield, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 
 const roleLabels: Record<string, string> = {
@@ -31,6 +32,7 @@ export default function UsersPage() {
     const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', role: 'RECEPTIONIST' });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+    const { toast, confirm } = useUI();
 
     const loadUsers = async () => {
         setLoading(true);
@@ -71,18 +73,26 @@ export default function UsersPage() {
             }
             setShowModal(false);
             loadUsers();
+            toast(editingUser ? 'Usuario actualizado' : 'Usuario creado correctamente');
         } catch (err: any) {
             setError(err?.message || 'Error al guardar');
+            toast(err?.message || 'Error al guardar', 'error');
         }
         setSaving(false);
     };
 
     const toggleActive = async (user: any) => {
+        if (user.isActive) {
+            const ok = await confirm({ title: '¿Desactivar usuario?', message: `"${user.name}" no podrá acceder al sistema.`, confirmText: 'Desactivar', danger: true });
+            if (!ok) return;
+        }
         try {
             await usersApi.update(user.id, { isActive: !user.isActive });
+            toast(user.isActive ? 'Usuario desactivado' : 'Usuario activado');
             loadUsers();
         } catch (e) {
             console.error(e);
+            toast('Error al cambiar estado', 'error');
         }
     };
 

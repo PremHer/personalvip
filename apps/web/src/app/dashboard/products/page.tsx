@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { productsApi } from '@/lib/api';
+import { useUI } from '@/lib/ui-context';
 import { Search, Plus, Edit, Trash2, AlertTriangle, X, Package } from 'lucide-react';
 
 export default function ProductsPage() {
+    const { toast, confirm } = useUI();
     const [products, setProducts] = useState<any[]>([]);
     const [lowStock, setLowStock] = useState<any[]>([]);
     const [total, setTotal] = useState(0);
@@ -28,9 +30,9 @@ export default function ProductsPage() {
         e.preventDefault();
         try {
             const data = { ...form, costPrice: Number(form.costPrice), salePrice: Number(form.salePrice), stock: Number(form.stock), minStock: Number(form.minStock) };
-            if (editing) { await productsApi.update(editing.id, data); } else { await productsApi.create(data); }
+            if (editing) { await productsApi.update(editing.id, data); toast('Producto actualizado'); } else { await productsApi.create(data); toast('Producto creado correctamente'); }
             setShowModal(false); setEditing(null); loadProducts();
-        } catch (e: any) { alert(e.message); }
+        } catch (e: any) { toast(e.message || 'Error al guardar', 'error'); }
     };
 
     const openEdit = (p: any) => {
@@ -82,7 +84,7 @@ export default function ProductsPage() {
                                     <td>
                                         <div style={{ display: 'flex', gap: '4px' }}>
                                             <button className="btn-icon" onClick={() => openEdit(p)} title="Editar"><Edit size={14} /></button>
-                                            <button className="btn-icon danger" onClick={async () => { if (confirm(`¿Eliminar ${p.name}?`)) { await productsApi.delete(p.id); loadProducts(); } }} title="Eliminar"><Trash2 size={14} /></button>
+                                            <button className="btn-icon danger" onClick={async () => { const ok = await confirm({ title: '¿Eliminar producto?', message: `Se eliminará "${p.name}" del inventario.`, confirmText: 'Eliminar', danger: true }); if (ok) { await productsApi.delete(p.id); toast('Producto eliminado'); loadProducts(); } }} title="Eliminar"><Trash2 size={14} /></button>
                                         </div>
                                     </td>
                                 </tr>
