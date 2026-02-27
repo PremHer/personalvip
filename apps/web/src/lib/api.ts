@@ -60,6 +60,8 @@ export const authApi = {
             body: { email, password },
         }),
     profile: () => api<{ id: string; email: string; name: string; role: string }>('/auth/profile'),
+    changePassword: (currentPassword: string, newPassword: string) =>
+        api<{ message: string }>('/auth/change-password', { method: 'PATCH', body: { currentPassword, newPassword } }),
 };
 
 // ===== Clients =====

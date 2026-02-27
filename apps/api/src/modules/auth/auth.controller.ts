@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Body, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
@@ -36,6 +36,15 @@ class RegisterDto {
     phone?: string;
 }
 
+class ChangePasswordDto {
+    @IsString()
+    currentPassword!: string;
+
+    @IsString()
+    @MinLength(6)
+    newPassword!: string;
+}
+
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
@@ -52,6 +61,13 @@ export class AuthController {
     @ApiBearerAuth()
     async register(@Body() dto: RegisterDto) {
         return this.authService.register(dto);
+    }
+
+    @Patch('change-password')
+    @UseGuards(AuthGuard('jwt'))
+    @ApiBearerAuth()
+    async changePassword(@CurrentUser() user: { id: string }, @Body() dto: ChangePasswordDto) {
+        return this.authService.changePassword(user.id, dto.currentPassword, dto.newPassword);
     }
 
     @Get('profile')

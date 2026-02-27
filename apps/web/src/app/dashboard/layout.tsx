@@ -1,14 +1,15 @@
 'use client';
 
 import { useAuth } from '@/lib/auth-context';
-import { membershipsApi } from '@/lib/api';
+import { membershipsApi, authApi } from '@/lib/api';
+import { useUI } from '@/lib/ui-context';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, ReactNode, useState, useRef } from 'react';
 import Link from 'next/link';
 import {
     LayoutDashboard, Users, CreditCard, ClipboardList, ShoppingCart,
     Package, Wrench, BarChart3, Shield, LogOut, Menu, X,
-    Dumbbell, ChevronRight, Bell, Settings, Search, Sun, Moon,
+    Dumbbell, ChevronRight, Bell, Settings, Search, Sun, Moon, Key, Eye, EyeOff,
 } from 'lucide-react';
 
 const navItems = [
@@ -44,7 +45,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const { user, loading, logout } = useAuth();
     const router = useRouter();
     const pathname = usePathname();
+    const { toast } = useUI();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    // Password change
+    const [showPwModal, setShowPwModal] = useState(false);
+    const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    const [pwSaving, setPwSaving] = useState(false);
+    const [showCurrentPw, setShowCurrentPw] = useState(false);
+    const [showNewPw, setShowNewPw] = useState(false);
 
     // Theme toggle
     const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -238,6 +247,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>{roleLabels[user.role]}</div>
                         </div>
                     </div>
+                    <button
+                        onClick={() => setShowPwModal(true)}
+                        className="btn-secondary"
+                        style={{ width: '100%', justifyContent: 'center', fontSize: '12px', padding: '7px', marginBottom: '6px' }}
+                    >
+                        <Key size={14} />
+                        Cambiar Contraseña
+                    </button>
                     <button
                         onClick={logout}
                         className="btn-secondary"
@@ -455,6 +472,65 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     </div>
                 </div>
             </main>
+
+            {/* Change Password Modal */}
+            {showPwModal && (
+                <div className="modal-overlay" onClick={() => setShowPwModal(false)}>
+                    <div className="modal-card slide-up" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h2 style={{ fontSize: '16px', fontWeight: 700 }}>Cambiar Contraseña</h2>
+                            <button className="btn-icon" onClick={() => setShowPwModal(false)}><X size={16} /></button>
+                        </div>
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            if (pwForm.newPassword !== pwForm.confirmPassword) { toast('Las contraseñas no coinciden', 'error'); return; }
+                            if (pwForm.newPassword.length < 6) { toast('La nueva contraseña debe tener al menos 6 caracteres', 'warning'); return; }
+                            setPwSaving(true);
+                            try {
+                                await authApi.changePassword(pwForm.currentPassword, pwForm.newPassword);
+                                toast('Contraseña actualizada correctamente');
+                                setShowPwModal(false);
+                                setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                            } catch (err: any) { toast(err?.message || 'Error al cambiar contraseña', 'error'); }
+                            setPwSaving(false);
+                        }} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                            <div>
+                                <label className="form-label">Contraseña Actual</label>
+                                <div style={{ position: 'relative' }}>
+                                    <input className="input-field" type={showCurrentPw ? 'text' : 'password'} value={pwForm.currentPassword}
+                                        onChange={e => setPwForm({ ...pwForm, currentPassword: e.target.value })} required style={{ paddingRight: '38px' }} />
+                                    <button type="button" onClick={() => setShowCurrentPw(!showCurrentPw)} style={{
+                                        position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
+                                        background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '4px',
+                                    }}>{showCurrentPw ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="form-label">Nueva Contraseña</label>
+                                <div style={{ position: 'relative' }}>
+                                    <input className="input-field" type={showNewPw ? 'text' : 'password'} value={pwForm.newPassword}
+                                        onChange={e => setPwForm({ ...pwForm, newPassword: e.target.value })} required minLength={6} style={{ paddingRight: '38px' }} />
+                                    <button type="button" onClick={() => setShowNewPw(!showNewPw)} style={{
+                                        position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
+                                        background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '4px',
+                                    }}>{showNewPw ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="form-label">Confirmar Nueva Contraseña</label>
+                                <input className="input-field" type="password" value={pwForm.confirmPassword}
+                                    onChange={e => setPwForm({ ...pwForm, confirmPassword: e.target.value })} required minLength={6} />
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                                <button type="button" className="btn-secondary" onClick={() => setShowPwModal(false)}>Cancelar</button>
+                                <button type="submit" className="btn-primary" disabled={pwSaving}>
+                                    {pwSaving ? <><div className="spinner" style={{ width: '14px', height: '14px' }} /> Guardando...</> : 'Actualizar'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

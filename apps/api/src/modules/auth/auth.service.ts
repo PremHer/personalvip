@@ -90,4 +90,17 @@ export class AuthService {
             phone: user.phone || undefined,
         };
     }
+
+    async changePassword(userId: string, currentPassword: string, newPassword: string) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId } });
+        if (!user) throw new UnauthorizedException('Usuario no encontrado');
+
+        const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
+        if (!isValid) throw new UnauthorizedException('Contraseña actual incorrecta');
+
+        const passwordHash = await bcrypt.hash(newPassword, 12);
+        await this.prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+
+        return { message: 'Contraseña actualizada correctamente' };
+    }
 }
