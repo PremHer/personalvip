@@ -162,6 +162,9 @@ export const usersApi = {
             `/users?page=${page}&limit=${limit}${search ? `&search=${search}` : ''}`,
         ),
     update: (id: string, data: any) => api<any>(`/users/${id}`, { method: 'PATCH', body: data }),
+    register: (data: { email: string; password: string; name: string; role?: string; phone?: string }) =>
+        api<any>('/auth/register', { method: 'POST', body: data }),
+    deactivate: (id: string) => api<any>(`/users/${id}`, { method: 'PATCH', body: { isActive: false } }),
 };
 
 // ===== Audit =====

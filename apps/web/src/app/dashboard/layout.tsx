@@ -13,6 +13,7 @@ import {
 
 const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['ADMIN', 'OWNER', 'RECEPTIONIST', 'TRAINER'] },
+    { href: '/dashboard/users', icon: Settings, label: 'Usuarios', roles: ['ADMIN', 'OWNER'] },
     { href: '/dashboard/clients', icon: Users, label: 'Clientes', roles: ['ADMIN', 'OWNER', 'RECEPTIONIST'] },
     { href: '/dashboard/memberships', icon: CreditCard, label: 'Membresías', roles: ['ADMIN', 'OWNER', 'RECEPTIONIST'] },
     { href: '/dashboard/attendance', icon: ClipboardList, label: 'Asistencia', roles: ['ADMIN', 'OWNER', 'RECEPTIONIST'] },
