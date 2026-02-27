@@ -3,10 +3,13 @@
 import { useEffect, useState } from 'react';
 import { financeApi } from '@/lib/api';
 import { exportToCSV } from '@/lib/export';
+import { generatePDFReport } from '@/lib/pdf-report';
+import { useUI } from '@/lib/ui-context';
 import { DollarSign, TrendingUp, Calendar, Wallet, Download, FileText, Filter } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 export default function FinancePage() {
+    const { toast } = useUI();
     const [dashboard, setDashboard] = useState<any>(null);
     const [chartData, setChartData] = useState<any[]>([]);
     const [dailyReport, setDailyReport] = useState<any>(null);
@@ -67,6 +70,69 @@ export default function FinancePage() {
         exportToCSV(data, `reporte_diario_${selectedDate}`);
     };
 
+    const handleExportDailyPDF = () => {
+        if (!dailyReport) return;
+        generatePDFReport({
+            title: 'Reporte Diario',
+            subtitle: `GymCore — ${new Date(dailyReport.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`,
+            sections: [
+                {
+                    title: 'Resumen del Día',
+                    data: [
+                        { label: 'Total Ingresos', value: `S/${Number(dailyReport.totalIncome || 0).toFixed(2)}` },
+                        { label: 'Total Ventas', value: String(dailyReport.totalSales || 0) },
+                        { label: 'Asistencia', value: String(dailyReport.totalAttendance || 0) },
+                    ],
+                },
+                {
+                    title: 'Métodos de Pago',
+                    data: [
+                        { label: 'Efectivo', value: `S/${Number(dailyReport.cashAmount || 0).toFixed(2)}` },
+                        { label: 'Tarjeta', value: `S/${Number(dailyReport.cardAmount || 0).toFixed(2)}` },
+                        { label: 'Transferencia', value: `S/${Number(dailyReport.transferAmount || 0).toFixed(2)}` },
+                    ],
+                },
+            ],
+            fileName: `reporte_diario_${selectedDate}`,
+        });
+        toast('PDF generado correctamente');
+    };
+
+    const handleExportSalesPDF = () => {
+        if (!salesReport?.sales?.length) return;
+        generatePDFReport({
+            title: 'Reporte de Ventas',
+            subtitle: `GymCore — Del ${reportFrom} al ${reportTo}`,
+            sections: [
+                {
+                    title: 'Resumen',
+                    data: [
+                        { label: 'Total Ventas', value: String(salesReport.summary.totalSales) },
+                        { label: 'Monto Total', value: `S/${salesReport.summary.totalAmount.toFixed(2)}` },
+                        ...Object.entries(salesReport.summary.byMethod || {}).map(([m, v]: any) => ({
+                            label: m === 'CASH' ? 'Efectivo' : m === 'CARD' ? 'Tarjeta' : 'Transferencia',
+                            value: `S/${Number(v).toFixed(2)}`,
+                        })),
+                    ],
+                },
+            ],
+            table: {
+                head: ['Fecha', 'Hora', 'Cliente', 'Cajero', 'Productos', 'Total', 'Pago'],
+                body: salesReport.sales.map((s: any) => [
+                    new Date(s.date).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }),
+                    new Date(s.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+                    s.client || '—',
+                    s.cashier || '—',
+                    s.items.map((i: any) => `${i.product} x${i.quantity}`).join(', '),
+                    `S/${s.total.toFixed(2)}`,
+                    s.paymentMethod === 'CASH' ? 'Efectivo' : s.paymentMethod === 'CARD' ? 'Tarjeta' : 'Transf.',
+                ]),
+            },
+            fileName: `ventas_${reportFrom}_${reportTo}`,
+        });
+        toast('PDF generado correctamente');
+    };
+
     // Quick range presets
     const setPreset = (type: 'today' | 'week' | 'month') => {
         const now = new Date();
@@ -91,7 +157,7 @@ export default function FinancePage() {
             <div className="page-header"><h1>Finanzas</h1><p>Análisis financiero y reportes</p></div>
 
             {/* KPIs */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '24px' }}>
                 {[
                     { label: 'Hoy', value: `S/${(dashboard?.todayIncome || 0).toFixed(2)}`, icon: DollarSign, color: 'var(--color-primary)', accent: 'purple' },
                     { label: 'Esta Semana', value: `S/${(dashboard?.weekIncome || 0).toFixed(2)}`, icon: TrendingUp, color: 'var(--color-secondary)', accent: 'teal' },
@@ -138,13 +204,16 @@ export default function FinancePage() {
                     </div>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <input type="date" className="input-field" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} style={{ width: 'auto' }} />
+                        <button className="btn-secondary" onClick={handleExportDailyPDF} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '6px 10px' }}>
+                            <Download size={12} /> PDF
+                        </button>
                         <button className="btn-secondary" onClick={handleExportDailyCSV} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', padding: '6px 10px' }}>
                             <Download size={12} /> CSV
                         </button>
                     </div>
                 </div>
                 {dailyReport ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
                         {[
                             { label: 'Total Ingresos', value: dailyReport.totalIncome, color: 'var(--color-success)' },
                             { label: 'Total Ventas', value: dailyReport.totalSales, color: 'var(--color-primary-light)', isCurrency: false },
@@ -208,9 +277,14 @@ export default function FinancePage() {
                         Generar Reporte
                     </button>
                     {salesReport?.sales?.length > 0 && (
-                        <button className="btn-secondary" onClick={handleExportSalesCSV} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px' }}>
-                            <Download size={13} /> Exportar CSV
-                        </button>
+                        <>
+                            <button className="btn-secondary" onClick={handleExportSalesPDF} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px' }}>
+                                <Download size={13} /> PDF
+                            </button>
+                            <button className="btn-secondary" onClick={handleExportSalesCSV} style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px' }}>
+                                <Download size={13} /> CSV
+                            </button>
+                        </>
                     )}
                 </div>
 
