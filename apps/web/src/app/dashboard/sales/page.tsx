@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { salesApi, productsApi } from '@/lib/api';
 import { useUI } from '@/lib/ui-context';
+import { SkeletonTable } from '@/lib/skeleton';
 import { Plus, X, DollarSign, Package, ShoppingCart, Minus } from 'lucide-react';
 
 export default function SalesPage() {
@@ -58,7 +59,7 @@ export default function SalesPage() {
                 <button className="btn-primary" onClick={openNewSale}><ShoppingCart size={16} /> Nueva Venta</button>
             </div>
 
-            {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}><div className="spinner spinner-lg" /></div> : (
+            {loading ? <SkeletonTable rows={6} cols={6} /> : (
                 <div className="table-container">
                     <table className="data-table">
                         <thead><tr><th>ID</th><th>Fecha</th><th>Cliente</th><th>Items</th><th>Método</th><th>Total</th></tr></thead>

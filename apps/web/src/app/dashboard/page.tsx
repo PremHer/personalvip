@@ -13,6 +13,7 @@ import {
     ResponsiveContainer, PieChart, Pie, Cell,
     BarChart, Bar, Legend,
 } from 'recharts';
+import { SkeletonDashboard } from '@/lib/skeleton';
 
 const PIE_COLORS = ['#7C3AED', '#06B6D4', '#F43F5E', '#F59E0B'];
 const DAYS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -50,11 +51,7 @@ export default function DashboardPage() {
     }, [chartPeriod]);
 
     if (loading) {
-        return (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
-                <div className="spinner spinner-lg" />
-            </div>
-        );
+        return <SkeletonDashboard />;
     }
 
     const inGym = attendance.filter(r => !r.checkOut).length;

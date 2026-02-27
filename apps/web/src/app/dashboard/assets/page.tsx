@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { assetsApi } from '@/lib/api';
 import { useUI } from '@/lib/ui-context';
+import { SkeletonTable } from '@/lib/skeleton';
 import { Plus, Edit, Trash2, X, Wrench } from 'lucide-react';
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
@@ -66,7 +67,7 @@ export default function AssetsPage() {
                 ))}
             </div>
 
-            {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}><div className="spinner spinner-lg" /></div> : (
+            {loading ? <SkeletonTable rows={6} cols={6} /> : (
                 <div className="table-container">
                     <table className="data-table">
                         <thead><tr><th>Equipo</th><th>Categoría</th><th>Fecha Compra</th><th>Valor</th><th>Estado</th><th style={{ width: '80px' }}>Acciones</th></tr></thead>

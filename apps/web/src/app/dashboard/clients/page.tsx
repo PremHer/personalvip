@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { clientsApi, plansApi, membershipsApi } from '@/lib/api';
 import { useUI } from '@/lib/ui-context';
+import { SkeletonTable } from '@/lib/skeleton';
 import { exportToCSV } from '@/lib/export';
 import { Search, Plus, Edit, Trash2, X, UserPlus, Users, CreditCard, Eye, QrCode, Download, Printer } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -231,7 +232,7 @@ export default function ClientsPage() {
 
             {/* Table */}
             {loading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}><div className="spinner spinner-lg" /></div>
+                <SkeletonTable rows={8} cols={5} />
             ) : (
                 <div className="table-container">
                     <table className="data-table">

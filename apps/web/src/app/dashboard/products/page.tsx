@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { productsApi } from '@/lib/api';
 import { useUI } from '@/lib/ui-context';
+import { SkeletonTable } from '@/lib/skeleton';
 import { Search, Plus, Edit, Trash2, AlertTriangle, X, Package } from 'lucide-react';
 
 export default function ProductsPage() {
@@ -66,7 +67,7 @@ export default function ProductsPage() {
                 <input className="input-field" placeholder="Buscar producto..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} style={{ paddingLeft: '38px' }} />
             </div>
 
-            {loading ? <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}><div className="spinner spinner-lg" /></div> : (
+            {loading ? <SkeletonTable rows={6} cols={6} /> : (
                 <div className="table-container">
                     <table className="data-table">
                         <thead><tr><th>Producto</th><th>Categoría</th><th>Costo</th><th>Precio</th><th>Stock</th><th style={{ width: '80px' }}>Acciones</th></tr></thead>
