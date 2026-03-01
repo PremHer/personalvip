@@ -74,7 +74,7 @@ export default function FinancePage() {
         if (!dailyReport) return;
         generatePDFReport({
             title: 'Reporte Diario',
-            subtitle: `GymCore — ${new Date(dailyReport.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`,
+            subtitle: `Personal VIP — ${new Date(dailyReport.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`,
             sections: [
                 {
                     title: 'Resumen del Día',
@@ -102,7 +102,7 @@ export default function FinancePage() {
         if (!salesReport?.sales?.length) return;
         generatePDFReport({
             title: 'Reporte de Ventas',
-            subtitle: `GymCore — Del ${reportFrom} al ${reportTo}`,
+            subtitle: `Personal VIP — Del ${reportFrom} al ${reportTo}`,
             sections: [
                 {
                     title: 'Resumen',

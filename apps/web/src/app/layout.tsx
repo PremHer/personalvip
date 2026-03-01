@@ -4,7 +4,7 @@ import { AuthProvider } from "@/lib/auth-context";
 import { UIProvider } from "@/lib/ui-context";
 
 export const metadata: Metadata = {
-  title: "GymCore - Panel Administrativo",
+  title: "Personal VIP - Panel Administrativo",
   description: "Sistema de gestión integral para gimnasios",
 };
 

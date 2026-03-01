@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authApi, setToken, removeToken } from '@/lib/api';
+import { authApi, setToken, setRefreshToken, removeToken } from '@/lib/api';
 
 interface User {
     id: string;
@@ -48,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const login = async (email: string, password: string) => {
         const data = await authApi.login(email, password);
         setToken(data.accessToken);
+        setRefreshToken(data.refreshToken);
         setUser(data.user);
     };
 

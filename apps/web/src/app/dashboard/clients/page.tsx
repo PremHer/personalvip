@@ -75,7 +75,7 @@ export default function ClientsPage() {
             h2{margin-bottom:8px;}p{color:#666;margin:4px 0;}</style></head>
             <body><h2>${qrClient.name}</h2><p>Código: ${qrClient.qrCode}</p>
             <div style="margin:20px 0">${svgData}</div>
-            <p style="font-size:12px;color:#999">GymCore — Membresía</p>
+            <p style="font-size:12px;color:#999">Personal VIP — Membresía</p>
             <script>setTimeout(()=>window.print(),300)</script></body></html>
         `);
         printWindow.document.close();

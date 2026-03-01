@@ -39,6 +39,15 @@ export class MembershipsController {
         return this.service.cancel(id);
     }
 
+    @Post('daily-pass')
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
+    assignDailyPass(
+        @Body() data: { clientId: string; amountPaid: number },
+        @CurrentUser() user: { id: string },
+    ) {
+        return this.service.assignDailyPass({ ...data, createdBy: user.id });
+    }
+
     @Get('expiring')
     @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
     getExpiring(@Query('days') days?: number) {

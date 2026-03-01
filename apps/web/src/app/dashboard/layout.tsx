@@ -13,19 +13,20 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-    { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['ADMIN', 'OWNER', 'RECEPTIONIST', 'TRAINER'] },
-    { href: '/dashboard/users', icon: Settings, label: 'Usuarios', roles: ['ADMIN', 'OWNER'] },
-    { href: '/dashboard/clients', icon: Users, label: 'Clientes', roles: ['ADMIN', 'OWNER', 'RECEPTIONIST'] },
-    { href: '/dashboard/memberships', icon: CreditCard, label: 'Membresías', roles: ['ADMIN', 'OWNER', 'RECEPTIONIST'] },
-    { href: '/dashboard/attendance', icon: ClipboardList, label: 'Asistencia', roles: ['ADMIN', 'OWNER', 'RECEPTIONIST'] },
-    { href: '/dashboard/sales', icon: ShoppingCart, label: 'Ventas', roles: ['ADMIN', 'OWNER', 'RECEPTIONIST'] },
-    { href: '/dashboard/products', icon: Package, label: 'Productos', roles: ['ADMIN', 'OWNER'] },
-    { href: '/dashboard/assets', icon: Wrench, label: 'Activos', roles: ['ADMIN', 'OWNER'] },
-    { href: '/dashboard/finance', icon: BarChart3, label: 'Finanzas', roles: ['ADMIN', 'OWNER'] },
-    { href: '/dashboard/audit', icon: Shield, label: 'Auditoría', roles: ['ADMIN', 'OWNER'] },
+    { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['SUPERADMIN', 'ADMIN', 'OWNER', 'RECEPTIONIST', 'TRAINER'] },
+    { href: '/dashboard/users', icon: Settings, label: 'Usuarios', roles: ['SUPERADMIN', 'ADMIN', 'OWNER'] },
+    { href: '/dashboard/clients', icon: Users, label: 'Clientes', roles: ['SUPERADMIN', 'ADMIN', 'OWNER', 'RECEPTIONIST'] },
+    { href: '/dashboard/memberships', icon: CreditCard, label: 'Membresías', roles: ['SUPERADMIN', 'ADMIN', 'OWNER', 'RECEPTIONIST'] },
+    { href: '/dashboard/attendance', icon: ClipboardList, label: 'Asistencia', roles: ['SUPERADMIN', 'ADMIN', 'OWNER', 'RECEPTIONIST'] },
+    { href: '/dashboard/sales', icon: ShoppingCart, label: 'Ventas', roles: ['SUPERADMIN', 'ADMIN', 'OWNER', 'RECEPTIONIST'] },
+    { href: '/dashboard/products', icon: Package, label: 'Productos', roles: ['SUPERADMIN', 'ADMIN', 'OWNER'] },
+    { href: '/dashboard/assets', icon: Wrench, label: 'Activos', roles: ['SUPERADMIN', 'ADMIN', 'OWNER'] },
+    { href: '/dashboard/finance', icon: BarChart3, label: 'Finanzas', roles: ['SUPERADMIN', 'ADMIN', 'OWNER'] },
+    { href: '/dashboard/audit', icon: Shield, label: 'Auditoría', roles: ['SUPERADMIN', 'ADMIN', 'OWNER'] },
 ];
 
 const roleLabels: Record<string, string> = {
+    SUPERADMIN: 'Super Admin',
     ADMIN: 'Administrador',
     OWNER: 'Propietario',
     TRAINER: 'Entrenador',
@@ -34,6 +35,7 @@ const roleLabels: Record<string, string> = {
 };
 
 const roleBadgeColors: Record<string, string> = {
+    SUPERADMIN: '#EF4444',
     ADMIN: '#7C3AED',
     OWNER: '#06B6D4',
     TRAINER: '#F59E0B',
@@ -182,17 +184,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     padding: '20px 16px', display: 'flex', alignItems: 'center', gap: '10px',
                     borderBottom: '1px solid var(--color-border)',
                 }}>
-                    <div style={{
+                    <img src="/logo.png" alt="Personal VIP" style={{
                         width: '36px', height: '36px', borderRadius: '10px',
-                        background: 'linear-gradient(135deg, var(--color-primary), #4F46E5)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: '0 4px 12px rgba(124,58,237,0.3)',
-                        flexShrink: 0,
-                    }}>
-                        <Dumbbell size={18} color="white" />
-                    </div>
+                        objectFit: 'cover',
+                    }} />
                     <div>
-                        <div style={{ fontWeight: 700, fontSize: '15px', letterSpacing: '-0.01em' }}>GymCore</div>
+                        <div style={{ fontWeight: 700, fontSize: '15px', letterSpacing: '-0.01em' }}>Personal VIP</div>
                         <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Panel Admin</div>
                     </div>
                 </div>

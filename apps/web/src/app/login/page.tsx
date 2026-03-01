@@ -85,7 +85,7 @@ export default function LoginPage() {
                         letterSpacing: '-0.03em',
                         marginBottom: '8px',
                     }}>
-                        GymCore
+                        Personal VIP
                     </h1>
                     <p style={{ fontSize: '15px', color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
                         Sistema integral de gestión para gimnasios
@@ -149,7 +149,7 @@ export default function LoginPage() {
                                 <input
                                     className="input-field"
                                     type="email"
-                                    placeholder="admin@gymcore.com"
+                                    placeholder="admin@personalvip.com"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
@@ -216,8 +216,8 @@ export default function LoginPage() {
                             Credenciales de demostración
                         </div>
                         {[
-                            { email: 'admin@gymcore.com', pass: 'admin123', role: 'Admin' },
-                            { email: 'recepcion@gymcore.com', pass: 'recep123', role: 'Recepción' },
+                            { email: 'admin@personalvip.com', pass: 'admin123', role: 'Admin' },
+                            { email: 'recepcion@personalvip.com', pass: 'recep123', role: 'Recepción' },
                         ].map((cred) => (
                             <button
                                 key={cred.email}

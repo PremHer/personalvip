@@ -100,7 +100,7 @@ export function generatePDFReport(options: PDFReportOptions) {
         doc.setPage(i);
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 160);
-        doc.text(`GymCore — Página ${i} de ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 8, { align: 'center' });
+        doc.text(`Personal VIP — Página ${i} de ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 8, { align: 'center' });
     }
 
     doc.save(`${options.fileName}.pdf`);

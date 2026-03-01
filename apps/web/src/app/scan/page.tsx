@@ -105,7 +105,7 @@ export default function ScanPage() {
                 }}>
                     <QrCode size={28} color="#ffffff" />
                 </div>
-                <h1 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>GymCore Scanner</h1>
+                <h1 style={{ fontSize: '20px', fontWeight: 700, margin: 0 }}>Personal VIP Scanner</h1>
                 <p style={{ fontSize: '13px', color: '#94a3b8', marginTop: '4px' }}>Escanea el QR del cliente para verificar acceso</p>
             </div>
 

@@ -11,12 +11,44 @@ function getToken(): string | null {
     return localStorage.getItem('gymcore_token');
 }
 
+function getRefreshToken(): string | null {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem('gymcore_refresh_token');
+}
+
 export function setToken(token: string) {
     localStorage.setItem('gymcore_token', token);
 }
 
+export function setRefreshToken(token: string) {
+    localStorage.setItem('gymcore_refresh_token', token);
+}
+
 export function removeToken() {
     localStorage.removeItem('gymcore_token');
+    localStorage.removeItem('gymcore_refresh_token');
+}
+
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
+async function tryRefresh(): Promise<boolean> {
+    const rt = getRefreshToken();
+    if (!rt) return false;
+    try {
+        const res = await fetch(`${API_BASE}/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken: rt }),
+        });
+        if (!res.ok) return false;
+        const data = await res.json();
+        setToken(data.accessToken);
+        setRefreshToken(data.refreshToken);
+        return true;
+    } catch {
+        return false;
+    }
 }
 
 export async function api<T = unknown>(endpoint: string, options: FetchOptions = {}): Promise<T> {
@@ -30,11 +62,30 @@ export async function api<T = unknown>(endpoint: string, options: FetchOptions =
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const res = await fetch(`${API_BASE}${endpoint}`, {
+    let res = await fetch(`${API_BASE}${endpoint}`, {
         method: options.method || 'GET',
         headers,
         body: options.body ? JSON.stringify(options.body) : undefined,
     });
+
+    // Auto-refresh on 401
+    if (res.status === 401 && endpoint !== '/auth/login' && endpoint !== '/auth/refresh') {
+        if (!isRefreshing) {
+            isRefreshing = true;
+            refreshPromise = tryRefresh().finally(() => { isRefreshing = false; });
+        }
+        const refreshed = await refreshPromise;
+        if (refreshed) {
+            // Retry original request with new token
+            const newToken = getToken();
+            if (newToken) headers['Authorization'] = `Bearer ${newToken}`;
+            res = await fetch(`${API_BASE}${endpoint}`, {
+                method: options.method || 'GET',
+                headers,
+                body: options.body ? JSON.stringify(options.body) : undefined,
+            });
+        }
+    }
 
     if (res.status === 401) {
         removeToken();
@@ -55,7 +106,7 @@ export async function api<T = unknown>(endpoint: string, options: FetchOptions =
 // ===== Auth =====
 export const authApi = {
     login: (email: string, password: string) =>
-        api<{ accessToken: string; user: { id: string; email: string; name: string; role: string; phone?: string } }>('/auth/login', {
+        api<{ accessToken: string; refreshToken: string; user: { id: string; email: string; name: string; role: string; phone?: string } }>('/auth/login', {
             method: 'POST',
             body: { email, password },
         }),
@@ -89,6 +140,8 @@ export const plansApi = {
 export const membershipsApi = {
     assign: (data: { clientId: string; planId: string; amountPaid: number; startDate?: string; mode?: 'replace' | 'queue' }) =>
         api<any>('/memberships', { method: 'POST', body: data }),
+    dailyPass: (data: { clientId: string; amountPaid: number }) =>
+        api<any>('/memberships/daily-pass', { method: 'POST', body: data }),
     freeze: (id: string) => api<any>(`/memberships/${id}/freeze`, { method: 'PATCH' }),
     unfreeze: (id: string) => api<any>(`/memberships/${id}/unfreeze`, { method: 'PATCH' }),
     cancel: (id: string) => api<any>(`/memberships/${id}/cancel`, { method: 'PATCH' }),
