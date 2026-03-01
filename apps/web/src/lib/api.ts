@@ -126,6 +126,7 @@ export const clientsApi = {
     update: (id: string, data: any) => api<any>(`/clients/${id}`, { method: 'PATCH', body: data }),
     delete: (id: string) => api(`/clients/${id}`, { method: 'DELETE' }),
     qr: (id: string) => api<string>(`/clients/${id}/qr`),
+    searchByDni: (dni: string) => api<any>(`/clients/search-dni/${encodeURIComponent(dni)}`),
 };
 
 // ===== Membership Plans =====

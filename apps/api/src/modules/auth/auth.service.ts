@@ -24,10 +24,12 @@ export class AuthService {
         }
 
         const payload = { sub: user.id, email: user.email, role: user.role };
-        const accessToken = this.jwtService.sign(payload);
+        const accessToken = this.jwtService.sign(payload, { expiresIn: '1h' });
+        const refreshToken = this.jwtService.sign({ sub: user.id, type: 'refresh' }, { expiresIn: '7d' });
 
         return {
             accessToken,
+            refreshToken,
             user: {
                 id: user.id,
                 email: user.email,
@@ -102,5 +104,23 @@ export class AuthService {
         await this.prisma.user.update({ where: { id: userId }, data: { passwordHash } });
 
         return { message: 'Contraseña actualizada correctamente' };
+    }
+
+    async refreshToken(token: string) {
+        try {
+            const decoded = this.jwtService.verify(token);
+            if (decoded.type !== 'refresh') throw new UnauthorizedException('Token inválido');
+
+            const user = await this.prisma.user.findUnique({ where: { id: decoded.sub } });
+            if (!user || !user.isActive) throw new UnauthorizedException('Usuario no válido');
+
+            const payload = { sub: user.id, email: user.email, role: user.role };
+            const accessToken = this.jwtService.sign(payload, { expiresIn: '1h' });
+            const refreshToken = this.jwtService.sign({ sub: user.id, type: 'refresh' }, { expiresIn: '7d' });
+
+            return { accessToken, refreshToken };
+        } catch {
+            throw new UnauthorizedException('Token de refresco inválido o expirado');
+        }
     }
 }

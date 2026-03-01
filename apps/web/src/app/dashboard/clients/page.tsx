@@ -20,7 +20,7 @@ export default function ClientsPage() {
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingClient, setEditingClient] = useState<any>(null);
-    const [form, setForm] = useState({ name: '', email: '', phone: '', emergencyContact: '', medicalNotes: '' });
+    const [form, setForm] = useState({ name: '', email: '', phone: '', dni: '', emergencyContact: '', medicalNotes: '' });
 
     // Assign membership modal
     const [showAssignModal, setShowAssignModal] = useState(false);
@@ -39,6 +39,10 @@ export default function ClientsPage() {
 
     // Daily pass modal
     const [showDailyPassModal, setShowDailyPassModal] = useState(false);
+    const [dpStep, setDpStep] = useState<'search' | 'form' | 'result'>('search');
+    const [dpDni, setDpDni] = useState('');
+    const [dpFound, setDpFound] = useState<any>(null);
+    const [dpSearching, setDpSearching] = useState(false);
     const [dpForm, setDpForm] = useState({ name: '', phone: '', amountPaid: 10 });
     const [dpSaving, setDpSaving] = useState(false);
     const [dpResult, setDpResult] = useState<any>(null);
@@ -105,7 +109,7 @@ export default function ClientsPage() {
             if (editingClient) { await clientsApi.update(editingClient.id, form); toast('Cliente actualizado correctamente'); }
             else { await clientsApi.create(form); toast('Cliente creado correctamente'); }
             setShowModal(false); setEditingClient(null);
-            setForm({ name: '', email: '', phone: '', emergencyContact: '', medicalNotes: '' });
+            setForm({ name: '', email: '', phone: '', dni: '', emergencyContact: '', medicalNotes: '' });
             loadClients();
         } catch (e: any) { toast(e.message || 'Error al guardar', 'error'); }
     };
@@ -117,13 +121,13 @@ export default function ClientsPage() {
 
     const openEdit = (c: any) => {
         setEditingClient(c);
-        setForm({ name: c.name, email: c.email || '', phone: c.phone || '', emergencyContact: c.emergencyContact || '', medicalNotes: c.medicalNotes || '' });
+        setForm({ name: c.name, email: c.email || '', phone: c.phone || '', dni: c.dni || '', emergencyContact: c.emergencyContact || '', medicalNotes: c.medicalNotes || '' });
         setShowModal(true);
     };
 
     const openNew = () => {
         setEditingClient(null);
-        setForm({ name: '', email: '', phone: '', emergencyContact: '', medicalNotes: '' });
+        setForm({ name: '', email: '', phone: '', dni: '', emergencyContact: '', medicalNotes: '' });
         setShowModal(true);
     };
 
@@ -164,19 +168,44 @@ export default function ClientsPage() {
         } catch (e) { console.error(e); }
     };
 
+    const handleDniSearch = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!dpDni.trim()) return;
+        setDpSearching(true);
+        try {
+            const found = await clientsApi.searchByDni(dpDni.trim());
+            if (found) {
+                setDpFound(found);
+                setDpStep('form');
+            } else {
+                setDpFound(null);
+                setDpForm({ ...dpForm, name: '', phone: '' });
+                setDpStep('form');
+            }
+        } catch {
+            setDpFound(null);
+            setDpForm({ ...dpForm, name: '', phone: '' });
+            setDpStep('form');
+        }
+        setDpSearching(false);
+    };
+
     const handleDailyPass = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!dpForm.name.trim()) return;
         setDpSaving(true);
         try {
-            // Step 1: Create the client
-            const newClient = await clientsApi.create({ name: dpForm.name.trim(), phone: dpForm.phone.trim() || undefined });
-            // Step 2: Assign daily pass
-            await membershipsApi.dailyPass({ clientId: newClient.id, amountPaid: Number(dpForm.amountPaid) });
-            // Step 3: Get the full client with QR
-            const fullClient = await clientsApi.get(newClient.id);
+            let clientId: string;
+            if (dpFound) {
+                clientId = dpFound.id;
+            } else {
+                const newClient = await clientsApi.create({ name: dpForm.name.trim(), phone: dpForm.phone.trim() || undefined, dni: dpDni.trim() || undefined });
+                clientId = newClient.id;
+            }
+            await membershipsApi.dailyPass({ clientId, amountPaid: Number(dpForm.amountPaid) });
+            const fullClient = await clientsApi.get(clientId);
             setDpResult(fullClient);
-            toast('✅ Pase Diario asignado correctamente');
+            setDpStep('result');
+            toast('\u2705 Pase Diario asignado correctamente');
             loadClients();
         } catch (e: any) { toast(e.message || 'Error al crear pase diario', 'error'); }
         finally { setDpSaving(false); }
@@ -206,6 +235,9 @@ export default function ClientsPage() {
                         <Download size={14} /> Exportar CSV
                     </button>
                     <button className="btn-secondary" onClick={() => {
+                        setDpDni('');
+                        setDpFound(null);
+                        setDpStep('search');
                         setDpForm({ name: '', phone: '', amountPaid: 10 });
                         setDpResult(null);
                         setShowDailyPassModal(true);
@@ -283,7 +315,7 @@ export default function ClientsPage() {
                 <div className="table-container">
                     <table className="data-table">
                         <thead>
-                            <tr><th>Nombre</th><th>Email</th><th>Teléfono</th><th>Membresía</th><th>Vence</th><th>Estado</th><th style={{ width: '120px' }}>Acciones</th></tr>
+                            <tr><th>Nombre</th><th>DNI</th><th>Email</th><th>Teléfono</th><th>Membresía</th><th>Vence</th><th>Estado</th><th style={{ width: '120px' }}>Acciones</th></tr>
                         </thead>
                         <tbody>
                             {clients.filter(c => {
@@ -295,6 +327,7 @@ export default function ClientsPage() {
                             }).map((c) => (
                                 <tr key={c.id}>
                                     <td style={{ fontWeight: 500, color: 'var(--color-text)' }}>{c.name}</td>
+                                    <td style={{ fontSize: '12px', fontFamily: 'monospace' }}>{c.dni || '—'}</td>
                                     <td>{c.email || '—'}</td>
                                     <td>{c.phone || '—'}</td>
                                     <td>{c.activeMembership?.plan?.name || <span style={{ color: 'var(--color-text-muted)' }}>—</span>}</td>
@@ -326,7 +359,7 @@ export default function ClientsPage() {
                                 </tr>
                             ))}
                             {clients.length === 0 && (
-                                <tr><td colSpan={7} className="empty-state">No se encontraron clientes</td></tr>
+                                <tr><td colSpan={8} className="empty-state">No se encontraron clientes</td></tr>
                             )}
                         </tbody>
                     </table>
@@ -359,9 +392,12 @@ export default function ClientsPage() {
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div><label className="form-label">Email</label><input className="input-field" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-                                <div><label className="form-label">Teléfono</label><input className="input-field" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+                                <div><label className="form-label">DNI</label><input className="input-field" placeholder="12345678" value={form.dni} onChange={(e) => setForm({ ...form, dni: e.target.value })} /></div>
                             </div>
-                            <div><label className="form-label">Contacto de Emergencia</label><input className="input-field" value={form.emergencyContact} onChange={(e) => setForm({ ...form, emergencyContact: e.target.value })} /></div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                <div><label className="form-label">Teléfono</label><input className="input-field" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+                                <div><label className="form-label">Contacto de Emergencia</label><input className="input-field" value={form.emergencyContact} onChange={(e) => setForm({ ...form, emergencyContact: e.target.value })} /></div>
+                            </div>
                             <div><label className="form-label">Notas Médicas</label><textarea className="input-field" rows={2} value={form.medicalNotes} onChange={(e) => setForm({ ...form, medicalNotes: e.target.value })} style={{ resize: 'vertical' }} /></div>
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
                                 <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
@@ -649,49 +685,86 @@ export default function ClientsPage() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                             <div>
                                 <h2 style={{ fontSize: '16px', fontWeight: 700 }}>⚡ Pase Diario</h2>
-                                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>Registro rápido + acceso por 1 día</p>
+                                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                                    {dpStep === 'search' ? 'Buscar cliente por DNI' : dpStep === 'form' ? (dpFound ? 'Cliente encontrado' : 'Registrar nuevo cliente') : 'Pase asignado'}
+                                </p>
                             </div>
                             <button className="btn-icon" onClick={() => setShowDailyPassModal(false)}><X size={16} /></button>
                         </div>
 
-                        {!dpResult ? (
-                            <form onSubmit={handleDailyPass} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        {/* Step 1: DNI Search */}
+                        {dpStep === 'search' && (
+                            <form onSubmit={handleDniSearch} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                                 <div>
-                                    <label className="form-label">Nombre del Cliente *</label>
-                                    <input className="input-field" placeholder="Ej: Juan Pérez" value={dpForm.name}
-                                        onChange={(e) => setDpForm({ ...dpForm, name: e.target.value })} required autoFocus />
-                                </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                    <div>
-                                        <label className="form-label">Teléfono</label>
-                                        <input className="input-field" placeholder="Opcional" value={dpForm.phone}
-                                            onChange={(e) => setDpForm({ ...dpForm, phone: e.target.value })} />
-                                    </div>
-                                    <div>
-                                        <label className="form-label">Monto (S/) *</label>
-                                        <input className="input-field" type="number" step="0.01" min={0} value={dpForm.amountPaid}
-                                            onChange={(e) => setDpForm({ ...dpForm, amountPaid: Number(e.target.value) })} required />
-                                    </div>
-                                </div>
-                                <div style={{ padding: '12px', borderRadius: '10px', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)' }}>
-                                    <div style={{ fontSize: '11px', color: 'var(--color-warning)', fontWeight: 600 }}>📋 Se creará:</div>
-                                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '4px', lineHeight: 1.5 }}>
-                                        • Cliente nuevo con código QR<br />
-                                        • Membresía "Pase Diario" (válida hoy)<br />
-                                        • Ingreso registrado: S/{dpForm.amountPaid.toFixed(2)}
-                                    </div>
+                                    <label className="form-label">DNI del Cliente *</label>
+                                    <input className="input-field" placeholder="Ej: 12345678" value={dpDni}
+                                        onChange={(e) => setDpDni(e.target.value)} required autoFocus
+                                        style={{ fontSize: '18px', textAlign: 'center', letterSpacing: '2px', fontWeight: 600 }} />
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                     <button type="button" className="btn-secondary" onClick={() => setShowDailyPassModal(false)}>Cancelar</button>
-                                    <button type="submit" className="btn-primary" disabled={dpSaving} style={{ background: '#F59E0B' }}>
-                                        {dpSaving ? <div className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} /> : <><Zap size={14} /> Crear Pase Diario</>}
+                                    <button type="submit" className="btn-primary" disabled={dpSearching || !dpDni.trim()}>
+                                        {dpSearching ? <div className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} /> : <><Search size={14} /> Buscar</>}
                                     </button>
                                 </div>
                             </form>
-                        ) : (
+                        )}
+
+                        {/* Step 2: Found or Create */}
+                        {dpStep === 'form' && (
+                            <form onSubmit={handleDailyPass} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                {dpFound ? (
+                                    /* Existing client found */
+                                    <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)' }}>
+                                        <div style={{ fontSize: '10px', fontWeight: 700, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>✅ Cliente Registrado</div>
+                                        <div style={{ fontWeight: 600, fontSize: '15px' }}>{dpFound.name}</div>
+                                        <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                                            DNI: {dpFound.dni} {dpFound.phone ? `• Tel: ${dpFound.phone}` : ''}
+                                        </div>
+                                        {dpFound.activeMembership && (
+                                            <div style={{ marginTop: '8px', padding: '6px 10px', borderRadius: '6px', background: 'rgba(245,158,11,0.1)', fontSize: '11px', color: '#F59E0B', fontWeight: 600 }}>
+                                                ⚠️ Ya tiene membresía activa: {dpFound.activeMembership.plan?.name}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    /* New client form */
+                                    <>
+                                        <div style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)', fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                                            🆕 No se encontró cliente con DNI <strong style={{ color: 'var(--color-text)' }}>{dpDni}</strong>. Completa los datos:
+                                        </div>
+                                        <div>
+                                            <label className="form-label">Nombre Completo *</label>
+                                            <input className="input-field" placeholder="Ej: Juan Pérez" value={dpForm.name}
+                                                onChange={(e) => setDpForm({ ...dpForm, name: e.target.value })} required autoFocus />
+                                        </div>
+                                        <div>
+                                            <label className="form-label">Teléfono</label>
+                                            <input className="input-field" placeholder="Opcional" value={dpForm.phone}
+                                                onChange={(e) => setDpForm({ ...dpForm, phone: e.target.value })} />
+                                        </div>
+                                    </>
+                                )}
+                                <div>
+                                    <label className="form-label">Monto del Pase (S/) *</label>
+                                    <input className="input-field" type="number" step="0.01" min={0} value={dpForm.amountPaid}
+                                        onChange={(e) => setDpForm({ ...dpForm, amountPaid: Number(e.target.value) })} required />
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                    <button type="button" className="btn-secondary" onClick={() => setDpStep('search')}>← Cambiar DNI</button>
+                                    <button type="submit" className="btn-primary" disabled={dpSaving || (!dpFound && !dpForm.name.trim())} style={{ background: '#F59E0B' }}>
+                                        {dpSaving ? <div className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} /> : <><Zap size={14} /> {dpFound ? 'Asignar Pase' : 'Crear y Asignar'}</>}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+
+                        {/* Step 3: Result */}
+                        {dpStep === 'result' && dpResult && (
                             <div style={{ textAlign: 'center' }}>
                                 <div style={{ fontSize: '48px', marginBottom: '8px' }}>✅</div>
                                 <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px' }}>{dpResult.name}</h3>
+                                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>DNI: {dpResult.dni || dpDni}</p>
                                 <span className="badge badge-active" style={{ marginBottom: '16px', display: 'inline-block' }}>Pase Diario Activo</span>
                                 {dpResult.qrCode && (
                                     <div style={{ padding: '16px', background: '#fff', borderRadius: '12px', display: 'inline-block', marginBottom: '16px' }}>

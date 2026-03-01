@@ -10,6 +10,7 @@ class CreateClientDto {
     @IsString() name!: string;
     @IsOptional() @IsEmail() email?: string;
     @IsOptional() @IsString() phone?: string;
+    @IsOptional() @IsString() dni?: string;
     @IsOptional() @IsString() emergencyContact?: string;
     @IsOptional() @IsString() birthDate?: string;
     @IsOptional() @IsString() medicalNotes?: string;
@@ -30,6 +31,12 @@ export class ClientsController {
         @Query('search') search?: string,
     ) {
         return this.clientsService.findAll(page, limit, search);
+    }
+
+    @Get('search-dni/:dni')
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
+    findByDni(@Param('dni') dni: string) {
+        return this.clientsService.findByDni(dni);
     }
 
     @Get(':id')

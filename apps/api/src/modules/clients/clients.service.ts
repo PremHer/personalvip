@@ -14,6 +14,7 @@ export class ClientsService {
                     { name: { contains: search, mode: 'insensitive' as const } },
                     { email: { contains: search, mode: 'insensitive' as const } },
                     { phone: { contains: search, mode: 'insensitive' as const } },
+                    { dni: { contains: search, mode: 'insensitive' as const } },
                 ],
             }
             : {};
@@ -127,10 +128,35 @@ export class ClientsService {
         };
     }
 
+    async findByDni(dni: string) {
+        const client = await this.prisma.client.findFirst({
+            where: { dni: { equals: dni, mode: 'insensitive' } },
+            include: {
+                memberships: {
+                    where: { status: 'ACTIVE' },
+                    include: { plan: true },
+                    orderBy: { endDate: 'desc' },
+                },
+            },
+        });
+
+        if (!client) return null;
+
+        const now = new Date();
+        const activeMembership = client.memberships.find(m => {
+            const start = new Date(m.startDate);
+            const end = new Date(m.endDate);
+            return start <= now && end >= now;
+        }) || null;
+
+        return { ...client, activeMembership, memberships: undefined };
+    }
+
     async create(data: {
         name: string;
         email?: string;
         phone?: string;
+        dni?: string;
         emergencyContact?: string;
         birthDate?: string;
         medicalNotes?: string;
@@ -142,6 +168,7 @@ export class ClientsService {
                 name: data.name,
                 email: data.email,
                 phone: data.phone,
+                dni: data.dni || undefined,
                 emergencyContact: data.emergencyContact,
                 birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
                 medicalNotes: data.medicalNotes,

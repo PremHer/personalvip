@@ -72,6 +72,7 @@ model Client {
   name             String
   email            String?
   phone            String?
+  dni              String?  @unique
   emergencyContact String?  @map("emergency_contact")
   birthDate        DateTime? @map("birth_date") @db.Date
   medicalNotes     String?  @map("medical_notes")
