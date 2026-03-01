@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 import ClientProfileModal from './ClientProfileModal';
 
 interface AttendanceRecord {
@@ -15,7 +16,11 @@ interface AttendanceRecord {
     client: { id: string; name: string; photoUrl?: string };
 }
 
+const CHECKOUT_ROLES = ['SUPERADMIN', 'ADMIN', 'OWNER', 'RECEPTIONIST'];
+
 export default function GymFloorScreen() {
+    const { user } = useAuth();
+    const canCheckout = user ? CHECKOUT_ROLES.includes(user.role) : false;
     const [records, setRecords] = useState<AttendanceRecord[]>([]);
     const [allRecords, setAllRecords] = useState<AttendanceRecord[]>([]);
     const [refreshing, setRefreshing] = useState(false);
@@ -109,17 +114,19 @@ export default function GymFloorScreen() {
                     <Text style={s.rowName}>{item.client.name}</Text>
                     <Text style={s.rowMeta}>Entrada: {formatTime(item.checkIn)} · {timeSince(item.checkIn)}</Text>
                 </View>
-                <TouchableOpacity
-                    style={s.checkoutBtn}
-                    onPress={(e) => { e.stopPropagation?.(); handleCheckout(item); }}
-                    disabled={loadingCheckout === item.client.id}
-                >
-                    {loadingCheckout === item.client.id ? (
-                        <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                        <Text style={s.checkoutText}>Salida</Text>
-                    )}
-                </TouchableOpacity>
+                {canCheckout && (
+                    <TouchableOpacity
+                        style={s.checkoutBtn}
+                        onPress={(e) => { e.stopPropagation?.(); handleCheckout(item); }}
+                        disabled={loadingCheckout === item.client.id}
+                    >
+                        {loadingCheckout === item.client.id ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                            <Text style={s.checkoutText}>Salida</Text>
+                        )}
+                    </TouchableOpacity>
+                )}
             </View>
         </TouchableOpacity>
     );

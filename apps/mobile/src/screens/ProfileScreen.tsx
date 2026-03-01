@@ -1,42 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import {
     StyleSheet, Text, View, TextInput, TouchableOpacity,
-    Alert, ScrollView, KeyboardAvoidingView, Platform,
-    ActivityIndicator,
+    Alert, ScrollView, ActivityIndicator, Platform,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
 
+const FINANCE_ROLES = ['SUPERADMIN', 'ADMIN', 'OWNER'];
+
 export default function ProfileScreen() {
-    const { user, login, logout } = useAuth();
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+    const { user, logout } = useAuth();
     const [serverUrl, setServerUrl] = useState(api.getBaseUrl());
-    const [loading, setLoading] = useState(false);
     const [editingServer, setEditingServer] = useState(false);
     const [dashStats, setDashStats] = useState<any>(null);
 
+    const canSeeFinance = user && FINANCE_ROLES.includes(user.role);
+
     useEffect(() => {
-        if (user) {
+        if (user && canSeeFinance) {
             api.getDashboardStats().then(setDashStats).catch(() => { });
         }
     }, [user]);
-
-    const handleLogin = async () => {
-        if (!email.trim() || !password.trim()) {
-            Alert.alert('Error', 'Ingresa email y contraseña');
-            return;
-        }
-        setLoading(true);
-        try {
-            await login(email.trim(), password.trim());
-            setEmail('');
-            setPassword('');
-        } catch (e: any) {
-            Alert.alert('Error de Login', e.message);
-        }
-        setLoading(false);
-    };
 
     const handleSaveServer = async () => {
         const url = serverUrl.trim();
@@ -48,6 +32,7 @@ export default function ProfileScreen() {
     };
 
     const roleLabels: Record<string, string> = {
+        SUPERADMIN: 'Super Admin',
         ADMIN: 'Administrador',
         OWNER: 'Propietario',
         TRAINER: 'Entrenador',
@@ -55,83 +40,15 @@ export default function ProfileScreen() {
     };
 
     const roleBadgeColors: Record<string, string> = {
+        SUPERADMIN: '#ef4444',
         ADMIN: '#7c3aed',
         OWNER: '#06b6d4',
         TRAINER: '#f59e0b',
         RECEPTIONIST: '#10b981',
     };
 
-    if (!user) {
-        // Login form
-        return (
-            <KeyboardAvoidingView style={s.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-                <ScrollView contentContainerStyle={s.loginWrap} keyboardShouldPersistTaps="handled">
-                    <Text style={{ fontSize: 48 }}>🏋️</Text>
-                    <Text style={s.loginTitle}>GymCore</Text>
-                    <Text style={s.loginSubtitle}>Inicia sesión con tu cuenta de staff</Text>
+    if (!user) return null;
 
-                    <View style={s.inputGroup}>
-                        <Text style={s.inputLabel}>Email</Text>
-                        <TextInput
-                            style={s.input}
-                            placeholder="correo@gymcore.com"
-                            placeholderTextColor="#64748b"
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                        />
-                    </View>
-
-                    <View style={s.inputGroup}>
-                        <Text style={s.inputLabel}>Contraseña</Text>
-                        <TextInput
-                            style={s.input}
-                            placeholder="••••••••"
-                            placeholderTextColor="#64748b"
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry
-                        />
-                    </View>
-
-                    <TouchableOpacity style={s.loginBtn} onPress={handleLogin} disabled={loading}>
-                        {loading ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : (
-                            <Text style={s.loginBtnText}>Iniciar Sesión</Text>
-                        )}
-                    </TouchableOpacity>
-
-                    {/* Server config */}
-                    <TouchableOpacity style={s.serverToggle} onPress={() => setEditingServer(!editingServer)}>
-                        <Text style={s.serverToggleText}>⚙️ Configurar Servidor</Text>
-                    </TouchableOpacity>
-
-                    {editingServer && (
-                        <View style={s.serverSection}>
-                            <Text style={s.inputLabel}>URL del Servidor</Text>
-                            <TextInput
-                                style={s.input}
-                                value={serverUrl}
-                                onChangeText={setServerUrl}
-                                placeholder="https://gymcoreapi-production.up.railway.app/api"
-                                placeholderTextColor="#64748b"
-                                autoCapitalize="none"
-                                autoCorrect={false}
-                            />
-                            <TouchableOpacity style={s.saveServerBtn} onPress={handleSaveServer}>
-                                <Text style={s.saveServerText}>Guardar</Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
-                </ScrollView>
-            </KeyboardAvoidingView>
-        );
-    }
-
-    // Logged in profile
     return (
         <ScrollView style={s.container} contentContainerStyle={{ padding: 16 }}>
             {/* User card */}
@@ -148,8 +65,8 @@ export default function ProfileScreen() {
                 <Text style={s.profileEmail}>{user.email}</Text>
             </View>
 
-            {/* Dashboard stats */}
-            {dashStats && (
+            {/* Dashboard stats — only for SUPERADMIN/ADMIN/OWNER */}
+            {canSeeFinance && dashStats && (
                 <View style={s.section}>
                     <Text style={s.sectionTitle}>📊 Resumen del Día</Text>
                     <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -238,26 +155,11 @@ export default function ProfileScreen() {
 
 const s = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#0f0a1a' },
-    // Login
-    loginWrap: { alignItems: 'center', padding: 30, paddingTop: 60 },
-    loginTitle: { fontSize: 28, fontWeight: '900', color: '#e2e8f0', marginTop: 12 },
-    loginSubtitle: { fontSize: 13, color: '#94a3b8', marginTop: 4, marginBottom: 30 },
-    inputGroup: { width: '100%', marginBottom: 16 },
-    inputLabel: { fontSize: 12, fontWeight: '600', color: '#94a3b8', marginBottom: 6, marginLeft: 4 },
     input: {
-        width: '100%', backgroundColor: '#1e1b2e', borderRadius: 12, paddingHorizontal: 16,
+        width: '100%', backgroundColor: '#16132a', borderRadius: 12, paddingHorizontal: 16,
         paddingVertical: 13, color: '#e2e8f0', fontSize: 15, borderWidth: 1,
         borderColor: 'rgba(124,58,237,0.2)',
     },
-    loginBtn: {
-        width: '100%', backgroundColor: '#7c3aed', paddingVertical: 15, borderRadius: 14,
-        alignItems: 'center', marginTop: 8, elevation: 8, shadowColor: '#7c3aed',
-        shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 12,
-    },
-    loginBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-    serverToggle: { marginTop: 24 },
-    serverToggleText: { color: '#64748b', fontSize: 13 },
-    serverSection: { width: '100%', marginTop: 12 },
     saveServerBtn: { backgroundColor: '#22c55e', paddingVertical: 10, borderRadius: 10, alignItems: 'center', marginTop: 8 },
     saveServerText: { color: '#fff', fontWeight: '700', fontSize: 13 },
     // Profile

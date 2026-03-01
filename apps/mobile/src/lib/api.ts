@@ -63,7 +63,7 @@ export const api = {
     },
 
     getTodayAttendance() {
-        return this.request<any[]>('/attendance/today-public');
+        return this.request<any[]>('/attendance/today');
     },
 
     getHistory(params?: { date?: string; from?: string; to?: string; page?: number; limit?: number }) {
@@ -73,11 +73,11 @@ export const api = {
         if (params?.to) q.set('to', params.to);
         if (params?.page) q.set('page', String(params.page));
         if (params?.limit) q.set('limit', String(params.limit));
-        return this.request<{ data: any[]; total: number; page: number; totalPages: number }>(`/attendance/history-public?${q.toString()}`);
+        return this.request<{ data: any[]; total: number; page: number; totalPages: number }>(`/attendance/history?${q.toString()}`);
     },
 
     checkOut(clientId: string) {
-        return this.request(`/attendance/check-out-public/${clientId}`, {
+        return this.request(`/attendance/check-out/${clientId}`, {
             method: 'POST',
         });
     },

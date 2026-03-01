@@ -4,6 +4,7 @@ import {
     ActivityIndicator, Alert, TextInput, Modal,
 } from 'react-native';
 import { api } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 
 interface ClientProfileModalProps {
     clientId: string | null;
@@ -11,7 +12,13 @@ interface ClientProfileModalProps {
     onClose: () => void;
 }
 
+const FINANCE_ROLES = ['SUPERADMIN', 'ADMIN', 'OWNER', 'RECEPTIONIST'];
+const MEDICAL_EDIT_ROLES = ['SUPERADMIN', 'ADMIN', 'OWNER', 'RECEPTIONIST', 'TRAINER'];
+
 export default function ClientProfileModal({ clientId, visible, onClose }: ClientProfileModalProps) {
+    const { user } = useAuth();
+    const canSeeFinance = user ? FINANCE_ROLES.includes(user.role) : false;
+    const canEditMedical = user ? MEDICAL_EDIT_ROLES.includes(user.role) : false;
     const [client, setClient] = useState<any>(null);
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -143,10 +150,12 @@ export default function ClientProfileModal({ clientId, visible, onClose }: Clien
                                                 <Text style={s.infoLabel}>Fin</Text>
                                                 <Text style={s.infoValue}>{formatDate(m.endDate)}</Text>
                                             </View>
-                                            <View style={s.infoItem}>
-                                                <Text style={s.infoLabel}>Pagado</Text>
-                                                <Text style={[s.infoValue, { color: '#10B981' }]}>S/{Number(m.amountPaid).toFixed(2)}</Text>
-                                            </View>
+                                            {canSeeFinance && (
+                                                <View style={s.infoItem}>
+                                                    <Text style={s.infoLabel}>Pagado</Text>
+                                                    <Text style={[s.infoValue, { color: '#10B981' }]}>S/{Number(m.amountPaid).toFixed(2)}</Text>
+                                                </View>
+                                            )}
                                             <View style={s.infoItem}>
                                                 <Text style={s.infoLabel}>Restante</Text>
                                                 <Text style={[s.infoValue, {
@@ -200,7 +209,7 @@ export default function ClientProfileModal({ clientId, visible, onClose }: Clien
                         <View style={s.section}>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <Text style={s.sectionTitle}>🏥 Notas Médicas</Text>
-                                {!editingNotes && (
+                                {canEditMedical && !editingNotes && (
                                     <TouchableOpacity onPress={() => setEditingNotes(true)}>
                                         <Text style={s.editLink}>Editar</Text>
                                     </TouchableOpacity>

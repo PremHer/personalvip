@@ -26,22 +26,23 @@ export class AttendanceController {
     }
 
     /**
-     * QR validation endpoint — returns client info and membership validity.
-     * Can be used by mobile apps or kiosks before doing a full check-in.
-     * No auth required so the QR scanner can work independently.
+     * QR scan endpoint — validates client and optionally registers check-in.
+     * Requires JWT auth.
      */
     @Post('scan')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
+    @ApiBearerAuth()
     scanQr(@Body() data: { qrCode: string; registerCheckIn?: boolean }) {
         return this.service.validateQr(data.qrCode, data.registerCheckIn ?? false);
     }
 
     /**
      * Mobile check-in via QR scan — creates attendance record.
-     * Requires JWT auth (mobile app must be logged in).
      */
     @Post('mobile-check-in')
     @UseGuards(AuthGuard('jwt'), RolesGuard)
-    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST', 'TRAINER')
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
     @ApiBearerAuth()
     mobileCheckIn(
         @Body() data: { qrCode: string },
@@ -60,17 +61,9 @@ export class AttendanceController {
 
     @Get('today')
     @UseGuards(AuthGuard('jwt'), RolesGuard)
-    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST', 'TRAINER')
     @ApiBearerAuth()
     getTodayAttendance() {
-        return this.service.getTodayAttendance();
-    }
-
-    /**
-     * Public endpoint for mobile app — returns today's attendance.
-     */
-    @Get('today-public')
-    getTodayAttendancePublic() {
         return this.service.getTodayAttendance();
     }
 
@@ -88,29 +81,13 @@ export class AttendanceController {
         return this.service.getAttendanceHistory({ date, from, to, page: Number(page) || 1, limit: Number(limit) || 50 });
     }
 
-    @Get('history-public')
-    getHistoryPublic(
-        @Query('date') date?: string,
-        @Query('from') from?: string,
-        @Query('to') to?: string,
-        @Query('page') page?: number,
-        @Query('limit') limit?: number,
-    ) {
-        return this.service.getAttendanceHistory({ date, from, to, page: Number(page) || 1, limit: Number(limit) || 50 });
-    }
-
     /**
-     * Public endpoint for mobile app — registers check-out.
-     */
-    @Post('check-out-public/:clientId')
-    checkOutPublic(@Param('clientId') clientId: string) {
-        return this.service.checkOut(clientId);
-    }
-
-    /**
-     * Public endpoint for mobile app — update client medical notes.
+     * Update client medical notes — requires JWT auth.
      */
     @Patch('update-medical-notes/:clientId')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST', 'TRAINER')
+    @ApiBearerAuth()
     async updateMedicalNotes(
         @Param('clientId') clientId: string,
         @Body() data: { medicalNotes: string },
@@ -138,10 +115,9 @@ export class AttendanceController {
      */
     @Get('client-stats/:clientId')
     @UseGuards(AuthGuard('jwt'), RolesGuard)
-    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST', 'TRAINER')
     @ApiBearerAuth()
     getClientStats(@Param('clientId') clientId: string) {
         return this.service.getClientAttendanceStats(clientId);
     }
 }
-

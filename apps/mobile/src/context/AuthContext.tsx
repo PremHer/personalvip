@@ -12,7 +12,7 @@ interface User {
 interface AuthCtx {
     user: User | null;
     loading: boolean;
-    login: (email: string, password: string) => Promise<void>;
+    login: (email: string, password: string) => Promise<any>;
     logout: () => void;
 }
 
@@ -49,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         };
         setUser(u);
         await AsyncStorage.setItem('@gymcore_user', JSON.stringify(u));
+        return res;
     };
 
     const logout = () => {
