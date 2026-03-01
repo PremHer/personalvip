@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { plansApi, membershipsApi, clientsApi } from '@/lib/api';
 import { useUI } from '@/lib/ui-context';
-import { CreditCard, Plus, X, Snowflake, Play, Ban, AlertTriangle, DollarSign, Tag } from 'lucide-react';
+import { CreditCard, Plus, X, Snowflake, Play, Ban, AlertTriangle, DollarSign, Tag, Pencil } from 'lucide-react';
 
 export default function MembershipsPage() {
     const { toast, confirm } = useUI();
@@ -12,6 +12,7 @@ export default function MembershipsPage() {
     const [loading, setLoading] = useState(true);
     const [showPlanModal, setShowPlanModal] = useState(false);
     const [showAssignModal, setShowAssignModal] = useState(false);
+    const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
     const [planForm, setPlanForm] = useState({ name: '', durationDays: 30, price: 0, description: '' });
     const [assignForm, setAssignForm] = useState({ clientId: '', planId: '', amountPaid: 0 });
     const [clients, setClients] = useState<any[]>([]);
@@ -31,13 +32,31 @@ export default function MembershipsPage() {
         setClients(res.data);
     };
 
-    const handleCreatePlan = async (e: React.FormEvent) => {
+    const openNewPlan = () => {
+        setEditingPlanId(null);
+        setPlanForm({ name: '', durationDays: 30, price: 0, description: '' });
+        setShowPlanModal(true);
+    };
+
+    const openEditPlan = (plan: any) => {
+        setEditingPlanId(plan.id);
+        setPlanForm({ name: plan.name, durationDays: plan.durationDays, price: Number(plan.price), description: plan.description || '' });
+        setShowPlanModal(true);
+    };
+
+    const handleSavePlan = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await plansApi.create({ ...planForm, durationDays: Number(planForm.durationDays), price: Number(planForm.price) });
-            setShowPlanModal(false); setPlanForm({ name: '', durationDays: 30, price: 0, description: '' }); loadData();
-            toast('Plan creado correctamente');
-        } catch (e: any) { toast(e.message || 'Error al crear plan', 'error'); }
+            const data = { ...planForm, durationDays: Number(planForm.durationDays), price: Number(planForm.price) };
+            if (editingPlanId) {
+                await plansApi.update(editingPlanId, data);
+                toast('Plan actualizado correctamente');
+            } else {
+                await plansApi.create(data);
+                toast('Plan creado correctamente');
+            }
+            setShowPlanModal(false); setPlanForm({ name: '', durationDays: 30, price: 0, description: '' }); setEditingPlanId(null); loadData();
+        } catch (e: any) { toast(e.message || 'Error al guardar plan', 'error'); }
     };
 
     const handleAssign = async (e: React.FormEvent) => {
@@ -61,7 +80,7 @@ export default function MembershipsPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
                 <div className="page-header" style={{ marginBottom: 0 }}><h1>Membresías</h1><p>Planes y asignaciones</p></div>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                    <button className="btn-secondary" onClick={() => setShowPlanModal(true)}><Plus size={16} /> Nuevo Plan</button>
+                    <button className="btn-secondary" onClick={openNewPlan}><Plus size={16} /> Nuevo Plan</button>
                     <button className="btn-primary" onClick={() => { loadClients(); setShowAssignModal(true); }}><CreditCard size={16} /> Asignar</button>
                 </div>
             </div>
@@ -73,8 +92,9 @@ export default function MembershipsPage() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '12px', marginBottom: '32px' }}>
                 {plans.map((plan, i) => (
-                    <div key={plan.id} className="glass-card" style={{ padding: '20px', animationDelay: `${i * 60}ms` }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                    <div key={plan.id} className="glass-card" style={{ padding: '20px', animationDelay: `${i * 60}ms`, position: 'relative' }}>
+                        <button className="btn-icon" onClick={() => openEditPlan(plan)} title="Editar plan" style={{ position: 'absolute', top: '12px', right: '12px', opacity: 0.5 }}><Pencil size={14} /></button>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', paddingRight: '28px' }}>
                             <h3 style={{ fontSize: '14px', fontWeight: 600, lineHeight: 1.3 }}>{plan.name}</h3>
                             <span className={`badge ${plan.isActive ? 'badge-active' : 'badge-cancelled'}`}>
                                 {plan.isActive ? 'Activo' : 'Inactivo'}
@@ -132,10 +152,10 @@ export default function MembershipsPage() {
                 <div className="modal-overlay">
                     <div className="modal-card slide-up">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <h2 style={{ fontSize: '16px', fontWeight: 700 }}>Nuevo Plan</h2>
+                            <h2 style={{ fontSize: '16px', fontWeight: 700 }}>{editingPlanId ? 'Editar Plan' : 'Nuevo Plan'}</h2>
                             <button className="btn-icon" onClick={() => setShowPlanModal(false)}><X size={16} /></button>
                         </div>
-                        <form onSubmit={handleCreatePlan} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        <form onSubmit={handleSavePlan} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                             <div><label className="form-label">Nombre del plan *</label><input className="input-field" value={planForm.name} onChange={(e) => setPlanForm({ ...planForm, name: e.target.value })} required /></div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div><label className="form-label">Duración (días)</label><input className="input-field" type="number" value={planForm.durationDays} onChange={(e) => setPlanForm({ ...planForm, durationDays: Number(e.target.value) })} min={1} required /></div>
@@ -144,7 +164,7 @@ export default function MembershipsPage() {
                             <div><label className="form-label">Descripción</label><textarea className="input-field" rows={2} value={planForm.description} onChange={(e) => setPlanForm({ ...planForm, description: e.target.value })} style={{ resize: 'vertical' }} /></div>
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
                                 <button type="button" className="btn-secondary" onClick={() => setShowPlanModal(false)}>Cancelar</button>
-                                <button type="submit" className="btn-primary">Crear Plan</button>
+                                <button type="submit" className="btn-primary">{editingPlanId ? 'Guardar Cambios' : 'Crear Plan'}</button>
                             </div>
                         </form>
                     </div>

@@ -14,6 +14,7 @@ export class FinanceService {
 
         const [
             todaySales, weekSales, monthSales, yesterdaySales,
+            todayMemberships, weekMemberships, monthMemberships, yesterdayMemberships,
             todayAttendance, yesterdayAttendance,
             activeMembers, expiringCount, lowStock, recentSales,
             totalClients, newClientsMonth,
@@ -22,6 +23,11 @@ export class FinanceService {
             this.prisma.sale.aggregate({ where: { createdAt: { gte: weekStart } }, _sum: { total: true } }),
             this.prisma.sale.aggregate({ where: { createdAt: { gte: monthStart } }, _sum: { total: true } }),
             this.prisma.sale.aggregate({ where: { createdAt: { gte: yesterdayStart, lt: todayStart } }, _sum: { total: true } }),
+            // Membership income
+            this.prisma.membership.aggregate({ where: { createdAt: { gte: todayStart } }, _sum: { amountPaid: true }, _count: true }),
+            this.prisma.membership.aggregate({ where: { createdAt: { gte: weekStart } }, _sum: { amountPaid: true } }),
+            this.prisma.membership.aggregate({ where: { createdAt: { gte: monthStart } }, _sum: { amountPaid: true } }),
+            this.prisma.membership.aggregate({ where: { createdAt: { gte: yesterdayStart, lt: todayStart } }, _sum: { amountPaid: true } }),
             this.prisma.attendance.count({ where: { checkIn: { gte: todayStart } } }),
             this.prisma.attendance.count({ where: { checkIn: { gte: yesterdayStart, lt: todayStart } } }),
             this.prisma.membership.count({ where: { status: 'ACTIVE' } }),
@@ -85,12 +91,18 @@ export class FinanceService {
             }
         }
 
+        // Combine sales + membership income
+        const totalTodayIncome = Number(todaySales._sum.total || 0) + Number(todayMemberships._sum.amountPaid || 0);
+        const totalYesterdayIncome = Number(yesterdaySales._sum.total || 0) + Number(yesterdayMemberships._sum.amountPaid || 0);
+        const totalWeekIncome = Number(weekSales._sum.total || 0) + Number(weekMemberships._sum.amountPaid || 0);
+        const totalMonthIncome = Number(monthSales._sum.total || 0) + Number(monthMemberships._sum.amountPaid || 0);
+
         return {
-            todayIncome: Number(todaySales._sum.total || 0),
-            todaySales: todaySales._count,
-            yesterdayIncome: Number(yesterdaySales._sum.total || 0),
-            weekIncome: Number(weekSales._sum.total || 0),
-            monthIncome: Number(monthSales._sum.total || 0),
+            todayIncome: totalTodayIncome,
+            todaySales: todaySales._count + todayMemberships._count,
+            yesterdayIncome: totalYesterdayIncome,
+            weekIncome: totalWeekIncome,
+            monthIncome: totalMonthIncome,
             todayAttendance,
             yesterdayAttendance,
             activeMembers,
@@ -105,6 +117,8 @@ export class FinanceService {
                 (acc, item) => ({ ...acc, [item.paymentMethod]: Number(item._sum.total || 0) }),
                 { CASH: 0, CARD: 0, TRANSFER: 0 },
             ),
+            todayMembershipIncome: Number(todayMemberships._sum.amountPaid || 0),
+            todayMembershipCount: todayMemberships._count,
         };
     }
 
