@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY_URL = '@gymcore_api_url';
-const DEFAULT_URL = 'http://192.168.18.28:3001/api';
+const DEFAULT_URL = 'https://gymcoreapi-production.up.railway.app/api';
 
 let _baseUrl = DEFAULT_URL;
 let _token: string | null = null;

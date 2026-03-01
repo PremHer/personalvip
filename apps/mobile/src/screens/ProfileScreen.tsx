@@ -116,7 +116,7 @@ export default function ProfileScreen() {
                                 style={s.input}
                                 value={serverUrl}
                                 onChangeText={setServerUrl}
-                                placeholder="http://192.168.18.28:3001/api"
+                                placeholder="https://gymcoreapi-production.up.railway.app/api"
                                 placeholderTextColor="#64748b"
                                 autoCapitalize="none"
                                 autoCorrect={false}
