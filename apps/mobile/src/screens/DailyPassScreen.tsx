@@ -16,6 +16,7 @@ export default function DailyPassScreen() {
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
     const [amount, setAmount] = useState('8');
+    const [paymentMethod, setPaymentMethod] = useState('CASH');
     const [saving, setSaving] = useState(false);
     const [result, setResult] = useState<any>(null);
 
@@ -26,6 +27,7 @@ export default function DailyPassScreen() {
         setName('');
         setPhone('');
         setAmount('8');
+        setPaymentMethod('CASH');
         setResult(null);
     };
 
@@ -62,7 +64,7 @@ export default function DailyPassScreen() {
             }
 
             // Assign daily pass (backend creates Sale + Attendance)
-            await api.dailyPass({ clientId, amountPaid: Number(amount) || 8 });
+            await api.dailyPass({ clientId, amountPaid: Number(amount) || 8, paymentMethod });
 
             // Get updated client info
             const full = await api.getClient(clientId);
@@ -183,6 +185,16 @@ export default function DailyPassScreen() {
                             keyboardType="decimal-pad"
                         />
 
+                        <Text style={styles.label}>Método de Pago</Text>
+                        <View style={{ flexDirection: 'row', gap: 6 }}>
+                            {[{ v: 'CASH', l: '💵 Efectivo' }, { v: 'CARD', l: '💳 Tarjeta' }, { v: 'TRANSFER', l: '🏦 Transfer.' }, { v: 'YAPE_PLIN', l: '📱 Yape/Plin' }].map(m => (
+                                <TouchableOpacity key={m.v} onPress={() => setPaymentMethod(m.v)}
+                                    style={[styles.payBtn, paymentMethod === m.v && styles.payBtnActive]}>
+                                    <Text style={[styles.payBtnText, paymentMethod === m.v && styles.payBtnTextActive]}>{m.l}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
                         <View style={styles.actions}>
                             <TouchableOpacity
                                 style={[styles.btn, styles.btnSecondary]}
@@ -295,4 +307,11 @@ const styles = StyleSheet.create({
     },
     activeBadgeText: { color: '#22c55e', fontSize: 12, fontWeight: '700' },
     qrLabel: { fontSize: 12, color: '#64748b', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+    payBtn: {
+        flex: 1, paddingVertical: 8, paddingHorizontal: 4, borderRadius: 8,
+        borderWidth: 1, borderColor: '#2a2a3a', backgroundColor: '#1a1a24', alignItems: 'center',
+    },
+    payBtnActive: { borderColor: '#F59E0B', backgroundColor: 'rgba(245,158,11,0.15)', borderWidth: 2 },
+    payBtnText: { fontSize: 10, fontWeight: '600', color: '#94a3b8', textAlign: 'center' },
+    payBtnTextActive: { color: '#F59E0B' },
 });

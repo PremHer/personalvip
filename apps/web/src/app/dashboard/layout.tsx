@@ -64,7 +64,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const [dpDni, setDpDni] = useState('');
     const [dpFound, setDpFound] = useState<any>(null);
     const [dpSearching, setDpSearching] = useState(false);
-    const [dpForm, setDpForm] = useState({ name: '', phone: '', amountPaid: 8 });
+    const [dpForm, setDpForm] = useState({ name: '', phone: '', amountPaid: 8, paymentMethod: 'CASH' });
     const [dpSaving, setDpSaving] = useState(false);
     const [dpResult, setDpResult] = useState<any>(null);
 
@@ -235,7 +235,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             <div style={{ padding: '8px 4px 0' }}>
                                 <button onClick={() => {
                                     setDpDni(''); setDpFound(null); setDpStep('search');
-                                    setDpForm({ name: '', phone: '', amountPaid: 10 }); setDpResult(null);
+                                    setDpForm({ name: '', phone: '', amountPaid: 8, paymentMethod: 'CASH' }); setDpResult(null);
                                     setShowDailyPassModal(true);
                                     setSidebarOpen(false);
                                 }} style={{
@@ -615,7 +615,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                         const nc = await clientsApi.create({ name: dpForm.name.trim(), phone: dpForm.phone.trim() || undefined, dni: dpDni.trim() || undefined });
                                         clientId = nc.id;
                                     }
-                                    await membershipsApi.dailyPass({ clientId, amountPaid: Number(dpForm.amountPaid) });
+                                    await membershipsApi.dailyPass({ clientId, amountPaid: Number(dpForm.amountPaid), paymentMethod: dpForm.paymentMethod });
                                     const full = await clientsApi.get(clientId);
                                     setDpResult(full);
                                     setDpStep('result');
@@ -644,6 +644,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                     </>
                                 )}
                                 <div><label className="form-label">Monto (S/) *</label><input className="input-field" type="number" step="0.01" min={0} value={dpForm.amountPaid} onChange={(e) => setDpForm({ ...dpForm, amountPaid: Number(e.target.value) })} required /></div>
+                                <div><label className="form-label">Método de Pago *</label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                                        {[{ v: 'CASH', l: '💵 Efectivo' }, { v: 'CARD', l: '💳 Tarjeta' }, { v: 'TRANSFER', l: '🏦 Transfer.' }, { v: 'YAPE_PLIN', l: '📱 Yape/Plin' }].map(m => (
+                                            <button key={m.v} type="button" onClick={() => setDpForm({ ...dpForm, paymentMethod: m.v })}
+                                                style={{ padding: '8px 4px', borderRadius: '8px', border: dpForm.paymentMethod === m.v ? '2px solid #F59E0B' : '1px solid var(--color-border)', backgroundColor: dpForm.paymentMethod === m.v ? 'rgba(245,158,11,0.15)' : 'var(--color-bg-tertiary)', color: dpForm.paymentMethod === m.v ? '#F59E0B' : 'var(--color-text-muted)', fontSize: '11px', fontWeight: 600, cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}>
+                                                {m.l}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                     <button type="button" className="btn-secondary" onClick={() => setDpStep('search')}>← Cambiar DNI</button>
                                     <button type="submit" className="btn-primary" disabled={dpSaving || (!dpFound && !dpForm.name.trim())} style={{ background: '#F59E0B' }}>

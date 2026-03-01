@@ -10,6 +10,7 @@ export class MembershipsService {
         planId: string;
         amountPaid: number;
         createdBy: string;
+        paymentMethod?: 'CASH' | 'CARD' | 'TRANSFER' | 'YAPE_PLIN';
         startDate?: string;
         mode?: 'replace' | 'queue';
     }) {
@@ -26,12 +27,9 @@ export class MembershipsService {
         const mode = data.mode || 'replace';
 
         if (mode === 'queue' && activeMembership) {
-            // New membership starts when current one ends
             startDate = new Date(activeMembership.endDate);
         } else {
             startDate = data.startDate ? new Date(data.startDate) : new Date();
-
-            // Expire current active membership if replacing
             if (activeMembership) {
                 await this.prisma.membership.update({
                     where: { id: activeMembership.id },
@@ -43,7 +41,8 @@ export class MembershipsService {
         const endDate = new Date(startDate);
         endDate.setDate(endDate.getDate() + plan.durationDays);
 
-        return this.prisma.membership.create({
+        // Create membership
+        const membership = await this.prisma.membership.create({
             data: {
                 clientId: data.clientId,
                 planId: data.planId,
@@ -55,6 +54,19 @@ export class MembershipsService {
             },
             include: { plan: true, client: true },
         });
+
+        // Record the payment as a Sale for income tracking
+        await this.prisma.sale.create({
+            data: {
+                clientId: data.clientId,
+                cashierId: data.createdBy,
+                total: data.amountPaid,
+                paymentMethod: (data.paymentMethod || 'CASH') as any,
+                discount: 0,
+            },
+        });
+
+        return membership;
     }
 
     async getClientActiveMembership(clientId: string) {
@@ -130,7 +142,7 @@ export class MembershipsService {
      * Assign a daily pass — records payment as a Sale and check-in as Attendance.
      * Does NOT create a membership (daily pass is a one-time access, not a subscription).
      */
-    async assignDailyPass(data: { clientId: string; amountPaid: number; createdBy: string }) {
+    async assignDailyPass(data: { clientId: string; amountPaid: number; createdBy: string; paymentMethod?: 'CASH' | 'CARD' | 'TRANSFER' | 'YAPE_PLIN' }) {
         // Guard: check if client already has a check-in today
         const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
         const existingToday = await this.prisma.attendance.findFirst({
@@ -146,7 +158,7 @@ export class MembershipsService {
                 clientId: data.clientId,
                 cashierId: data.createdBy,
                 total: data.amountPaid,
-                paymentMethod: 'CASH',
+                paymentMethod: (data.paymentMethod || 'CASH') as any,
                 discount: 0,
             },
         });

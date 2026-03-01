@@ -14,7 +14,7 @@ export default function MembershipsPage() {
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
     const [planForm, setPlanForm] = useState({ name: '', durationDays: 30, price: 0, description: '' });
-    const [assignForm, setAssignForm] = useState({ clientId: '', planId: '', amountPaid: 0 });
+    const [assignForm, setAssignForm] = useState({ clientId: '', planId: '', amountPaid: 0, paymentMethod: 'CASH' });
     const [clients, setClients] = useState<any[]>([]);
 
     useEffect(() => { loadData(); }, []);
@@ -63,7 +63,7 @@ export default function MembershipsPage() {
         e.preventDefault();
         try {
             await membershipsApi.assign({ ...assignForm, amountPaid: Number(assignForm.amountPaid) });
-            setShowAssignModal(false); setAssignForm({ clientId: '', planId: '', amountPaid: 0 }); loadData();
+            setShowAssignModal(false); setAssignForm({ clientId: '', planId: '', amountPaid: 0, paymentMethod: 'CASH' }); loadData();
             toast('Membresía asignada correctamente');
         } catch (e: any) { toast(e.message || 'Error al asignar', 'error'); }
     };
@@ -197,6 +197,16 @@ export default function MembershipsPage() {
                             </div>
                             <div><label className="form-label">Monto Pagado (S/)</label>
                                 <input className="input-field" type="number" step="0.01" value={assignForm.amountPaid} onChange={(e) => setAssignForm({ ...assignForm, amountPaid: Number(e.target.value) })} min={0} required />
+                            </div>
+                            <div><label className="form-label">Método de Pago *</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                                    {[{ v: 'CASH', l: '💵 Efectivo' }, { v: 'CARD', l: '💳 Tarjeta' }, { v: 'TRANSFER', l: '🏦 Transfer.' }, { v: 'YAPE_PLIN', l: '📱 Yape/Plin' }].map(m => (
+                                        <button key={m.v} type="button" onClick={() => setAssignForm({ ...assignForm, paymentMethod: m.v })}
+                                            style={{ padding: '10px 6px', borderRadius: '10px', border: assignForm.paymentMethod === m.v ? '2px solid var(--color-primary-light)' : '1px solid var(--color-border)', backgroundColor: assignForm.paymentMethod === m.v ? 'rgba(124,58,237,0.15)' : 'var(--color-bg-tertiary)', color: assignForm.paymentMethod === m.v ? 'var(--color-primary-light)' : 'var(--color-text-muted)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}>
+                                            {m.l}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
                                 <button type="button" className="btn-secondary" onClick={() => setShowAssignModal(false)}>Cancelar</button>

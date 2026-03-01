@@ -139,9 +139,9 @@ export const plansApi = {
 
 // ===== Memberships =====
 export const membershipsApi = {
-    assign: (data: { clientId: string; planId: string; amountPaid: number; startDate?: string; mode?: 'replace' | 'queue' }) =>
+    assign: (data: { clientId: string; planId: string; amountPaid: number; paymentMethod?: string; startDate?: string; mode?: 'replace' | 'queue' }) =>
         api<any>('/memberships', { method: 'POST', body: data }),
-    dailyPass: (data: { clientId: string; amountPaid: number }) =>
+    dailyPass: (data: { clientId: string; amountPaid: number; paymentMethod?: string }) =>
         api<any>('/memberships/daily-pass', { method: 'POST', body: data }),
     freeze: (id: string) => api<any>(`/memberships/${id}/freeze`, { method: 'PATCH' }),
     unfreeze: (id: string) => api<any>(`/memberships/${id}/unfreeze`, { method: 'PATCH' }),

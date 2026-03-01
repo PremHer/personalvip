@@ -15,7 +15,7 @@ export class MembershipsController {
     @Post()
     @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
     assign(
-        @Body() data: { clientId: string; planId: string; amountPaid: number; startDate?: string; mode?: 'replace' | 'queue' },
+        @Body() data: { clientId: string; planId: string; amountPaid: number; paymentMethod?: 'CASH' | 'CARD' | 'TRANSFER' | 'YAPE_PLIN'; startDate?: string; mode?: 'replace' | 'queue' },
         @CurrentUser() user: { id: string },
     ) {
         return this.service.assign({ ...data, createdBy: user.id });
@@ -42,7 +42,7 @@ export class MembershipsController {
     @Post('daily-pass')
     @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
     assignDailyPass(
-        @Body() data: { clientId: string; amountPaid: number },
+        @Body() data: { clientId: string; amountPaid: number; paymentMethod?: 'CASH' | 'CARD' | 'TRANSFER' | 'YAPE_PLIN' },
         @CurrentUser() user: { id: string },
     ) {
         return this.service.assignDailyPass({ ...data, createdBy: user.id });

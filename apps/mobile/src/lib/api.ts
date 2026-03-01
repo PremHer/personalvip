@@ -116,7 +116,7 @@ export const api = {
         return this.request<any>('/clients', { method: 'POST', body: JSON.stringify(data) });
     },
 
-    dailyPass(data: { clientId: string; amountPaid: number }) {
+    dailyPass(data: { clientId: string; amountPaid: number; paymentMethod?: string }) {
         return this.request<any>('/memberships/daily-pass', { method: 'POST', body: JSON.stringify(data) });
     },
 

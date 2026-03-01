@@ -27,6 +27,7 @@ enum PaymentMethod {
   CASH
   CARD
   TRANSFER
+  YAPE_PLIN
 }
 
 enum AttendanceMethod {
