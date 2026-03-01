@@ -131,6 +131,15 @@ export class MembershipsService {
      * Does NOT create a membership (daily pass is a one-time access, not a subscription).
      */
     async assignDailyPass(data: { clientId: string; amountPaid: number; createdBy: string }) {
+        // Guard: check if client already has a check-in today
+        const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+        const existingToday = await this.prisma.attendance.findFirst({
+            where: { clientId: data.clientId, checkIn: { gte: todayStart } },
+        });
+        if (existingToday) {
+            throw new BadRequestException('Este cliente ya tiene un pase/acceso registrado hoy');
+        }
+
         // 1. Record the payment as a Sale
         await this.prisma.sale.create({
             data: {
