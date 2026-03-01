@@ -6,7 +6,7 @@ import { clientsApi, plansApi, membershipsApi } from '@/lib/api';
 import { useUI } from '@/lib/ui-context';
 import { SkeletonTable } from '@/lib/skeleton';
 import { exportToCSV } from '@/lib/export';
-import { Search, Plus, Edit, Trash2, X, UserPlus, Users, CreditCard, Eye, QrCode, Download, Printer } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, X, UserPlus, Users, CreditCard, Eye, QrCode, Download, Printer, Zap } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
 export default function ClientsPage() {
@@ -36,6 +36,12 @@ export default function ClientsPage() {
     // QR modal
     const [showQrModal, setShowQrModal] = useState(false);
     const [qrClient, setQrClient] = useState<any>(null);
+
+    // Daily pass modal
+    const [showDailyPassModal, setShowDailyPassModal] = useState(false);
+    const [dpForm, setDpForm] = useState({ name: '', phone: '', amountPaid: 10 });
+    const [dpSaving, setDpSaving] = useState(false);
+    const [dpResult, setDpResult] = useState<any>(null);
 
     const openQr = (client: any) => {
         setQrClient(client);
@@ -158,6 +164,24 @@ export default function ClientsPage() {
         } catch (e) { console.error(e); }
     };
 
+    const handleDailyPass = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!dpForm.name.trim()) return;
+        setDpSaving(true);
+        try {
+            // Step 1: Create the client
+            const newClient = await clientsApi.create({ name: dpForm.name.trim(), phone: dpForm.phone.trim() || undefined });
+            // Step 2: Assign daily pass
+            await membershipsApi.dailyPass({ clientId: newClient.id, amountPaid: Number(dpForm.amountPaid) });
+            // Step 3: Get the full client with QR
+            const fullClient = await clientsApi.get(newClient.id);
+            setDpResult(fullClient);
+            toast('✅ Pase Diario asignado correctamente');
+            loadClients();
+        } catch (e: any) { toast(e.message || 'Error al crear pase diario', 'error'); }
+        finally { setDpSaving(false); }
+    };
+
     return (
         <div>
             {/* Header */}
@@ -180,6 +204,13 @@ export default function ClientsPage() {
                         exportToCSV(csvData, 'clientes');
                     }} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
                         <Download size={14} /> Exportar CSV
+                    </button>
+                    <button className="btn-secondary" onClick={() => {
+                        setDpForm({ name: '', phone: '', amountPaid: 10 });
+                        setDpResult(null);
+                        setShowDailyPassModal(true);
+                    }} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', background: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.3)', color: '#F59E0B' }}>
+                        <Zap size={14} /> Pase Diario
                     </button>
                     <button className="btn-primary" onClick={openNew}>
                         <UserPlus size={16} /> Nuevo Cliente
@@ -607,6 +638,75 @@ export default function ClientsPage() {
                             <button className="btn-secondary" onClick={printQr}><Printer size={14} /> Imprimir</button>
                             <button className="btn-primary" onClick={() => setShowQrModal(false)}>Cerrar</button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Daily Pass Modal */}
+            {showDailyPassModal && (
+                <div className="modal-overlay">
+                    <div className="modal-card slide-up" style={{ maxWidth: '420px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <div>
+                                <h2 style={{ fontSize: '16px', fontWeight: 700 }}>⚡ Pase Diario</h2>
+                                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>Registro rápido + acceso por 1 día</p>
+                            </div>
+                            <button className="btn-icon" onClick={() => setShowDailyPassModal(false)}><X size={16} /></button>
+                        </div>
+
+                        {!dpResult ? (
+                            <form onSubmit={handleDailyPass} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                                <div>
+                                    <label className="form-label">Nombre del Cliente *</label>
+                                    <input className="input-field" placeholder="Ej: Juan Pérez" value={dpForm.name}
+                                        onChange={(e) => setDpForm({ ...dpForm, name: e.target.value })} required autoFocus />
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                    <div>
+                                        <label className="form-label">Teléfono</label>
+                                        <input className="input-field" placeholder="Opcional" value={dpForm.phone}
+                                            onChange={(e) => setDpForm({ ...dpForm, phone: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label className="form-label">Monto (S/) *</label>
+                                        <input className="input-field" type="number" step="0.01" min={0} value={dpForm.amountPaid}
+                                            onChange={(e) => setDpForm({ ...dpForm, amountPaid: Number(e.target.value) })} required />
+                                    </div>
+                                </div>
+                                <div style={{ padding: '12px', borderRadius: '10px', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)' }}>
+                                    <div style={{ fontSize: '11px', color: 'var(--color-warning)', fontWeight: 600 }}>📋 Se creará:</div>
+                                    <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '4px', lineHeight: 1.5 }}>
+                                        • Cliente nuevo con código QR<br />
+                                        • Membresía "Pase Diario" (válida hoy)<br />
+                                        • Ingreso registrado: S/{dpForm.amountPaid.toFixed(2)}
+                                    </div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                    <button type="button" className="btn-secondary" onClick={() => setShowDailyPassModal(false)}>Cancelar</button>
+                                    <button type="submit" className="btn-primary" disabled={dpSaving} style={{ background: '#F59E0B' }}>
+                                        {dpSaving ? <div className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} /> : <><Zap size={14} /> Crear Pase Diario</>}
+                                    </button>
+                                </div>
+                            </form>
+                        ) : (
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: '48px', marginBottom: '8px' }}>✅</div>
+                                <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px' }}>{dpResult.name}</h3>
+                                <span className="badge badge-active" style={{ marginBottom: '16px', display: 'inline-block' }}>Pase Diario Activo</span>
+                                {dpResult.qrCode && (
+                                    <div style={{ padding: '16px', background: '#fff', borderRadius: '12px', display: 'inline-block', marginBottom: '16px' }}>
+                                        <QRCodeSVG value={dpResult.qrCode} size={160} fgColor="#7c3aed" level="H" />
+                                    </div>
+                                )}
+                                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
+                                    QR: <code style={{ background: 'var(--color-surface-2)', padding: '2px 6px', borderRadius: '4px' }}>{dpResult.qrCode}</code>
+                                </p>
+                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                    <button className="btn-secondary" onClick={() => { setShowDailyPassModal(false); openQr(dpResult); }}>🖨️ Imprimir QR</button>
+                                    <button className="btn-primary" onClick={() => setShowDailyPassModal(false)}>Listo</button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

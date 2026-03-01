@@ -218,31 +218,59 @@ export default function ScanPage() {
                                 <div style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace' }}>{result.client.qrCode}</div>
                             </div>
 
-                            {result.membership && (
-                                <div style={{
-                                    padding: '14px', borderRadius: '12px',
-                                    background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)',
-                                    marginBottom: '12px',
-                                }}>
-                                    <div style={{ fontSize: '10px', fontWeight: 700, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
-                                        Membresía Activa
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <div>
-                                            <div style={{ fontWeight: 600, fontSize: '14px' }}>{result.membership.plan}</div>
-                                            <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
-                                                Vence: {new Date(result.membership.endDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            {result.membership && (() => {
+                                const dl = result.membership.daysLeft;
+                                const isUrgent = dl <= 3;
+                                const isCritical = dl <= 1;
+                                const dayColor = dl > 7 ? '#22c55e' : dl > 3 ? '#f59e0b' : '#ef4444';
+                                return (
+                                    <>
+                                        <div style={{
+                                            padding: '14px', borderRadius: '12px',
+                                            background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)',
+                                            marginBottom: isUrgent ? '8px' : '12px',
+                                        }}>
+                                            <div style={{ fontSize: '10px', fontWeight: 700, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                                                Membresía Activa
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <div>
+                                                    <div style={{ fontWeight: 600, fontSize: '14px' }}>{result.membership.plan}</div>
+                                                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>
+                                                        Vence: {new Date(result.membership.endDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                    </div>
+                                                </div>
+                                                <div style={{ textAlign: 'right' }}>
+                                                    <div style={{ fontSize: '24px', fontWeight: 700, color: dayColor }}>
+                                                        {dl}
+                                                    </div>
+                                                    <div style={{ fontSize: '10px', color: '#94a3b8' }}>días</div>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <div style={{ fontSize: '24px', fontWeight: 700, color: result.membership.daysLeft <= 7 ? '#f59e0b' : '#22c55e' }}>
-                                                {result.membership.daysLeft}
+                                        {isUrgent && (
+                                            <div style={{
+                                                padding: '10px 14px', borderRadius: '10px',
+                                                background: isCritical ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.12)',
+                                                border: `1px solid ${isCritical ? 'rgba(239,68,68,0.35)' : 'rgba(245,158,11,0.3)'}`,
+                                                marginBottom: '12px',
+                                                display: 'flex', alignItems: 'center', gap: '8px',
+                                                animation: isCritical ? 'pulse-alert 1.5s ease-in-out infinite' : undefined,
+                                            }}>
+                                                <AlertTriangle size={16} color={isCritical ? '#ef4444' : '#f59e0b'} />
+                                                <div>
+                                                    <div style={{ fontSize: '12px', fontWeight: 700, color: isCritical ? '#ef4444' : '#f59e0b' }}>
+                                                        {isCritical ? '⚠️ ¡Membresía vence hoy!' : `⚠️ Membresía vence en ${dl} días`}
+                                                    </div>
+                                                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px' }}>
+                                                        Recordar al cliente renovar
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div style={{ fontSize: '10px', color: '#94a3b8' }}>días</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                                        )}
+                                    </>
+                                );
+                            })()}
 
                             {!result.membership && result.upcomingMembership && (
                                 <div style={{
@@ -322,6 +350,7 @@ export default function ScanPage() {
 
             <style jsx global>{`
                 @keyframes spin { to { transform: rotate(360deg); } }
+                @keyframes pulse-alert { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
                 #qr-reader video { border-radius: 16px !important; }
                 #qr-reader { border: none !important; }
                 #qr-reader__scan_region { background: transparent !important; }
