@@ -234,16 +234,6 @@ export default function ClientsPage() {
                     }} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
                         <Download size={14} /> Exportar CSV
                     </button>
-                    <button className="btn-secondary" onClick={() => {
-                        setDpDni('');
-                        setDpFound(null);
-                        setDpStep('search');
-                        setDpForm({ name: '', phone: '', amountPaid: 10 });
-                        setDpResult(null);
-                        setShowDailyPassModal(true);
-                    }} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', background: 'rgba(245,158,11,0.1)', borderColor: 'rgba(245,158,11,0.3)', color: '#F59E0B' }}>
-                        <Zap size={14} /> Pase Diario
-                    </button>
                     <button className="btn-primary" onClick={openNew}>
                         <UserPlus size={16} /> Nuevo Cliente
                     </button>
