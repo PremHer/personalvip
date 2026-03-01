@@ -9,12 +9,14 @@ import ScannerScreen from './src/screens/ScannerScreen';
 import GymFloorScreen from './src/screens/GymFloorScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import DailyPassScreen from './src/screens/DailyPassScreen';
 
 const Tab = createBottomTabNavigator();
 
 function TabIcon({ label, focused }: { label: string; focused: boolean }) {
   const icons: Record<string, string> = {
     'Escáner': '📷',
+    'Pase Diario': '⚡',
     'En Gym': '🏠',
     'Historial': '📋',
     'Perfil': '👤',
@@ -77,6 +79,13 @@ function AppContent() {
             name="Escáner"
             component={ScannerScreen}
             options={{ headerTitle: '📷 Escáner QR' }}
+          />
+        )}
+        {canScan && (
+          <Tab.Screen
+            name="Pase Diario"
+            component={DailyPassScreen}
+            options={{ headerTitle: '⚡ Pase Diario' }}
           />
         )}
         <Tab.Screen

@@ -106,4 +106,25 @@ export const api = {
     getClientAttendanceStats(id: string) {
         return this.request<any>(`/attendance/client-stats/${id}`);
     },
+
+    // Daily Pass
+    searchByDni(dni: string) {
+        return this.request<any>(`/clients/search-dni/${encodeURIComponent(dni)}`);
+    },
+
+    createClient(data: { name: string; phone?: string; dni?: string }) {
+        return this.request<any>('/clients', { method: 'POST', body: JSON.stringify(data) });
+    },
+
+    dailyPass(data: { clientId: string; amountPaid: number }) {
+        return this.request<any>('/memberships/daily-pass', { method: 'POST', body: JSON.stringify(data) });
+    },
+
+    checkIn(qrCode: string) {
+        return this.request<any>('/attendance/check-in', { method: 'POST', body: JSON.stringify({ qrCode }) });
+    },
+
+    getClient(id: string) {
+        return this.request<any>(`/clients/${id}`);
+    },
 };

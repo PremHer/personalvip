@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@/lib/auth-context';
-import { membershipsApi, authApi, clientsApi } from '@/lib/api';
+import { membershipsApi, authApi, clientsApi, attendanceApi } from '@/lib/api';
 import { useUI } from '@/lib/ui-context';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, ReactNode, useState, useRef } from 'react';
@@ -64,7 +64,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const [dpDni, setDpDni] = useState('');
     const [dpFound, setDpFound] = useState<any>(null);
     const [dpSearching, setDpSearching] = useState(false);
-    const [dpForm, setDpForm] = useState({ name: '', phone: '', amountPaid: 10 });
+    const [dpForm, setDpForm] = useState({ name: '', phone: '', amountPaid: 8 });
     const [dpSaving, setDpSaving] = useState(false);
     const [dpResult, setDpResult] = useState<any>(null);
 
@@ -620,6 +620,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                     setDpResult(full);
                                     setDpStep('result');
                                     toast('\u2705 Pase Diario asignado');
+                                    // Auto check-in
+                                    try { await attendanceApi.checkIn(full.qrCode); } catch (e) { /* ignore if already checked in */ }
                                 } catch (err: any) { toast(err.message || 'Error', 'error'); }
                                 finally { setDpSaving(false); }
                             }} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
