@@ -34,9 +34,9 @@ function AppContent() {
   if (loading) {
     return (
       <View style={{ flex: 1, backgroundColor: '#0f0a1a', alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontSize: 48 }}>🏋️</Text>
+        <Text style={{ fontSize: 48 }}>💪</Text>
         <ActivityIndicator size="large" color="#7c3aed" style={{ marginTop: 16 }} />
-        <Text style={{ color: '#94a3b8', marginTop: 12, fontSize: 13 }}>Cargando...</Text>
+        <Text style={{ color: '#94a3b8', marginTop: 12, fontSize: 13 }}>Personal VIP</Text>
       </View>
     );
   }
@@ -76,7 +76,7 @@ function AppContent() {
           <Tab.Screen
             name="Escáner"
             component={ScannerScreen}
-            options={{ headerTitle: '🏋️ GymCore Scanner' }}
+            options={{ headerTitle: '📷 Escáner QR' }}
           />
         )}
         <Tab.Screen

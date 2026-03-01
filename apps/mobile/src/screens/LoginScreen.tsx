@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
     StyleSheet, Text, View, TextInput, TouchableOpacity,
     Alert, KeyboardAvoidingView, Platform, ActivityIndicator,
-    ScrollView, Animated,
+    ScrollView, Image,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
@@ -60,8 +60,8 @@ export default function LoginScreen() {
             <ScrollView contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled">
                 {/* Logo */}
                 <View style={s.logoWrap}>
-                    <Text style={s.logoEmoji}>🏋️</Text>
-                    <Text style={s.logoTitle}>GymCore</Text>
+                    <Image source={require('../../assets/logo.png')} style={s.logoImg} resizeMode="contain" />
+                    <Text style={s.logoTitle}>Personal VIP</Text>
                     <Text style={s.logoSubtitle}>Sistema de Gestión</Text>
                 </View>
 
@@ -74,7 +74,7 @@ export default function LoginScreen() {
                         <Text style={s.inputLabel}>Email</Text>
                         <TextInput
                             style={s.input}
-                            placeholder="correo@gymcore.com"
+                            placeholder="correo@personalvip.com"
                             placeholderTextColor="#64748b"
                             value={email}
                             onChangeText={setEmail}
@@ -128,7 +128,7 @@ export default function LoginScreen() {
                     </View>
                 )}
 
-                <Text style={s.version}>GymCore Scanner v1.0.0</Text>
+                <Text style={s.version}>Personal VIP v1.1.0</Text>
             </ScrollView>
         </KeyboardAvoidingView>
     );
@@ -140,7 +140,7 @@ const s = StyleSheet.create({
 
     // Logo
     logoWrap: { alignItems: 'center', marginBottom: 32 },
-    logoEmoji: { fontSize: 56 },
+    logoImg: { width: 100, height: 100, borderRadius: 50, marginBottom: 8 },
     logoTitle: { fontSize: 32, fontWeight: '900', color: '#e2e8f0', marginTop: 8, letterSpacing: 1 },
     logoSubtitle: { fontSize: 13, color: '#7c3aed', fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase', marginTop: 4 },
 

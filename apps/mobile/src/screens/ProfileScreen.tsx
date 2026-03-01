@@ -131,11 +131,11 @@ export default function ProfileScreen() {
                 <View style={s.sectionBox}>
                     <View style={s.infoRow}>
                         <Text style={s.infoLabel}>App</Text>
-                        <Text style={s.infoValue}>GymCore Scanner</Text>
+                        <Text style={s.infoValue}>Personal VIP</Text>
                     </View>
                     <View style={s.infoRow}>
                         <Text style={s.infoLabel}>Versión</Text>
-                        <Text style={s.infoValue}>1.0.0</Text>
+                        <Text style={s.infoValue}>1.1.0</Text>
                     </View>
                 </View>
             </View>

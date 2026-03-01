@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "GymCore Scanner",
+    "name": "Personal VIP",
     "slug": "gymcore-scanner",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -15,7 +15,7 @@
     "ios": {
       "supportsTablet": false,
       "infoPlist": {
-        "NSCameraUsageDescription": "GymCore necesita acceso a la cámara para escanear códigos QR de los clientes."
+        "NSCameraUsageDescription": "Personal VIP necesita acceso a la cámara para escanear códigos QR de los clientes."
       }
     },
     "android": {
@@ -35,7 +35,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "GymCore necesita acceso a la cámara para escanear códigos QR de los clientes."
+          "cameraPermission": "Personal VIP necesita acceso a la cámara para escanear códigos QR de los clientes."
         }
       ]
     ],
