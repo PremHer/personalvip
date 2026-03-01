@@ -61,14 +61,11 @@ export default function DailyPassScreen() {
                 clientId = nc.id;
             }
 
-            // Assign daily pass
+            // Assign daily pass (backend creates Sale + Attendance)
             await api.dailyPass({ clientId, amountPaid: Number(amount) || 8 });
 
             // Get updated client info
             const full = await api.getClient(clientId);
-
-            // Auto check-in
-            try { await api.checkIn(full.qrCode); } catch { /* ignore */ }
 
             setResult(full);
             setStep('done');

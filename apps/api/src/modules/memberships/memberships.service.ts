@@ -127,33 +127,41 @@ export class MembershipsService {
     }
 
     /**
-     * Assign a daily pass (1-day membership) to a client.
-     * Auto-creates the "Pase Diario" plan if it doesn't exist.
+     * Assign a daily pass — records payment as a Sale and check-in as Attendance.
+     * Does NOT create a membership (daily pass is a one-time access, not a subscription).
      */
     async assignDailyPass(data: { clientId: string; amountPaid: number; createdBy: string }) {
-        // Find or create the daily pass plan
-        let dailyPlan = await this.prisma.membershipPlan.findFirst({
-            where: { durationDays: 1, name: { contains: 'Pase Diario' } },
+        // 1. Record the payment as a Sale
+        await this.prisma.sale.create({
+            data: {
+                clientId: data.clientId,
+                cashierId: data.createdBy,
+                total: data.amountPaid,
+                paymentMethod: 'CASH',
+                discount: 0,
+            },
         });
 
-        if (!dailyPlan) {
-            dailyPlan = await this.prisma.membershipPlan.create({
-                data: {
-                    name: 'Pase Diario',
-                    price: data.amountPaid,
-                    durationDays: 1,
-                    description: 'Acceso por una sesión / un día',
-                    isActive: true,
-                },
-            });
-        }
+        // 2. Record check-in attendance
+        await this.prisma.attendance.create({
+            data: {
+                clientId: data.clientId,
+                validatedBy: data.createdBy,
+                method: 'MANUAL',
+            },
+        });
 
-        return this.assign({
-            clientId: data.clientId,
-            planId: dailyPlan.id,
-            amountPaid: data.amountPaid,
-            createdBy: data.createdBy,
-            mode: 'replace',
+        // 3. Return client info
+        return this.prisma.client.findUnique({
+            where: { id: data.clientId },
+            include: {
+                memberships: {
+                    where: { status: 'ACTIVE' },
+                    include: { plan: true },
+                    orderBy: { endDate: 'desc' },
+                    take: 1,
+                },
+            },
         });
     }
 }

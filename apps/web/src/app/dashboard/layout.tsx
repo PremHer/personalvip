@@ -619,9 +619,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                     const full = await clientsApi.get(clientId);
                                     setDpResult(full);
                                     setDpStep('result');
-                                    toast('\u2705 Pase Diario asignado');
-                                    // Auto check-in
-                                    try { await attendanceApi.checkIn(full.qrCode); } catch (e) { /* ignore if already checked in */ }
+                                    toast('\u2705 Pase Diario asignado y acceso registrado');
                                 } catch (err: any) { toast(err.message || 'Error', 'error'); }
                                 finally { setDpSaving(false); }
                             }} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
