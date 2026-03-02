@@ -81,7 +81,7 @@ export default function SalesPage() {
                                 <tr key={s.id}>
                                     <td style={{ fontSize: '11px', fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>{s.id.slice(0, 8)}</td>
                                     <td>{new Date(s.createdAt).toLocaleDateString('es-ES')} {new Date(s.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</td>
-                                    <td>{s.clientName || '—'}</td>
+                                    <td>{s.client?.name || s.clientName || '—'}</td>
                                     <td><span className="badge badge-primary">{s.items?.length || 0} items</span></td>
                                     <td><span className="badge" style={{ background: 'var(--color-surface-2)', color: 'var(--color-text-secondary)' }}>{s.paymentMethod === 'CASH' ? 'Efectivo' : s.paymentMethod === 'CARD' ? 'Tarjeta' : 'Transf.'}</span></td>
                                     <td style={{ fontWeight: 700, color: 'var(--color-success)' }}>S/{Number(s.total).toFixed(2)}</td>

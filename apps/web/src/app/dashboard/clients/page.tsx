@@ -31,7 +31,7 @@ export default function ClientsPage() {
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [assignClient, setAssignClient] = useState<any>(null);
     const [plans, setPlans] = useState<any[]>([]);
-    const [assignForm, setAssignForm] = useState({ planId: '', amountPaid: 0, mode: 'replace' as 'replace' | 'queue' });
+    const [assignForm, setAssignForm] = useState({ planId: '', amountPaid: 0, mode: 'replace' as 'replace' | 'queue', paymentMethod: 'CASH', receiptUrl: '' });
     const [assigning, setAssigning] = useState(false);
 
     // Detail modal
@@ -48,7 +48,7 @@ export default function ClientsPage() {
     const [dpDni, setDpDni] = useState('');
     const [dpFound, setDpFound] = useState<any>(null);
     const [dpSearching, setDpSearching] = useState(false);
-    const [dpForm, setDpForm] = useState({ name: '', phone: '', amountPaid: 10 });
+    const [dpForm, setDpForm] = useState({ name: '', phone: '', amountPaid: 10, paymentMethod: 'CASH', receiptUrl: '' });
     const [dpSaving, setDpSaving] = useState(false);
     const [dpResult, setDpResult] = useState<any>(null);
 
@@ -204,7 +204,7 @@ export default function ClientsPage() {
 
     const openAssign = async (client: any) => {
         setAssignClient(client);
-        setAssignForm({ planId: '', amountPaid: 0, mode: 'replace' });
+        setAssignForm({ planId: '', amountPaid: 0, mode: 'replace', paymentMethod: 'CASH', receiptUrl: '' });
         try {
             const p = await plansApi.list();
             setPlans(p.filter((pl: any) => pl.isActive));
@@ -221,6 +221,8 @@ export default function ClientsPage() {
                 clientId: assignClient.id,
                 planId: assignForm.planId,
                 amountPaid: Number(assignForm.amountPaid),
+                paymentMethod: assignForm.paymentMethod,
+                receiptUrl: assignForm.receiptUrl,
                 mode: assignClient.activeMembership?.status === 'ACTIVE' ? assignForm.mode : 'replace',
             });
             setShowAssignModal(false);
@@ -283,7 +285,7 @@ export default function ClientsPage() {
                     const newClient = await clientsApi.create({ name: dpForm.name.trim(), phone: dpForm.phone.trim() || undefined, dni: dpDni.trim() || undefined });
                     clientId = newClient.id;
                 }
-                await membershipsApi.dailyPass({ clientId, amountPaid: Number(dpForm.amountPaid) });
+                await membershipsApi.dailyPass({ clientId, amountPaid: Number(dpForm.amountPaid), paymentMethod: dpForm.paymentMethod, receiptUrl: dpForm.receiptUrl });
                 const fullClient = await clientsApi.get(clientId);
                 setDpResult(fullClient);
                 setDpStep('result');
@@ -624,6 +626,37 @@ export default function ClientsPage() {
                                     <label className="form-label">Monto Pagado (S/)</label>
                                     <input className="input-field" type="number" step="0.01" value={assignForm.amountPaid}
                                         onChange={(e) => setAssignForm({ ...assignForm, amountPaid: Number(e.target.value) })} min={0} required />
+                                </div>
+                                <div><label className="form-label">Método de Pago *</label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                                        {[{ v: 'CASH', l: '💵 Efectivo' }, { v: 'CARD', l: '💳 Tarjeta' }, { v: 'TRANSFER', l: '🏦 Transfer.' }, { v: 'YAPE_PLIN', l: '📱 Yape/Plin' }].map(m => (
+                                            <button key={m.v} type="button" onClick={() => setAssignForm({ ...assignForm, paymentMethod: m.v })}
+                                                style={{ padding: '10px 6px', borderRadius: '10px', border: assignForm.paymentMethod === m.v ? '2px solid var(--color-primary-light)' : '1px solid var(--color-border)', backgroundColor: assignForm.paymentMethod === m.v ? 'rgba(124,58,237,0.15)' : 'var(--color-bg-tertiary)', color: assignForm.paymentMethod === m.v ? 'var(--color-primary-light)' : 'var(--color-text-muted)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}>
+                                                {m.l}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div><label className="form-label">Comprobante de Pago (opcional)</label>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <label style={{ padding: '8px 14px', borderRadius: '8px', border: '1px dashed var(--color-border)', backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            📷 Subir imagen
+                                            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    const reader = new FileReader();
+                                                    reader.onload = () => setAssignForm(prev => ({ ...prev, receiptUrl: reader.result as string }));
+                                                    reader.readAsDataURL(file);
+                                                }
+                                            }} />
+                                        </label>
+                                        {assignForm.receiptUrl && (
+                                            <div style={{ position: 'relative' }}>
+                                                <img src={assignForm.receiptUrl} alt="Comprobante" style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--color-border)' }} />
+                                                <button type="button" onClick={() => setAssignForm(prev => ({ ...prev, receiptUrl: '' }))} style={{ position: 'absolute', top: '-6px', right: '-6px', width: '16px', height: '16px', borderRadius: '50%', background: '#ef4444', border: 'none', color: '#fff', fontSize: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* New membership preview */}
