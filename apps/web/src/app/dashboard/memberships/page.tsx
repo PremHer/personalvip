@@ -15,6 +15,9 @@ export default function MembershipsPage() {
     const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
     const [planForm, setPlanForm] = useState({ name: '', durationDays: 30, price: 0, description: '' });
     const [assignForm, setAssignForm] = useState({ clientId: '', planId: '', amountPaid: 0, paymentMethod: 'CASH' });
+    const [assignMode, setAssignMode] = useState<'replace' | 'queue'>('queue');
+    const [activeClientMembership, setActiveClientMembership] = useState<any>(null);
+    const [extraClients, setExtraClients] = useState<string[]>([]);
     const [clients, setClients] = useState<any[]>([]);
 
     useEffect(() => { loadData(); }, []);
@@ -28,7 +31,7 @@ export default function MembershipsPage() {
     };
 
     const loadClients = async () => {
-        const res = await clientsApi.list(1, 100);
+        const res = await clientsApi.list(1, 200);
         setClients(res.data);
     };
 
@@ -59,11 +62,38 @@ export default function MembershipsPage() {
         } catch (e: any) { toast(e.message || 'Error al guardar plan', 'error'); }
     };
 
+    // Check active membership when client is selected
+    const handleClientSelect = async (clientId: string) => {
+        setAssignForm(prev => ({ ...prev, clientId }));
+        setActiveClientMembership(null);
+        if (clientId) {
+            try {
+                const client = await clientsApi.get(clientId);
+                const active = client.memberships?.find((m: any) => m.status === 'ACTIVE');
+                if (active) { setActiveClientMembership(active); setAssignMode('queue'); }
+            } catch { /* ignore */ }
+        }
+    };
+
+    // Detect duo/trio plan
+    const selectedPlan = plans.find(p => p.id === assignForm.planId);
+    const isDuoPlan = selectedPlan?.name?.toLowerCase().includes('duo');
+    const isTrioPlan = selectedPlan?.name?.toLowerCase().includes('trio');
+    const extraSlotsNeeded = isTrioPlan ? 2 : isDuoPlan ? 1 : 0;
+
     const handleAssign = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await membershipsApi.assign({ ...assignForm, amountPaid: Number(assignForm.amountPaid) });
-            setShowAssignModal(false); setAssignForm({ clientId: '', planId: '', amountPaid: 0, paymentMethod: 'CASH' }); loadData();
+            const baseData = { ...assignForm, amountPaid: Number(assignForm.amountPaid), mode: activeClientMembership ? assignMode : 'replace' };
+            // Assign to primary client
+            await membershipsApi.assign(baseData);
+            // Assign to extra clients (duo/trio)
+            for (const cId of extraClients.filter(c => c)) {
+                await membershipsApi.assign({ ...baseData, clientId: cId, amountPaid: 0 });
+            }
+            setShowAssignModal(false);
+            setAssignForm({ clientId: '', planId: '', amountPaid: 0, paymentMethod: 'CASH' });
+            setActiveClientMembership(null); setExtraClients([]); loadData();
             toast('Membresía asignada correctamente');
         } catch (e: any) { toast(e.message || 'Error al asignar', 'error'); }
     };
@@ -174,27 +204,79 @@ export default function MembershipsPage() {
             {/* Assign Modal */}
             {showAssignModal && (
                 <div className="modal-overlay">
-                    <div className="modal-card slide-up">
+                    <div className="modal-card slide-up" style={{ maxWidth: '480px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                             <h2 style={{ fontSize: '16px', fontWeight: 700 }}>Asignar Membresía</h2>
-                            <button className="btn-icon" onClick={() => setShowAssignModal(false)}><X size={16} /></button>
+                            <button className="btn-icon" onClick={() => { setShowAssignModal(false); setActiveClientMembership(null); setExtraClients([]); }}><X size={16} /></button>
                         </div>
                         <form onSubmit={handleAssign} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                            <div><label className="form-label">Cliente *</label>
-                                <select className="input-field" value={assignForm.clientId} onChange={(e) => setAssignForm({ ...assignForm, clientId: e.target.value })} required>
+                            <div><label className="form-label">Cliente Principal *</label>
+                                <select className="input-field" value={assignForm.clientId} onChange={(e) => handleClientSelect(e.target.value)} required>
                                     <option value="">Seleccionar cliente...</option>
-                                    {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    {clients.map((c) => <option key={c.id} value={c.id}>{c.name} {c.dni ? `(${c.dni})` : ''}</option>)}
                                 </select>
                             </div>
+
+                            {/* Active membership warning */}
+                            {activeClientMembership && (
+                                <div style={{ padding: '12px', borderRadius: '10px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                                        <AlertTriangle size={14} color="#F59E0B" />
+                                        <span style={{ fontSize: '11px', fontWeight: 700, color: '#F59E0B', textTransform: 'uppercase' }}>Membresía activa</span>
+                                    </div>
+                                    <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '2px' }}>{activeClientMembership.plan?.name}</div>
+                                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                                        Vence: {new Date(activeClientMembership.endDate).toLocaleDateString('es-PE')}
+                                    </div>
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '10px' }}>
+                                        <button type="button" onClick={() => setAssignMode('queue')}
+                                            style={{ padding: '8px', borderRadius: '8px', border: assignMode === 'queue' ? '2px solid #22c55e' : '1px solid var(--color-border)', backgroundColor: assignMode === 'queue' ? 'rgba(34,197,94,0.1)' : 'var(--color-bg-tertiary)', color: assignMode === 'queue' ? '#22c55e' : 'var(--color-text-muted)', fontSize: '11px', fontWeight: 700, cursor: 'pointer', textAlign: 'center' }}>
+                                            📅 Encolar (inicia al vencer)
+                                        </button>
+                                        <button type="button" onClick={() => setAssignMode('replace')}
+                                            style={{ padding: '8px', borderRadius: '8px', border: assignMode === 'replace' ? '2px solid #ef4444' : '1px solid var(--color-border)', backgroundColor: assignMode === 'replace' ? 'rgba(239,68,68,0.1)' : 'var(--color-bg-tertiary)', color: assignMode === 'replace' ? '#ef4444' : 'var(--color-text-muted)', fontSize: '11px', fontWeight: 700, cursor: 'pointer', textAlign: 'center' }}>
+                                            🔄 Reemplazar (cancela actual)
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
                             <div><label className="form-label">Plan *</label>
                                 <select className="input-field" value={assignForm.planId} onChange={(e) => {
                                     const plan = plans.find(p => p.id === e.target.value);
                                     setAssignForm({ ...assignForm, planId: e.target.value, amountPaid: plan ? Number(plan.price) : 0 });
+                                    // Reset extra clients when plan changes
+                                    const pName = plan?.name?.toLowerCase() || '';
+                                    const slots = pName.includes('trio') ? 2 : pName.includes('duo') ? 1 : 0;
+                                    setExtraClients(Array(slots).fill(''));
                                 }} required>
                                     <option value="">Seleccionar plan...</option>
                                     {plans.filter(p => p.isActive).map((p) => <option key={p.id} value={p.id}>{p.name} - S/{Number(p.price).toFixed(2)}</option>)}
                                 </select>
                             </div>
+
+                            {/* Extra clients for Duo/Trio */}
+                            {extraSlotsNeeded > 0 && (
+                                <div style={{ padding: '12px', borderRadius: '10px', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)' }}>
+                                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-primary-light)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                                        👥 Clientes adicionales ({isTrioPlan ? 'Trío: 2 más' : 'Dúo: 1 más'})
+                                    </div>
+                                    {Array.from({ length: extraSlotsNeeded }).map((_, i) => (
+                                        <div key={i} style={{ marginBottom: i < extraSlotsNeeded - 1 ? '8px' : 0 }}>
+                                            <label className="form-label" style={{ marginTop: 0 }}>Cliente {i + 2} *</label>
+                                            <select className="input-field" value={extraClients[i] || ''} onChange={(e) => {
+                                                const updated = [...extraClients]; updated[i] = e.target.value; setExtraClients(updated);
+                                            }} required>
+                                                <option value="">Seleccionar cliente...</option>
+                                                {clients.filter(c => c.id !== assignForm.clientId && !extraClients.includes(c.id)).map(c =>
+                                                    <option key={c.id} value={c.id}>{c.name} {c.dni ? `(${c.dni})` : ''}</option>
+                                                )}
+                                            </select>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
                             <div><label className="form-label">Monto Pagado (S/)</label>
                                 <input className="input-field" type="number" step="0.01" value={assignForm.amountPaid} onChange={(e) => setAssignForm({ ...assignForm, amountPaid: Number(e.target.value) })} min={0} required />
                             </div>
@@ -209,8 +291,8 @@ export default function MembershipsPage() {
                                 </div>
                             </div>
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
-                                <button type="button" className="btn-secondary" onClick={() => setShowAssignModal(false)}>Cancelar</button>
-                                <button type="submit" className="btn-primary"><DollarSign size={14} /> Asignar</button>
+                                <button type="button" className="btn-secondary" onClick={() => { setShowAssignModal(false); setActiveClientMembership(null); setExtraClients([]); }}>Cancelar</button>
+                                <button type="submit" className="btn-primary"><DollarSign size={14} /> Asignar{extraSlotsNeeded > 0 ? ` (${extraSlotsNeeded + 1} clientes)` : ''}</button>
                             </div>
                         </form>
                     </div>
