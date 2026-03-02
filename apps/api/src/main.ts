@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import * as bodyParser from 'body-parser';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
@@ -14,6 +15,10 @@ async function bootstrap() {
         origin: true,
         credentials: true,
     });
+
+    // Body Parsers for Base64 image uploads (like payment receipts)
+    app.use(bodyParser.json({ limit: '20mb' }));
+    app.use(bodyParser.urlencoded({ limit: '20mb', extended: true }));
 
     // Validation
     app.useGlobalPipes(

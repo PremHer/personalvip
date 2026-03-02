@@ -459,26 +459,9 @@ export default function ClientsPage() {
                             <button className="btn-icon" onClick={() => setShowModal(false)}><X size={16} /></button>
                         </div>
                         <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                            <div>
-                                <label className="form-label">Nombre *</label>
-                                <input className="input-field" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                <div><label className="form-label">Email</label><input className="input-field" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-                                <div>
-                                    <label className="form-label">DNI {isMigration ? '(Opcional)' : '*'}</label>
-                                    <input className="input-field" placeholder="12345678" value={form.dni} onChange={(e) => setForm({ ...form, dni: e.target.value })} required={!isMigration} />
-                                </div>
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                <div><label className="form-label">Teléfono</label><input className="input-field" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-                                <div><label className="form-label">Contacto de Emergencia</label><input className="input-field" value={form.emergencyContact} onChange={(e) => setForm({ ...form, emergencyContact: e.target.value })} /></div>
-                            </div>
-                            <div><label className="form-label">Notas Médicas</label><textarea className="input-field" rows={2} value={form.medicalNotes} onChange={(e) => setForm({ ...form, medicalNotes: e.target.value })} style={{ resize: 'vertical' }} /></div>
-
                             {/* Legacy Migration Section (Only for New Clients) */}
                             {!editingClient && (
-                                <div style={{ marginTop: '8px', padding: '12px', background: 'var(--color-bg-subtle)', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
+                                <div style={{ padding: '12px', background: 'var(--color-bg-subtle)', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
                                     <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 500 }}>
                                         <input
                                             type="checkbox"
@@ -486,7 +469,7 @@ export default function ClientsPage() {
                                             onChange={(e) => setIsMigration(e.target.checked)}
                                             style={{ accentColor: 'var(--color-primary)', width: '16px', height: '16px' }}
                                         />
-                                        <span>🔄 Cliente migrado del sistema anterior (No genera cobro en Finanzas)</span>
+                                        <span>🔄 Cliente antiguo (No genera cobro en Finanzas)</span>
                                     </label>
 
                                     {isMigration && (
@@ -508,6 +491,23 @@ export default function ClientsPage() {
                                     )}
                                 </div>
                             )}
+
+                            <div>
+                                <label className="form-label">Nombre *</label>
+                                <input className="input-field" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                <div><label className="form-label">Email</label><input className="input-field" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+                                <div>
+                                    <label className="form-label">DNI {isMigration ? '(Opcional)' : '*'}</label>
+                                    <input className="input-field" placeholder="12345678" value={form.dni} onChange={(e) => setForm({ ...form, dni: e.target.value })} required={!isMigration} />
+                                </div>
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                <div><label className="form-label">Teléfono</label><input className="input-field" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
+                                <div><label className="form-label">Contacto de Emergencia</label><input className="input-field" value={form.emergencyContact} onChange={(e) => setForm({ ...form, emergencyContact: e.target.value })} /></div>
+                            </div>
+                            <div><label className="form-label">Notas Médicas</label><textarea className="input-field" rows={2} value={form.medicalNotes} onChange={(e) => setForm({ ...form, medicalNotes: e.target.value })} style={{ resize: 'vertical' }} /></div>
 
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
                                 <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
