@@ -1,16 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { nowPeru, todayStartPeru, dayStartPeru, dayEndPeru } from '../../common/timezone';
 
 @Injectable()
 export class FinanceService {
     constructor(private prisma: PrismaService) { }
 
     async getDashboard() {
-        const now = new Date();
-        const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+        const now = nowPeru();
+        const todayStart = todayStartPeru();
         const yesterdayStart = new Date(todayStart); yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-        const weekStart = new Date(now); weekStart.setDate(weekStart.getDate() - 7);
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - 7);
+        const monthStart = dayStartPeru(new Date(now.getFullYear(), now.getMonth(), 1));
 
         const [
             todaySales, weekSales, monthSales, yesterdaySales,
@@ -124,8 +125,8 @@ export class FinanceService {
 
     async getDailyReport(date?: string) {
         const reportDate = date ? new Date(date) : new Date();
-        const dayStart = new Date(reportDate); dayStart.setHours(0, 0, 0, 0);
-        const dayEnd = new Date(reportDate); dayEnd.setHours(23, 59, 59, 999);
+        const dayStart = dayStartPeru(reportDate);
+        const dayEnd = dayEndPeru(reportDate);
 
         const [sales, attendance, byMethod] = await Promise.all([
             this.prisma.sale.aggregate({
@@ -165,17 +166,16 @@ export class FinanceService {
     async getSalesReport(from?: string, to?: string) {
         const where: any = {};
         if (from) {
-            const f = new Date(from); f.setHours(0, 0, 0, 0);
+            const f = dayStartPeru(from);
             where.createdAt = { ...where.createdAt, gte: f };
         }
         if (to) {
-            const t = new Date(to); t.setHours(23, 59, 59, 999);
+            const t = dayEndPeru(to);
             where.createdAt = { ...where.createdAt, lte: t };
         }
         if (!from && !to) {
             // Default to today
-            const today = new Date(); today.setHours(0, 0, 0, 0);
-            where.createdAt = { gte: today };
+            where.createdAt = { gte: todayStartPeru() };
         }
 
         const sales = await this.prisma.sale.findMany({

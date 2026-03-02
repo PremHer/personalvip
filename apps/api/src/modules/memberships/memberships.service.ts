@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { todayStartPeru } from '../../common/timezone';
 
 @Injectable()
 export class MembershipsService {
@@ -146,7 +147,7 @@ export class MembershipsService {
      */
     async assignDailyPass(data: { clientId: string; amountPaid: number; createdBy: string; paymentMethod?: 'CASH' | 'CARD' | 'TRANSFER' | 'YAPE_PLIN'; receiptUrl?: string }) {
         // Guard: check if client already has a check-in today
-        const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+        const todayStart = todayStartPeru();
         const existingToday = await this.prisma.attendance.findFirst({
             where: { clientId: data.clientId, checkIn: { gte: todayStart } },
         });

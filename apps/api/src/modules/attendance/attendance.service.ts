@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { todayStartPeru, dayStartPeru, dayEndPeru } from '../../common/timezone';
 
 @Injectable()
 export class AttendanceService {
@@ -60,8 +61,7 @@ export class AttendanceService {
         }
 
         // Check if already checked in today without checkout
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const today = todayStartPeru();
         const existingCheckIn = await this.prisma.attendance.findFirst({
             where: {
                 clientId: client.id,
@@ -138,8 +138,7 @@ export class AttendanceService {
         let checkInStatus: any = null;
         if (registerCheckIn && canEnter) {
             // Check if already checked in today
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            const today = todayStartPeru();
             const existingCheckIn = await this.prisma.attendance.findFirst({
                 where: {
                     clientId: client.id,
@@ -216,8 +215,7 @@ export class AttendanceService {
     }
 
     async checkOut(clientId: string) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const today = todayStartPeru();
 
         const attendance = await this.prisma.attendance.findFirst({
             where: {
@@ -239,8 +237,7 @@ export class AttendanceService {
     }
 
     async getTodayAttendance() {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const today = todayStartPeru();
 
         return this.prisma.attendance.findMany({
             where: { checkIn: { gte: today } },
@@ -258,21 +255,18 @@ export class AttendanceService {
 
         if (date) {
             // Specific date
-            const d = new Date(date);
-            d.setHours(0, 0, 0, 0);
+            const d = dayStartPeru(date);
             const next = new Date(d);
             next.setDate(next.getDate() + 1);
             where.checkIn = { gte: d, lt: next };
         } else if (from || to) {
             where.checkIn = {};
             if (from) {
-                const f = new Date(from);
-                f.setHours(0, 0, 0, 0);
+                const f = dayStartPeru(from);
                 where.checkIn.gte = f;
             }
             if (to) {
-                const t = new Date(to);
-                t.setHours(23, 59, 59, 999);
+                const t = dayEndPeru(to);
                 where.checkIn.lte = t;
             }
         }
@@ -298,8 +292,7 @@ export class AttendanceService {
      * Sets checkOut to 23:00 of the check-in day.
      */
     async autoCheckOutAll() {
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
+        const todayStart = todayStartPeru();
 
         const openRecords = await this.prisma.attendance.findMany({
             where: {
