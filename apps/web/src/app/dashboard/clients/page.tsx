@@ -63,15 +63,63 @@ export default function ClientsPage() {
         if (!svg) return;
         const svgData = new XMLSerializer().serializeToString(svg);
         const canvas = document.createElement('canvas');
-        canvas.width = 400; canvas.height = 400;
+        canvas.width = 400; canvas.height = 650;
         const ctx = canvas.getContext('2d')!;
+
         const img = new Image();
         img.onload = () => {
+            // Background
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, 400, 400);
-            ctx.drawImage(img, 0, 0, 400, 400);
+            ctx.fillRect(0, 0, 400, 650);
+
+            // Header (Purple)
+            ctx.fillStyle = '#7c3aed';
+            ctx.fillRect(0, 0, 400, 120);
+
+            // Logo / Title
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 32px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('PERSONAL VIP', 200, 75);
+
+            // Client details
+            ctx.fillStyle = '#111827';
+            ctx.font = 'bold 26px sans-serif';
+            ctx.fillText(qrClient.name, 200, 180);
+
+            if (qrClient.dni) {
+                ctx.fillStyle = '#6b7280';
+                ctx.font = '18px sans-serif';
+                ctx.fillText(`DNI: ${qrClient.dni}`, 200, 215);
+            }
+
+            // QR Frame
+            ctx.fillStyle = '#f9fafb';
+            ctx.strokeStyle = '#e5e7eb';
+            ctx.lineWidth = 2;
+            if (ctx.roundRect) {
+                ctx.beginPath();
+                ctx.roundRect(60, 250, 280, 280, 16);
+                ctx.fill();
+                ctx.stroke();
+            } else {
+                ctx.fillRect(60, 250, 280, 280);
+                ctx.strokeRect(60, 250, 280, 280);
+            }
+
+            // Draw QR Code
+            ctx.drawImage(img, 80, 270, 240, 240);
+
+            // Footer text
+            ctx.fillStyle = '#9ca3af';
+            ctx.font = '16px sans-serif';
+            ctx.fillText('Pase de Acceso Digital', 200, 580);
+            ctx.font = '13px sans-serif';
+            ctx.fillText('Presenta este código en recepción', 200, 605);
+
+            // Download
             const link = document.createElement('a');
-            link.download = `QR-${qrClient.name.replace(/\s+/g, '_')}.png`;
+            link.download = `Pase_VIP_${qrClient.name.replace(/\s+/g, '_')}.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
         };
