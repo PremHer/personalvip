@@ -347,13 +347,20 @@ export default function FinancePage() {
                                                 </td>
                                                 <td style={{ fontWeight: 600, color: '#10B981' }}>S/{s.total.toFixed(2)}</td>
                                                 <td>
-                                                    <span style={{
-                                                        fontSize: '10px', fontWeight: 600, padding: '3px 8px', borderRadius: '6px',
-                                                        background: s.paymentMethod === 'CASH' ? 'rgba(16,185,129,0.1)' : s.paymentMethod === 'CARD' ? 'rgba(124,58,237,0.1)' : 'rgba(6,182,212,0.1)',
-                                                        color: s.paymentMethod === 'CASH' ? '#10B981' : s.paymentMethod === 'CARD' ? '#7C3AED' : '#06B6D4',
-                                                    }}>
-                                                        {methodLabel(s.paymentMethod)}
-                                                    </span>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                        <span style={{
+                                                            fontSize: '10px', fontWeight: 600, padding: '3px 8px', borderRadius: '6px',
+                                                            background: s.paymentMethod === 'CASH' ? 'rgba(16,185,129,0.1)' : s.paymentMethod === 'CARD' ? 'rgba(124,58,237,0.1)' : 'rgba(6,182,212,0.1)',
+                                                            color: s.paymentMethod === 'CASH' ? '#10B981' : s.paymentMethod === 'CARD' ? '#7C3AED' : '#06B6D4',
+                                                        }}>
+                                                            {methodLabel(s.paymentMethod)}
+                                                        </span>
+                                                        {s.receiptUrl && (
+                                                            <a href={s.receiptUrl} target="_blank" rel="noreferrer" title="Ver Comprobante" style={{ display: 'flex', alignItems: 'center', color: 'var(--color-primary)', background: 'var(--color-surface-2)', padding: '4px', borderRadius: '4px' }}>
+                                                                <DollarSign size={12} />
+                                                            </a>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}

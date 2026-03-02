@@ -83,7 +83,18 @@ export default function SalesPage() {
                                     <td>{new Date(s.createdAt).toLocaleDateString('es-ES')} {new Date(s.createdAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</td>
                                     <td>{s.client?.name || s.clientName || '—'}</td>
                                     <td><span className="badge badge-primary">{s.items?.length || 0} items</span></td>
-                                    <td><span className="badge" style={{ background: 'var(--color-surface-2)', color: 'var(--color-text-secondary)' }}>{s.paymentMethod === 'CASH' ? 'Efectivo' : s.paymentMethod === 'CARD' ? 'Tarjeta' : 'Transf.'}</span></td>
+                                    <td>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                            <span className="badge" style={{ background: 'var(--color-surface-2)', color: 'var(--color-text-secondary)' }}>
+                                                {s.paymentMethod === 'CASH' ? 'Efectivo' : s.paymentMethod === 'CARD' ? 'Tarjeta' : s.paymentMethod === 'YAPE_PLIN' ? 'Yape/Plin' : 'Transf.'}
+                                            </span>
+                                            {s.receiptUrl && (
+                                                <a href={s.receiptUrl} target="_blank" rel="noreferrer" title="Ver Comprobante" style={{ display: 'flex', alignItems: 'center', color: 'var(--color-primary)', background: 'var(--color-surface-2)', padding: '4px', borderRadius: '4px' }}>
+                                                    <DollarSign size={12} />
+                                                </a>
+                                            )}
+                                        </div>
+                                    </td>
                                     <td style={{ fontWeight: 700, color: 'var(--color-success)' }}>S/{Number(s.total).toFixed(2)}</td>
                                 </tr>
                             ))}
