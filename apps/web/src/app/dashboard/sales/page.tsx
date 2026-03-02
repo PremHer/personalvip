@@ -89,9 +89,12 @@ export default function SalesPage() {
                                                 {s.paymentMethod === 'CASH' ? 'Efectivo' : s.paymentMethod === 'CARD' ? 'Tarjeta' : s.paymentMethod === 'YAPE_PLIN' ? 'Yape/Plin' : 'Transf.'}
                                             </span>
                                             {s.receiptUrl && (
-                                                <a href={s.receiptUrl} target="_blank" rel="noreferrer" title="Ver Comprobante" style={{ display: 'flex', alignItems: 'center', color: 'var(--color-primary)', background: 'var(--color-surface-2)', padding: '4px', borderRadius: '4px' }}>
+                                                <button onClick={() => {
+                                                    const win = window.open('', '_blank');
+                                                    win?.document.write(`<img src="${s.receiptUrl}" style="max-width:100%;" />`);
+                                                }} title="Ver Comprobante" style={{ display: 'flex', border: 'none', cursor: 'pointer', alignItems: 'center', color: 'var(--color-primary)', background: 'var(--color-surface-2)', padding: '4px', borderRadius: '4px' }}>
                                                     <DollarSign size={12} />
-                                                </a>
+                                                </button>
                                             )}
                                         </div>
                                     </td>
