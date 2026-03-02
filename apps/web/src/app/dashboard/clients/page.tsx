@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { clientsApi, plansApi, membershipsApi, attendanceApi } from '@/lib/api';
 import { useUI } from '@/lib/ui-context';
 import { SkeletonTable } from '@/lib/skeleton';
+import MembershipCalendar from '@/components/MembershipCalendar';
+import { format, differenceInDays } from 'date-fns';
 import { exportToCSV } from '@/lib/export';
 import { Search, Plus, Edit, Trash2, X, UserPlus, Users, CreditCard, Eye, QrCode, Download, Printer, Zap } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -622,17 +624,23 @@ export default function ClientsPage() {
                                     </div>
                                 )}
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                <div style={{ marginBottom: '16px' }}>
+                                    <label className="form-label" style={{ marginBottom: '8px' }}>Periodo de Entrenamiento (Fechas)</label>
+                                    <MembershipCalendar
+                                        startDate={assignForm.startDate ? new Date(`${assignForm.startDate}T00:00:00`) : undefined}
+                                        durationDays={plans.find(p => p.id === assignForm.planId)?.durationDays || 0}
+                                        onChange={(date) => setAssignForm({ ...assignForm, startDate: format(date, 'yyyy-MM-dd') })}
+                                    />
+                                    <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '6px' }}>
+                                        Toque cualquier día para cambiar la fecha de inicio.
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
                                     <div>
                                         <label className="form-label">Monto Pagado (S/)</label>
                                         <input className="input-field" type="number" step="0.01" value={assignForm.amountPaid}
                                             onChange={(e) => setAssignForm({ ...assignForm, amountPaid: Number(e.target.value) })} min={0} required />
-                                    </div>
-                                    <div>
-                                        <label className="form-label">Fecha de Inicio (opcional)</label>
-                                        <input className="input-field" type="date" value={assignForm.startDate}
-                                            onChange={(e) => setAssignForm({ ...assignForm, startDate: e.target.value })} />
-                                        <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '4px' }}>Si se deja en blanco inicia hoy</div>
                                     </div>
                                 </div>
                                 <div><label className="form-label">Método de Pago *</label>
@@ -739,6 +747,25 @@ export default function ClientsPage() {
                             <div style={{ padding: '10px', borderRadius: '8px', background: 'var(--color-warning-bg)', marginBottom: '16px', border: '1px solid rgba(245,158,11,0.2)' }}>
                                 <div style={{ fontSize: '10px', fontWeight: 600, color: 'var(--color-warning)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '2px' }}>Notas Médicas</div>
                                 <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>{detailClient.medicalNotes}</div>
+                            </div>
+                        )}
+
+                        {/* Active Membership Visual Calendar */}
+                        {detailClient.activeMembership?.status === 'ACTIVE' && (
+                            <div style={{ marginBottom: '16px' }}>
+                                <h3 style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: 'var(--color-primary)' }}>
+                                    Calendario de Entrenamiento (Actual)
+                                </h3>
+                                <MembershipCalendar
+                                    startDate={new Date(detailClient.activeMembership.startDate)}
+                                    durationDays={
+                                        differenceInDays(
+                                            new Date(detailClient.activeMembership.endDate),
+                                            new Date(detailClient.activeMembership.startDate)
+                                        ) + 1
+                                    }
+                                    readOnly={true}
+                                />
                             </div>
                         )}
 

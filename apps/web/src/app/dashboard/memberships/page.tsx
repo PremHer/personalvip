@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { plansApi, membershipsApi, clientsApi } from '@/lib/api';
 import { useUI } from '@/lib/ui-context';
+import MembershipCalendar from '@/components/MembershipCalendar';
+import { format } from 'date-fns';
 import { CreditCard, Plus, X, Snowflake, Play, Ban, AlertTriangle, DollarSign, Tag, Pencil } from 'lucide-react';
 
 export default function MembershipsPage() {
@@ -281,13 +283,21 @@ export default function MembershipsPage() {
                                 </div>
                             )}
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                            <div style={{ marginBottom: '16px' }}>
+                                <label className="form-label" style={{ marginBottom: '8px' }}>Periodo de Entrenamiento (Fechas)</label>
+                                <MembershipCalendar
+                                    startDate={assignForm.startDate ? new Date(`${assignForm.startDate}T00:00:00`) : undefined}
+                                    durationDays={plans.find(p => p.id === assignForm.planId)?.durationDays || 0}
+                                    onChange={(date) => setAssignForm({ ...assignForm, startDate: format(date, 'yyyy-MM-dd') })}
+                                />
+                                <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '6px' }}>
+                                    Toque cualquier día para cambiar la fecha de inicio.
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
                                 <div><label className="form-label">Monto Pagado (S/)</label>
                                     <input className="input-field" type="number" step="0.01" value={assignForm.amountPaid} onChange={(e) => setAssignForm({ ...assignForm, amountPaid: Number(e.target.value) })} min={0} required />
-                                </div>
-                                <div><label className="form-label">Fecha de Inicio (Opcional)</label>
-                                    <input className="input-field" type="date" value={assignForm.startDate} onChange={(e) => setAssignForm({ ...assignForm, startDate: e.target.value })} />
-                                    <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '4px' }}>Si se deja en blanco inicia hoy</div>
                                 </div>
                             </div>
                             <div><label className="form-label">Método de Pago *</label>
