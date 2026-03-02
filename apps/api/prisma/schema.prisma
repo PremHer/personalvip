@@ -124,7 +124,7 @@ model Membership {
   updatedAt  DateTime         @updatedAt @map("updated_at")
 
   // Relations
-  client     Client         @relation(fields: [clientId], references: [id])
+  client     Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
   plan       MembershipPlan @relation(fields: [planId], references: [id])
   creator    User           @relation("CreatedBy", fields: [createdBy], references: [id])
 
@@ -142,7 +142,7 @@ model Attendance {
   createdAt   DateTime         @default(now()) @map("created_at")
 
   // Relations
-  client      Client @relation(fields: [clientId], references: [id])
+  client      Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
   validator   User   @relation("ValidatedBy", fields: [validatedBy], references: [id])
 
   @@map("attendances")
@@ -194,7 +194,7 @@ model Sale {
   createdAt     DateTime      @default(now()) @map("created_at")
 
   // Relations
-  client   Client?    @relation(fields: [clientId], references: [id])
+  client   Client?    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   cashier  User       @relation("CashierSales", fields: [cashierId], references: [id])
   items    SaleItem[]
 
@@ -262,7 +262,7 @@ model TrainerClient {
 
   // Relations
   trainer Trainer @relation(fields: [trainerId], references: [id])
-  client  Client  @relation(fields: [clientId], references: [id])
+  client  Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@unique([trainerId, clientId])
   @@map("trainer_clients")
@@ -281,7 +281,7 @@ model PhysicalProgress {
   createdAt      DateTime @default(now()) @map("created_at")
 
   // Relations
-  client Client @relation(fields: [clientId], references: [id])
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@map("physical_progress")
 }
