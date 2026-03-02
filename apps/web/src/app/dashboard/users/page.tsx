@@ -263,101 +263,84 @@ export default function UsersPage() {
 
             {/* Modal */}
             {showModal && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(0,0,0,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    zIndex: 1000, backdropFilter: 'blur(4px)',
-                }} onClick={() => setShowModal(false)}>
-                    <div onClick={e => e.stopPropagation()} style={{
-                        background: 'var(--card-bg)', borderRadius: '16px', padding: '2rem',
-                        width: '90%', maxWidth: '480px', border: '1px solid var(--border-color)',
-                        boxShadow: '0 20px 60px rgba(0,0,0,.3)',
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '.5rem' }}>
-                                {editingUser ? <><Edit size={20} /> Editar Usuario</> : <><ShieldCheck size={20} /> Nuevo Usuario</>}
-                            </h2>
-                            <button onClick={() => setShowModal(false)} style={{
-                                background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer',
-                            }}><X size={20} /></button>
+                <div className="modal-overlay" onClick={() => setShowModal(false)}>
+                    <div className="modal-card slide-up" onClick={e => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'linear-gradient(135deg, #7C3AED, #6D28D9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    {editingUser ? <Edit size={18} color="#fff" /> : <ShieldCheck size={18} color="#fff" />}
+                                </div>
+                                <div>
+                                    <h2 style={{ fontSize: '16px', fontWeight: 700 }}>{editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}</h2>
+                                    <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                                        {editingUser ? 'Modifica los datos del usuario' : 'Registra un nuevo usuario del sistema'}
+                                    </p>
+                                </div>
+                            </div>
+                            <button className="btn-icon" onClick={() => setShowModal(false)}><X size={16} /></button>
                         </div>
 
                         {error && (
-                            <div style={{
-                                background: '#EF444422', color: '#EF4444', padding: '.6rem 1rem',
-                                borderRadius: '8px', marginBottom: '1rem', fontSize: '.85rem',
-                            }}>{error}</div>
+                            <div style={{ background: 'rgba(239,68,68,0.08)', color: '#EF4444', padding: '10px 14px', borderRadius: '10px', marginBottom: '16px', fontSize: '12px', fontWeight: 600, border: '1px solid rgba(239,68,68,0.2)' }}>
+                                ⚠️ {error}
+                            </div>
                         )}
 
-                        <form onSubmit={handleSave}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
-                                    <label style={{ fontSize: '.85rem', color: 'var(--text-secondary)', marginBottom: '.3rem', display: 'block' }}>Nombre *</label>
-                                    <input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                                        style={{
-                                            width: '100%', padding: '.6rem', background: 'var(--bg-primary)',
-                                            border: '1px solid var(--border-color)', borderRadius: '8px',
-                                            color: 'var(--text-primary)', fontSize: '.9rem',
-                                        }} />
+                                    <label className="form-label">Nombre *</label>
+                                    <input className="input-field" placeholder="Juan Pérez" required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
                                 </div>
                                 <div>
-                                    <label style={{ fontSize: '.85rem', color: 'var(--text-secondary)', marginBottom: '.3rem', display: 'block' }}>Email *</label>
-                                    <input required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                                        disabled={!!editingUser}
-                                        style={{
-                                            width: '100%', padding: '.6rem', background: editingUser ? 'var(--border-color)' : 'var(--bg-primary)',
-                                            border: '1px solid var(--border-color)', borderRadius: '8px',
-                                            color: 'var(--text-primary)', fontSize: '.9rem',
-                                            opacity: editingUser ? 0.7 : 1,
-                                        }} />
-                                </div>
-                                <div>
-                                    <label style={{ fontSize: '.85rem', color: 'var(--text-secondary)', marginBottom: '.3rem', display: 'block' }}>
-                                        Contraseña {editingUser ? '(dejar vacío para no cambiar)' : '*'}
-                                    </label>
-                                    <input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                                        required={!editingUser}
-                                        style={{
-                                            width: '100%', padding: '.6rem', background: 'var(--bg-primary)',
-                                            border: '1px solid var(--border-color)', borderRadius: '8px',
-                                            color: 'var(--text-primary)', fontSize: '.9rem',
-                                        }} />
-                                </div>
-                                <div>
-                                    <label style={{ fontSize: '.85rem', color: 'var(--text-secondary)', marginBottom: '.3rem', display: 'block' }}>Teléfono</label>
-                                    <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                                        style={{
-                                            width: '100%', padding: '.6rem', background: 'var(--bg-primary)',
-                                            border: '1px solid var(--border-color)', borderRadius: '8px',
-                                            color: 'var(--text-primary)', fontSize: '.9rem',
-                                        }} />
-                                </div>
-                                <div>
-                                    <label style={{ fontSize: '.85rem', color: 'var(--text-secondary)', marginBottom: '.3rem', display: 'block' }}>Rol *</label>
-                                    <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
-                                        style={{
-                                            width: '100%', padding: '.6rem', background: 'var(--bg-primary)',
-                                            border: '1px solid var(--border-color)', borderRadius: '8px',
-                                            color: 'var(--text-primary)', fontSize: '.9rem',
-                                        }}>
-                                        <option value="ADMIN">Administrador</option>
-                                        <option value="OWNER">Propietario</option>
-                                        <option value="TRAINER">Entrenador</option>
-                                        <option value="RECEPTIONIST">Recepcionista</option>
-                                    </select>
+                                    <label className="form-label">Email *</label>
+                                    <input className="input-field" type="email" placeholder="usuario@email.com" required value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} disabled={!!editingUser}
+                                        style={editingUser ? { opacity: 0.6, cursor: 'not-allowed' } : {}} />
                                 </div>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '.8rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
-                                <button type="button" onClick={() => setShowModal(false)} style={{
-                                    padding: '.6rem 1.2rem', borderRadius: '8px', border: '1px solid var(--border-color)',
-                                    background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer',
-                                }}>Cancelar</button>
-                                <button type="submit" disabled={saving} style={{
-                                    padding: '.6rem 1.2rem', borderRadius: '8px', border: 'none',
-                                    background: saving ? '#666' : 'linear-gradient(135deg, #7C3AED, #6D28D9)',
-                                    color: '#fff', cursor: saving ? 'default' : 'pointer', fontWeight: 600,
-                                }}>{saving ? 'Guardando...' : editingUser ? 'Actualizar' : 'Crear Usuario'}</button>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                <div>
+                                    <label className="form-label">
+                                        Contraseña {editingUser ? '' : '*'}
+                                        {editingUser && <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 400 }}> (vacío = sin cambio)</span>}
+                                    </label>
+                                    <input className="input-field" type="password" placeholder="••••••••" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required={!editingUser} />
+                                </div>
+                                <div>
+                                    <label className="form-label">Teléfono</label>
+                                    <input className="input-field" placeholder="987654321" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="form-label">Rol *</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+                                    {[
+                                        { v: 'ADMIN', l: 'Administrador', icon: '🛡️', c: '#7C3AED' },
+                                        { v: 'OWNER', l: 'Propietario', icon: '👑', c: '#06B6D4' },
+                                        { v: 'TRAINER', l: 'Entrenador', icon: '💪', c: '#F59E0B' },
+                                        { v: 'RECEPTIONIST', l: 'Recepcionista', icon: '🖥️', c: '#10B981' },
+                                    ].map(r => (
+                                        <button key={r.v} type="button" onClick={() => setForm(f => ({ ...f, role: r.v }))}
+                                            style={{
+                                                padding: '10px 6px', borderRadius: '10px', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s',
+                                                border: form.role === r.v ? `2px solid ${r.c}` : '1px solid var(--color-border)',
+                                                backgroundColor: form.role === r.v ? `${r.c}18` : 'var(--color-bg-tertiary)',
+                                                color: form.role === r.v ? r.c : 'var(--color-text-muted)',
+                                            }}>
+                                            <div style={{ fontSize: '18px', marginBottom: '4px' }}>{r.icon}</div>
+                                            <div style={{ fontSize: '10px', fontWeight: 700, lineHeight: 1.2 }}>{r.l}</div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
+                                <button type="submit" className="btn-primary" disabled={saving} style={{ minWidth: '140px' }}>
+                                    {saving ? 'Guardando...' : editingUser ? '✏️ Actualizar' : '✅ Crear Usuario'}
+                                </button>
                             </div>
                         </form>
                     </div>
