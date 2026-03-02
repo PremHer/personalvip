@@ -268,7 +268,7 @@ export default function MembershipsPage() {
                                                 const updated = [...extraClients]; updated[i] = e.target.value; setExtraClients(updated);
                                             }} required>
                                                 <option value="">Seleccionar cliente...</option>
-                                                {clients.filter(c => c.id !== assignForm.clientId && !extraClients.includes(c.id)).map(c =>
+                                                {clients.filter(c => c.id !== assignForm.clientId && (c.id === extraClients[i] || !extraClients.includes(c.id))).map(c =>
                                                     <option key={c.id} value={c.id}>{c.name} {c.dni ? `(${c.dni})` : ''}</option>
                                                 )}
                                             </select>
