@@ -203,41 +203,6 @@ export default function LoginPage() {
                             )}
                         </button>
                     </form>
-
-                    {/* Demo credentials */}
-                    <div style={{
-                        marginTop: '32px',
-                        padding: '16px',
-                        background: 'var(--color-surface-2)',
-                        borderRadius: '12px',
-                        border: '1px solid var(--color-border)',
-                    }}>
-                        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
-                            Credenciales de demostración
-                        </div>
-                        {[
-                            { email: 'admin@personalvip.com', pass: 'admin123', role: 'Admin' },
-                            { email: 'recepcion@personalvip.com', pass: 'recep123', role: 'Recepción' },
-                        ].map((cred) => (
-                            <button
-                                key={cred.email}
-                                type="button"
-                                onClick={() => { setEmail(cred.email); setPassword(cred.pass); }}
-                                style={{
-                                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                    width: '100%', padding: '8px 10px', borderRadius: '8px',
-                                    background: 'transparent', border: 'none', cursor: 'pointer',
-                                    color: 'var(--color-text-secondary)', fontSize: '12px',
-                                    transition: 'background 0.15s',
-                                }}
-                                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface-3)')}
-                                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                            >
-                                <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>{cred.email}</span>
-                                <span className="badge badge-primary">{cred.role}</span>
-                            </button>
-                        ))}
-                    </div>
                 </div>
             </div>
         </div>
