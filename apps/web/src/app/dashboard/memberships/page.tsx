@@ -245,9 +245,10 @@ export default function MembershipsPage() {
                             <div><label className="form-label">Plan *</label>
                                 <select className="input-field" value={assignForm.planId} onChange={(e) => {
                                     const plan = plans.find(p => p.id === e.target.value);
-                                    setAssignForm({ ...assignForm, planId: e.target.value, amountPaid: plan ? Number(plan.price) : 0 });
                                     const pName = (plan?.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
                                     const slots = pName.includes('trio') ? 2 : pName.includes('duo') ? 1 : 0;
+                                    const multiplier = slots + 1;
+                                    setAssignForm({ ...assignForm, planId: e.target.value, amountPaid: plan ? Number(plan.price) * multiplier : 0 });
                                     setExtraClients(Array(slots).fill(''));
                                 }} required>
                                     <option value="">Seleccionar plan...</option>
