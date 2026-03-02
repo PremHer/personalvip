@@ -120,8 +120,8 @@ export const api = {
         return this.request<any>('/memberships/daily-pass', { method: 'POST', body: JSON.stringify(data) });
     },
 
-    checkIn(qrCode: string) {
-        return this.request<any>('/attendance/check-in', { method: 'POST', body: JSON.stringify({ qrCode }) });
+    checkIn(qrCode: string, method?: 'QR' | 'MANUAL') {
+        return this.request<any>('/attendance/check-in', { method: 'POST', body: JSON.stringify({ qrCode, method }) });
     },
 
     getClient(id: string) {

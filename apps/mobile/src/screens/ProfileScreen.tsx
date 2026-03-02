@@ -25,10 +25,28 @@ export default function ProfileScreen() {
     const handleSaveServer = async () => {
         const url = serverUrl.trim();
         if (!url) return;
-        await api.setBaseUrl(url);
-        setServerUrl(api.getBaseUrl());
-        setEditingServer(false);
-        Alert.alert('✅ Guardado', `Servidor: ${api.getBaseUrl()}`);
+
+        Alert.prompt(
+            '🔐 Autenticación Requerida',
+            'Ingresa la contraseña de administrador para cambiar el servidor:',
+            [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                    text: 'Confirmar',
+                    onPress: async (pwd?: string) => {
+                        if (pwd === 'CCRED2026@') {
+                            await api.setBaseUrl(url);
+                            setServerUrl(api.getBaseUrl());
+                            setEditingServer(false);
+                            Alert.alert('✅ Guardado', `Servidor: ${api.getBaseUrl()}`);
+                        } else {
+                            Alert.alert('❌ Error', 'Contraseña incorrecta');
+                        }
+                    }
+                }
+            ],
+            'secure-text'
+        );
     };
 
     const roleLabels: Record<string, string> = {

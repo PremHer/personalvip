@@ -51,27 +51,40 @@ export default function DailyPassScreen() {
         }
         setSaving(true);
         try {
-            let clientId: string;
-            if (found) {
-                clientId = found.id;
+            if (found?.activeMembership) {
+                // Just check them in without payment
+                const res = await api.checkIn(found.id, 'MANUAL');
+                if (res.success) {
+                    Alert.alert('✅ Asistencia', 'Asistencia registrada exitosamente');
+                    setDni('');
+                    setFound(null);
+                    setStep('search');
+                } else {
+                    Alert.alert('Error', res.message || 'Error al registrar asistencia');
+                }
             } else {
-                const nc = await api.createClient({
-                    name: name.trim(),
-                    phone: phone.trim() || undefined,
-                    dni: dni.trim() || undefined,
-                });
-                clientId = nc.id;
+                let clientId: string;
+                if (found) {
+                    clientId = found.id;
+                } else {
+                    const nc = await api.createClient({
+                        name: name.trim(),
+                        phone: phone.trim() || undefined,
+                        dni: dni.trim() || undefined,
+                    });
+                    clientId = nc.id;
+                }
+
+                // Assign daily pass (backend creates Sale + Attendance)
+                await api.dailyPass({ clientId, amountPaid: Number(amount) || 8, paymentMethod });
+
+                // Get updated client info
+                const full = await api.getClient(clientId);
+
+                setResult(full);
+                setStep('done');
+                Alert.alert('✅ Pase Diario', `Pase asignado y acceso registrado para ${full.name}`);
             }
-
-            // Assign daily pass (backend creates Sale + Attendance)
-            await api.dailyPass({ clientId, amountPaid: Number(amount) || 8, paymentMethod });
-
-            // Get updated client info
-            const full = await api.getClient(clientId);
-
-            setResult(full);
-            setStep('done');
-            Alert.alert('✅ Pase Diario', `Pase asignado y acceso registrado para ${full.name}`);
         } catch (err: any) {
             Alert.alert('Error', err.message || 'Error al procesar pase diario');
         }
@@ -177,23 +190,27 @@ export default function DailyPassScreen() {
                             </>
                         )}
 
-                        <Text style={styles.label}>Monto del Pase (S/)</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={amount}
-                            onChangeText={setAmount}
-                            keyboardType="decimal-pad"
-                        />
+                        {!found?.activeMembership && (
+                            <>
+                                <Text style={styles.label}>Monto del Pase (S/)</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    value={amount}
+                                    onChangeText={setAmount}
+                                    keyboardType="decimal-pad"
+                                />
 
-                        <Text style={styles.label}>Método de Pago</Text>
-                        <View style={{ flexDirection: 'row', gap: 6 }}>
-                            {[{ v: 'CASH', l: '💵 Efectivo' }, { v: 'CARD', l: '💳 Tarjeta' }, { v: 'TRANSFER', l: '🏦 Transfer.' }, { v: 'YAPE_PLIN', l: '📱 Yape/Plin' }].map(m => (
-                                <TouchableOpacity key={m.v} onPress={() => setPaymentMethod(m.v)}
-                                    style={[styles.payBtn, paymentMethod === m.v && styles.payBtnActive]}>
-                                    <Text style={[styles.payBtnText, paymentMethod === m.v && styles.payBtnTextActive]}>{m.l}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
+                                <Text style={styles.label}>Método de Pago</Text>
+                                <View style={{ flexDirection: 'row', gap: 6 }}>
+                                    {[{ v: 'CASH', l: '💵 Efectivo' }, { v: 'CARD', l: '💳 Tarjeta' }, { v: 'TRANSFER', l: '🏦 Transfer.' }, { v: 'YAPE_PLIN', l: '📱 Yape/Plin' }].map(m => (
+                                        <TouchableOpacity key={m.v} onPress={() => setPaymentMethod(m.v)}
+                                            style={[styles.payBtn, paymentMethod === m.v && styles.payBtnActive]}>
+                                            <Text style={[styles.payBtnText, paymentMethod === m.v && styles.payBtnTextActive]}>{m.l}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </>
+                        )}
 
                         <View style={styles.actions}>
                             <TouchableOpacity
@@ -204,7 +221,11 @@ export default function DailyPassScreen() {
                                 <Text style={[styles.btnText, { color: '#94a3b8' }]}>Cambiar DNI</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.btn, styles.btnOrange, (saving || (!found && !name.trim())) && styles.btnDisabled]}
+                                style={[
+                                    styles.btn,
+                                    found?.activeMembership ? { backgroundColor: '#22c55e' } : styles.btnOrange,
+                                    (saving || (!found && !name.trim())) && styles.btnDisabled
+                                ]}
                                 onPress={handleAssign}
                                 disabled={saving || (!found && !name.trim())}
                             >
@@ -212,9 +233,13 @@ export default function DailyPassScreen() {
                                     <ActivityIndicator color="#fff" size="small" />
                                 ) : (
                                     <>
-                                        <Ionicons name="flash" size={16} color="#fff" />
+                                        {found?.activeMembership ? (
+                                            <Ionicons name="checkmark-circle" size={16} color="#fff" />
+                                        ) : (
+                                            <Ionicons name="flash" size={16} color="#fff" />
+                                        )}
                                         <Text style={styles.btnText}>
-                                            {found ? 'Asignar Pase' : 'Crear y Asignar'}
+                                            {found?.activeMembership ? 'Registrar Asistencia' : (found ? 'Asignar Pase' : 'Crear y Asignar')}
                                         </Text>
                                     </>
                                 )}
