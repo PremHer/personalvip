@@ -190,6 +190,7 @@ model Sale {
   total         Decimal       @db.Decimal(10, 2)
   paymentMethod PaymentMethod @map("payment_method")
   discount      Decimal       @default(0) @db.Decimal(10, 2)
+  receiptUrl    String?       @map("receipt_url") @db.Text
   createdAt     DateTime      @default(now()) @map("created_at")
 
   // Relations

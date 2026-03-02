@@ -11,6 +11,7 @@ export class MembershipsService {
         amountPaid: number;
         createdBy: string;
         paymentMethod?: 'CASH' | 'CARD' | 'TRANSFER' | 'YAPE_PLIN';
+        receiptUrl?: string;
         startDate?: string;
         mode?: 'replace' | 'queue';
     }) {
@@ -63,6 +64,7 @@ export class MembershipsService {
                 total: data.amountPaid,
                 paymentMethod: (data.paymentMethod || 'CASH') as any,
                 discount: 0,
+                receiptUrl: data.receiptUrl || null,
             },
         });
 
@@ -142,7 +144,7 @@ export class MembershipsService {
      * Assign a daily pass — records payment as a Sale and check-in as Attendance.
      * Does NOT create a membership (daily pass is a one-time access, not a subscription).
      */
-    async assignDailyPass(data: { clientId: string; amountPaid: number; createdBy: string; paymentMethod?: 'CASH' | 'CARD' | 'TRANSFER' | 'YAPE_PLIN' }) {
+    async assignDailyPass(data: { clientId: string; amountPaid: number; createdBy: string; paymentMethod?: 'CASH' | 'CARD' | 'TRANSFER' | 'YAPE_PLIN'; receiptUrl?: string }) {
         // Guard: check if client already has a check-in today
         const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
         const existingToday = await this.prisma.attendance.findFirst({
@@ -160,6 +162,7 @@ export class MembershipsService {
                 total: data.amountPaid,
                 paymentMethod: (data.paymentMethod || 'CASH') as any,
                 discount: 0,
+                receiptUrl: data.receiptUrl || null,
             },
         });
 

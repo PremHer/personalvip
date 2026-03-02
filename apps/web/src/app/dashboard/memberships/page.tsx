@@ -14,7 +14,7 @@ export default function MembershipsPage() {
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
     const [planForm, setPlanForm] = useState({ name: '', durationDays: 30, price: 0, description: '' });
-    const [assignForm, setAssignForm] = useState({ clientId: '', planId: '', amountPaid: 0, paymentMethod: 'CASH' });
+    const [assignForm, setAssignForm] = useState({ clientId: '', planId: '', amountPaid: 0, paymentMethod: 'CASH', receiptUrl: '' });
     const [assignMode, setAssignMode] = useState<'replace' | 'queue'>('queue');
     const [activeClientMembership, setActiveClientMembership] = useState<any>(null);
     const [extraClients, setExtraClients] = useState<string[]>([]);
@@ -75,10 +75,11 @@ export default function MembershipsPage() {
         }
     };
 
-    // Detect duo/trio plan
+    // Detect duo/trio plan (accent-insensitive)
     const selectedPlan = plans.find(p => p.id === assignForm.planId);
-    const isDuoPlan = selectedPlan?.name?.toLowerCase().includes('duo');
-    const isTrioPlan = selectedPlan?.name?.toLowerCase().includes('trio');
+    const normName = (selectedPlan?.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const isDuoPlan = normName.includes('duo');
+    const isTrioPlan = normName.includes('trio');
     const extraSlotsNeeded = isTrioPlan ? 2 : isDuoPlan ? 1 : 0;
 
     const handleAssign = async (e: React.FormEvent) => {
@@ -92,7 +93,7 @@ export default function MembershipsPage() {
                 await membershipsApi.assign({ ...baseData, clientId: cId, amountPaid: 0 });
             }
             setShowAssignModal(false);
-            setAssignForm({ clientId: '', planId: '', amountPaid: 0, paymentMethod: 'CASH' });
+            setAssignForm({ clientId: '', planId: '', amountPaid: 0, paymentMethod: 'CASH', receiptUrl: '' });
             setActiveClientMembership(null); setExtraClients([]); loadData();
             toast('Membresía asignada correctamente');
         } catch (e: any) { toast(e.message || 'Error al asignar', 'error'); }
@@ -288,6 +289,27 @@ export default function MembershipsPage() {
                                             {m.l}
                                         </button>
                                     ))}
+                                </div>
+                            </div>
+                            <div><label className="form-label">Comprobante de Pago (opcional)</label>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <label style={{ padding: '8px 14px', borderRadius: '8px', border: '1px dashed var(--color-border)', backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        📷 Subir imagen
+                                        <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                const reader = new FileReader();
+                                                reader.onload = () => setAssignForm(prev => ({ ...prev, receiptUrl: reader.result as string }));
+                                                reader.readAsDataURL(file);
+                                            }
+                                        }} />
+                                    </label>
+                                    {assignForm.receiptUrl && (
+                                        <div style={{ position: 'relative' }}>
+                                            <img src={assignForm.receiptUrl} alt="Comprobante" style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--color-border)' }} />
+                                            <button type="button" onClick={() => setAssignForm(prev => ({ ...prev, receiptUrl: '' }))} style={{ position: 'absolute', top: '-6px', right: '-6px', width: '16px', height: '16px', borderRadius: '50%', background: '#ef4444', border: 'none', color: '#fff', fontSize: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>

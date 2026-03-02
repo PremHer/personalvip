@@ -64,7 +64,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const [dpDni, setDpDni] = useState('');
     const [dpFound, setDpFound] = useState<any>(null);
     const [dpSearching, setDpSearching] = useState(false);
-    const [dpForm, setDpForm] = useState({ name: '', phone: '', amountPaid: 8, paymentMethod: 'CASH' });
+    const [dpForm, setDpForm] = useState({ name: '', phone: '', amountPaid: 8, paymentMethod: 'CASH', receiptUrl: '' });
     const [dpSaving, setDpSaving] = useState(false);
     const [dpResult, setDpResult] = useState<any>(null);
 
@@ -235,7 +235,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             <div style={{ padding: '8px 4px 0' }}>
                                 <button onClick={() => {
                                     setDpDni(''); setDpFound(null); setDpStep('search');
-                                    setDpForm({ name: '', phone: '', amountPaid: 8, paymentMethod: 'CASH' }); setDpResult(null);
+                                    setDpForm({ name: '', phone: '', amountPaid: 8, paymentMethod: 'CASH', receiptUrl: '' }); setDpResult(null);
                                     setShowDailyPassModal(true);
                                     setSidebarOpen(false);
                                 }} style={{
@@ -615,7 +615,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                         const nc = await clientsApi.create({ name: dpForm.name.trim(), phone: dpForm.phone.trim() || undefined, dni: dpDni.trim() || undefined });
                                         clientId = nc.id;
                                     }
-                                    await membershipsApi.dailyPass({ clientId, amountPaid: Number(dpForm.amountPaid), paymentMethod: dpForm.paymentMethod });
+                                    await membershipsApi.dailyPass({ clientId, amountPaid: Number(dpForm.amountPaid), paymentMethod: dpForm.paymentMethod, receiptUrl: dpForm.receiptUrl || undefined });
                                     const full = await clientsApi.get(clientId);
                                     setDpResult(full);
                                     setDpStep('result');
@@ -652,6 +652,27 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                                 {m.l}
                                             </button>
                                         ))}
+                                    </div>
+                                </div>
+                                <div><label className="form-label">Comprobante de Pago (opcional)</label>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <label style={{ padding: '6px 12px', borderRadius: '8px', border: '1px dashed var(--color-border)', backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                            📷 Subir imagen
+                                            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    const reader = new FileReader();
+                                                    reader.onload = () => setDpForm(prev => ({ ...prev, receiptUrl: reader.result as string }));
+                                                    reader.readAsDataURL(file);
+                                                }
+                                            }} />
+                                        </label>
+                                        {dpForm.receiptUrl && (
+                                            <div style={{ position: 'relative' }}>
+                                                <img src={dpForm.receiptUrl} alt="Comprobante" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--color-border)' }} />
+                                                <button type="button" onClick={() => setDpForm(prev => ({ ...prev, receiptUrl: '' }))} style={{ position: 'absolute', top: '-5px', right: '-5px', width: '14px', height: '14px', borderRadius: '50%', background: '#ef4444', border: 'none', color: '#fff', fontSize: '9px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
