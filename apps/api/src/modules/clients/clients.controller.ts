@@ -11,7 +11,10 @@ class CreateClientDto {
     @ValidateIf(o => o.email !== '' && o.email !== undefined && o.email !== null)
     @IsEmail() email?: string;
     @IsOptional() @IsString() phone?: string;
-    @IsString() @IsNotEmpty() dni!: string;
+
+    @ValidateIf(o => !o.isMigration)
+    @IsString() @IsNotEmpty() dni?: string;
+
     @IsOptional() @IsString() emergencyContact?: string;
     @IsOptional() @IsString() birthDate?: string;
     @IsOptional() @IsString() medicalNotes?: string;

@@ -156,7 +156,7 @@ export class ClientsService {
         name: string;
         email?: string;
         phone?: string;
-        dni: string;
+        dni?: string;
         emergencyContact?: string;
         birthDate?: string;
         medicalNotes?: string;
@@ -164,16 +164,18 @@ export class ClientsService {
         migrationPlanId?: string;
         migrationEndDate?: string;
     }) {
-        if (!data.dni) {
-            throw new BadRequestException('El DNI es obligatorio.');
+        if (!data.isMigration && !data.dni) {
+            throw new BadRequestException('El DNI es obligatorio para clientes nuevos.');
         }
 
-        const existingDni = await this.prisma.client.findFirst({
-            where: { dni: data.dni }
-        });
+        if (data.dni) {
+            const existingDni = await this.prisma.client.findFirst({
+                where: { dni: data.dni }
+            });
 
-        if (existingDni) {
-            throw new BadRequestException(`El DNI ${data.dni} ya está registrado para el cliente ${existingDni.name}.`);
+            if (existingDni) {
+                throw new BadRequestException(`El DNI ${data.dni} ya está registrado para el cliente ${existingDni.name}.`);
+            }
         }
 
         const qrCode = `GYM-${uuid().substring(0, 8).toUpperCase()}`;

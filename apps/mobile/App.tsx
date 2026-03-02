@@ -2,7 +2,7 @@ import React from 'react';
 import { StatusBar, Platform, View, ActivityIndicator, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import LoginScreen from './src/screens/LoginScreen';
 import ScannerScreen from './src/screens/ScannerScreen';
@@ -31,6 +31,7 @@ const HISTORY_ROLES = ['SUPERADMIN', 'ADMIN', 'OWNER', 'RECEPTIONIST'];
 
 function AppContent() {
   const { user, loading } = useAuth();
+  const insets = useSafeAreaInsets();
 
   // Splash loading
   if (loading) {
@@ -64,8 +65,8 @@ function AppContent() {
             backgroundColor: '#0f0a1a',
             borderTopColor: 'rgba(124,58,237,0.15)',
             borderTopWidth: 1,
-            height: Platform.OS === 'ios' ? 85 : 60,
-            paddingBottom: Platform.OS === 'ios' ? 25 : 8,
+            height: Platform.OS === 'ios' ? 85 : 60 + Math.max(insets.bottom, 10),
+            paddingBottom: Platform.OS === 'ios' ? 25 : 8 + Math.max(insets.bottom, 10),
             paddingTop: 6,
           },
           tabBarActiveTintColor: '#7c3aed',
