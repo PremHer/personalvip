@@ -106,8 +106,15 @@ export default function ClientsPage() {
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            if (editingClient) { await clientsApi.update(editingClient.id, form); toast('Cliente actualizado correctamente'); }
-            else { await clientsApi.create(form); toast('Cliente creado correctamente'); }
+            const dataToSave = {
+                ...form,
+                email: form.email?.trim() || undefined,
+                phone: form.phone?.trim() || undefined,
+                emergencyContact: form.emergencyContact?.trim() || undefined,
+                medicalNotes: form.medicalNotes?.trim() || undefined,
+            };
+            if (editingClient) { await clientsApi.update(editingClient.id, dataToSave); toast('Cliente actualizado correctamente'); }
+            else { await clientsApi.create(dataToSave); toast('Cliente creado correctamente'); }
             setShowModal(false); setEditingClient(null);
             setForm({ name: '', email: '', phone: '', dni: '', emergencyContact: '', medicalNotes: '' });
             loadClients();
