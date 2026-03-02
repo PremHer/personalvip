@@ -246,8 +246,7 @@ export default function MembershipsPage() {
                                 <select className="input-field" value={assignForm.planId} onChange={(e) => {
                                     const plan = plans.find(p => p.id === e.target.value);
                                     setAssignForm({ ...assignForm, planId: e.target.value, amountPaid: plan ? Number(plan.price) : 0 });
-                                    // Reset extra clients when plan changes
-                                    const pName = plan?.name?.toLowerCase() || '';
+                                    const pName = (plan?.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
                                     const slots = pName.includes('trio') ? 2 : pName.includes('duo') ? 1 : 0;
                                     setExtraClients(Array(slots).fill(''));
                                 }} required>
