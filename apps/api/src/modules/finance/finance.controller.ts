@@ -13,25 +13,25 @@ export class FinanceController {
     constructor(private service: FinanceService) { }
 
     @Get('dashboard')
-    @Roles('ADMIN', 'OWNER')
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
     getDashboard() {
         return this.service.getDashboard();
     }
 
     @Get('daily-report')
-    @Roles('ADMIN', 'OWNER')
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
     getDailyReport(@Query('date') date?: string) {
         return this.service.getDailyReport(date);
     }
 
     @Get('income-chart')
-    @Roles('ADMIN', 'OWNER')
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
     getIncomeChart(@Query('period') period?: 'week' | 'month' | 'year') {
         return this.service.getIncomeChart(period);
     }
 
     @Get('sales-report')
-    @Roles('ADMIN', 'OWNER')
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
     getSalesReport(@Query('from') from?: string, @Query('to') to?: string) {
         return this.service.getSalesReport(from, to);
     }

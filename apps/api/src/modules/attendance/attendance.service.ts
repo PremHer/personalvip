@@ -6,10 +6,14 @@ import { todayStartPeru, dayStartPeru, dayEndPeru } from '../../common/timezone'
 export class AttendanceService {
     constructor(private prisma: PrismaService) { }
 
-    async checkIn(qrCode: string, validatedBy: string, method: 'QR' | 'MANUAL' = 'QR') {
-        // Find client by QR code
-        const client = await this.prisma.client.findUnique({
-            where: { qrCode },
+    async checkIn(identifier: string, validatedBy: string, method: 'QR' | 'MANUAL' = 'QR') {
+        const whereClause = identifier.length === 36
+            ? { OR: [{ qrCode: identifier }, { id: identifier }] }
+            : { qrCode: identifier };
+
+        // Find client by QR code or ID
+        const client = await this.prisma.client.findFirst({
+            where: whereClause,
             include: {
                 memberships: {
                     where: { status: 'ACTIVE' },
@@ -108,9 +112,13 @@ export class AttendanceService {
      * Validate a QR code — returns client info and membership status.
      * If registerCheckIn is true, also registers attendance (used by mobile app).
      */
-    async validateQr(qrCode: string, registerCheckIn = false) {
-        const client = await this.prisma.client.findUnique({
-            where: { qrCode },
+    async validateQr(identifier: string, registerCheckIn = false) {
+        const whereClause = identifier.length === 36
+            ? { OR: [{ qrCode: identifier }, { id: identifier }] }
+            : { qrCode: identifier };
+
+        const client = await this.prisma.client.findFirst({
+            where: whereClause,
             include: {
                 memberships: {
                     where: { status: 'ACTIVE' },

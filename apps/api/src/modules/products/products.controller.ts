@@ -23,7 +23,7 @@ export class ProductsController {
     }
 
     @Get('low-stock')
-    @Roles('ADMIN', 'OWNER')
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
     getLowStock(@Query('threshold') threshold?: string) {
         return this.service.getLowStock(threshold ? Number(threshold) : undefined);
     }
