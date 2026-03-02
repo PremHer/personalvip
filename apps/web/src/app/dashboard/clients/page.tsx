@@ -204,7 +204,7 @@ export default function ClientsPage() {
 
     const openAssign = async (client: any) => {
         setAssignClient(client);
-        setAssignForm({ planId: '', amountPaid: 0, mode: 'replace', paymentMethod: 'CASH', receiptUrl: '' });
+        setAssignForm({ planId: '', amountPaid: 0, mode: 'replace', paymentMethod: 'CASH', receiptUrl: '', startDate: '' });
         try {
             const p = await plansApi.list();
             setPlans(p.filter((pl: any) => pl.isActive));
