@@ -22,6 +22,11 @@ export default function ClientsPage() {
     const [editingClient, setEditingClient] = useState<any>(null);
     const [form, setForm] = useState({ name: '', email: '', phone: '', dni: '', emergencyContact: '', medicalNotes: '' });
 
+    // Legacy Migration State
+    const [isMigration, setIsMigration] = useState(false);
+    const [migrationPlanId, setMigrationPlanId] = useState('');
+    const [migrationEndDate, setMigrationEndDate] = useState('');
+
     // Assign membership modal
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [assignClient, setAssignClient] = useState<any>(null);
@@ -112,6 +117,7 @@ export default function ClientsPage() {
                 phone: form.phone?.trim() || undefined,
                 emergencyContact: form.emergencyContact?.trim() || undefined,
                 medicalNotes: form.medicalNotes?.trim() || undefined,
+                ...(isMigration ? { isMigration: true, migrationPlanId, migrationEndDate } : {})
             };
             if (editingClient) { await clientsApi.update(editingClient.id, dataToSave); toast('Cliente actualizado correctamente'); }
             else { await clientsApi.create(dataToSave); toast('Cliente creado correctamente'); }
@@ -132,9 +138,18 @@ export default function ClientsPage() {
         setShowModal(true);
     };
 
-    const openNew = () => {
+    const openNew = async () => {
         setEditingClient(null);
         setForm({ name: '', email: '', phone: '', dni: '', emergencyContact: '', medicalNotes: '' });
+        setIsMigration(false);
+        setMigrationPlanId('');
+        setMigrationEndDate('');
+
+        try {
+            const p = await plansApi.list();
+            setPlans(p.filter((pl: any) => pl.isActive));
+        } catch (e) { console.error(e); }
+
         setShowModal(true);
     };
 
@@ -408,6 +423,40 @@ export default function ClientsPage() {
                                 <div><label className="form-label">Contacto de Emergencia</label><input className="input-field" value={form.emergencyContact} onChange={(e) => setForm({ ...form, emergencyContact: e.target.value })} /></div>
                             </div>
                             <div><label className="form-label">Notas Médicas</label><textarea className="input-field" rows={2} value={form.medicalNotes} onChange={(e) => setForm({ ...form, medicalNotes: e.target.value })} style={{ resize: 'vertical' }} /></div>
+
+                            {/* Legacy Migration Section (Only for New Clients) */}
+                            {!editingClient && (
+                                <div style={{ marginTop: '8px', padding: '12px', background: 'var(--color-bg-subtle)', borderRadius: '8px', border: '1px solid var(--color-border)' }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 500 }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={isMigration}
+                                            onChange={(e) => setIsMigration(e.target.checked)}
+                                            style={{ accentColor: 'var(--color-primary)', width: '16px', height: '16px' }}
+                                        />
+                                        <span>🔄 Cliente migrado del sistema anterior (No genera cobro en Finanzas)</span>
+                                    </label>
+
+                                    {isMigration && (
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }} className="slide-down">
+                                            <div>
+                                                <label className="form-label">Plan Anterior *</label>
+                                                <select className="input-field" value={migrationPlanId} onChange={(e) => setMigrationPlanId(e.target.value)} required={isMigration}>
+                                                    <option value="">Seleccionar plan...</option>
+                                                    {plans.map(p => (
+                                                        <option key={p.id} value={p.id}>{p.name} ({p.durationDays} días)</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="form-label">Fecha de Vencimiento *</label>
+                                                <input className="input-field" type="date" value={migrationEndDate} onChange={(e) => setMigrationEndDate(e.target.value)} required={isMigration} />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '8px' }}>
                                 <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
                                 <button type="submit" className="btn-primary">{editingClient ? 'Guardar' : 'Crear Cliente'}</button>

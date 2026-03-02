@@ -15,6 +15,11 @@ class CreateClientDto {
     @IsOptional() @IsString() emergencyContact?: string;
     @IsOptional() @IsString() birthDate?: string;
     @IsOptional() @IsString() medicalNotes?: string;
+
+    // Migration fields
+    @IsOptional() isMigration?: boolean;
+    @IsOptional() @IsString() migrationPlanId?: string;
+    @IsOptional() @IsString() migrationEndDate?: string;
 }
 
 @ApiTags('Clients')

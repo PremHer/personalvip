@@ -160,6 +160,9 @@ export class ClientsService {
         emergencyContact?: string;
         birthDate?: string;
         medicalNotes?: string;
+        isMigration?: boolean;
+        migrationPlanId?: string;
+        migrationEndDate?: string;
     }) {
         if (!data.dni) {
             throw new BadRequestException('El DNI es obligatorio.');
@@ -175,7 +178,8 @@ export class ClientsService {
 
         const qrCode = `GYM-${uuid().substring(0, 8).toUpperCase()}`;
 
-        return this.prisma.client.create({
+        // Create client first
+        const client = await this.prisma.client.create({
             data: {
                 name: data.name,
                 email: data.email,
@@ -187,6 +191,37 @@ export class ClientsService {
                 qrCode,
             },
         });
+
+        // Handle Legacy Excel Migration
+        if (data.isMigration && data.migrationPlanId && data.migrationEndDate) {
+            const plan = await this.prisma.membershipPlan.findUnique({
+                where: { id: data.migrationPlanId }
+            });
+
+            if (plan) {
+                // Determine exact start and end boundaries
+                const startDate = new Date();
+                const endDate = new Date(data.migrationEndDate);
+
+                // Set endDate to 23:59:59 to give a full day
+                endDate.setHours(23, 59, 59, 999);
+
+                // Create solely the membership (skip Sale creation so finances remain S/ 0 for this day)
+                await this.prisma.membership.create({
+                    data: {
+                        clientId: client.id,
+                        planId: plan.id,
+                        startDate,
+                        endDate,
+                        status: 'ACTIVE',
+                        amountPaid: 0,
+                        createdBy: 'SYSTEM-MIGRATION'
+                    }
+                });
+            }
+        }
+
+        return client;
     }
 
     async update(id: string, data: {
