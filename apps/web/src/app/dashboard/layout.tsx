@@ -608,18 +608,29 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                 e.preventDefault();
                                 setDpSaving(true);
                                 try {
-                                    let clientId: string;
-                                    if (dpFound) {
-                                        clientId = dpFound.id;
+                                    if (dpFound?.activeMembership) {
+                                        const res = await attendanceApi.checkIn(dpFound.id, 'MANUAL');
+                                        if (res.success) {
+                                            toast('✅ Asistencia registrada exitosamente');
+                                            setShowDailyPassModal(false);
+                                            setDpStep('search'); setDpDni(''); setDpFound(null);
+                                        } else {
+                                            toast(res.message || 'Error al registrar asistencia', 'error');
+                                        }
                                     } else {
-                                        const nc = await clientsApi.create({ name: dpForm.name.trim(), phone: dpForm.phone.trim() || undefined, dni: dpDni.trim() || undefined });
-                                        clientId = nc.id;
+                                        let clientId: string;
+                                        if (dpFound) {
+                                            clientId = dpFound.id;
+                                        } else {
+                                            const nc = await clientsApi.create({ name: dpForm.name.trim(), phone: dpForm.phone.trim() || undefined, dni: dpDni.trim() || undefined });
+                                            clientId = nc.id;
+                                        }
+                                        await membershipsApi.dailyPass({ clientId, amountPaid: Number(dpForm.amountPaid), paymentMethod: dpForm.paymentMethod, receiptUrl: dpForm.receiptUrl || undefined });
+                                        const full = await clientsApi.get(clientId);
+                                        setDpResult(full);
+                                        setDpStep('result');
+                                        toast('✅ Pase Diario asignado y acceso registrado');
                                     }
-                                    await membershipsApi.dailyPass({ clientId, amountPaid: Number(dpForm.amountPaid), paymentMethod: dpForm.paymentMethod, receiptUrl: dpForm.receiptUrl || undefined });
-                                    const full = await clientsApi.get(clientId);
-                                    setDpResult(full);
-                                    setDpStep('result');
-                                    toast('\u2705 Pase Diario asignado y acceso registrado');
                                 } catch (err: any) { toast(err.message || 'Error', 'error'); }
                                 finally { setDpSaving(false); }
                             }} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -643,42 +654,48 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                         <div><label className="form-label">Teléfono</label><input className="input-field" placeholder="Opcional" value={dpForm.phone} onChange={(e) => setDpForm({ ...dpForm, phone: e.target.value })} /></div>
                                     </>
                                 )}
-                                <div><label className="form-label">Monto (S/) *</label><input className="input-field" type="number" step="0.01" min={0} value={dpForm.amountPaid} onChange={(e) => setDpForm({ ...dpForm, amountPaid: Number(e.target.value) })} required /></div>
-                                <div><label className="form-label">Método de Pago *</label>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-                                        {[{ v: 'CASH', l: '💵 Efectivo' }, { v: 'CARD', l: '💳 Tarjeta' }, { v: 'TRANSFER', l: '🏦 Transfer.' }, { v: 'YAPE_PLIN', l: '📱 Yape/Plin' }].map(m => (
-                                            <button key={m.v} type="button" onClick={() => setDpForm({ ...dpForm, paymentMethod: m.v })}
-                                                style={{ padding: '8px 4px', borderRadius: '8px', border: dpForm.paymentMethod === m.v ? '2px solid #F59E0B' : '1px solid var(--color-border)', backgroundColor: dpForm.paymentMethod === m.v ? 'rgba(245,158,11,0.15)' : 'var(--color-bg-tertiary)', color: dpForm.paymentMethod === m.v ? '#F59E0B' : 'var(--color-text-muted)', fontSize: '11px', fontWeight: 600, cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}>
-                                                {m.l}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div><label className="form-label">Comprobante de Pago (opcional)</label>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        <label style={{ padding: '6px 12px', borderRadius: '8px', border: '1px dashed var(--color-border)', backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                            📷 Subir imagen
-                                            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    const reader = new FileReader();
-                                                    reader.onload = () => setDpForm(prev => ({ ...prev, receiptUrl: reader.result as string }));
-                                                    reader.readAsDataURL(file);
-                                                }
-                                            }} />
-                                        </label>
-                                        {dpForm.receiptUrl && (
-                                            <div style={{ position: 'relative' }}>
-                                                <img src={dpForm.receiptUrl} alt="Comprobante" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--color-border)' }} />
-                                                <button type="button" onClick={() => setDpForm(prev => ({ ...prev, receiptUrl: '' }))} style={{ position: 'absolute', top: '-5px', right: '-5px', width: '14px', height: '14px', borderRadius: '50%', background: '#ef4444', border: 'none', color: '#fff', fontSize: '9px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+
+                                {!dpFound?.activeMembership && (
+                                    <>
+                                        <div><label className="form-label">Monto (S/) *</label><input className="input-field" type="number" step="0.01" min={0} value={dpForm.amountPaid} onChange={(e) => setDpForm({ ...dpForm, amountPaid: Number(e.target.value) })} required /></div>
+                                        <div><label className="form-label">Método de Pago *</label>
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                                                {[{ v: 'CASH', l: '💵 Efectivo' }, { v: 'CARD', l: '💳 Tarjeta' }, { v: 'TRANSFER', l: '🏦 Transfer.' }, { v: 'YAPE_PLIN', l: '📱 Yape/Plin' }].map(m => (
+                                                    <button key={m.v} type="button" onClick={() => setDpForm({ ...dpForm, paymentMethod: m.v as any })}
+                                                        style={{ padding: '8px 4px', borderRadius: '8px', border: dpForm.paymentMethod === m.v ? '2px solid #F59E0B' : '1px solid var(--color-border)', backgroundColor: dpForm.paymentMethod === m.v ? 'rgba(245,158,11,0.15)' : 'var(--color-bg-tertiary)', color: dpForm.paymentMethod === m.v ? '#F59E0B' : 'var(--color-text-muted)', fontSize: '11px', fontWeight: 600, cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}>
+                                                        {m.l}
+                                                    </button>
+                                                ))}
                                             </div>
-                                        )}
-                                    </div>
-                                </div>
-                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                        </div>
+                                        <div><label className="form-label">Comprobante de Pago (opcional)</label>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                <label style={{ padding: '6px 12px', borderRadius: '8px', border: '1px dashed var(--color-border)', backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                    📷 Subir imagen
+                                                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            const reader = new FileReader();
+                                                            reader.onload = () => setDpForm(prev => ({ ...prev, receiptUrl: reader.result as string }));
+                                                            reader.readAsDataURL(file);
+                                                        }
+                                                    }} />
+                                                </label>
+                                                {dpForm.receiptUrl && (
+                                                    <div style={{ position: 'relative' }}>
+                                                        <img src={dpForm.receiptUrl} alt="Comprobante" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--color-border)' }} />
+                                                        <button type="button" onClick={() => setDpForm(prev => ({ ...prev, receiptUrl: '' }))} style={{ position: 'absolute', top: '-5px', right: '-5px', width: '14px', height: '14px', borderRadius: '50%', background: '#ef4444', border: 'none', color: '#fff', fontSize: '9px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
+                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: dpFound?.activeMembership ? '16px' : '0' }}>
                                     <button type="button" className="btn-secondary" onClick={() => setDpStep('search')}>← Cambiar DNI</button>
-                                    <button type="submit" className="btn-primary" disabled={dpSaving || (!dpFound && !dpForm.name.trim())} style={{ background: '#F59E0B' }}>
-                                        {dpSaving ? <div className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} /> : <><Zap size={14} /> {dpFound ? 'Asignar Pase' : 'Crear y Asignar'}</>}
+                                    <button type="submit" className="btn-primary" disabled={dpSaving || (!dpFound && !dpForm.name.trim())} style={{ background: dpFound?.activeMembership ? '#22c55e' : '#F59E0B' }}>
+                                        {dpSaving ? <div className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} /> : dpFound?.activeMembership ? '✅ Registrar Asistencia' : '⚡ Asignar Pase'}
                                     </button>
                                 </div>
                             </form>

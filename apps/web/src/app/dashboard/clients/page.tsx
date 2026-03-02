@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { clientsApi, plansApi, membershipsApi } from '@/lib/api';
+import { clientsApi, plansApi, membershipsApi, attendanceApi } from '@/lib/api';
 import { useUI } from '@/lib/ui-context';
 import { SkeletonTable } from '@/lib/skeleton';
 import { exportToCSV } from '@/lib/export';
@@ -194,20 +194,32 @@ export default function ClientsPage() {
         e.preventDefault();
         setDpSaving(true);
         try {
-            let clientId: string;
-            if (dpFound) {
-                clientId = dpFound.id;
+            if (dpFound?.activeMembership) {
+                const res = await attendanceApi.checkIn(dpFound.id, 'MANUAL');
+                if (res.success) {
+                    toast('✅ Asistencia registrada exitosamente');
+                    setShowDailyPassModal(false);
+                    setDpStep('search'); setDpDni(''); setDpFound(null);
+                    loadClients();
+                } else {
+                    toast(res.message || 'Error al registrar asistencia', 'error');
+                }
             } else {
-                const newClient = await clientsApi.create({ name: dpForm.name.trim(), phone: dpForm.phone.trim() || undefined, dni: dpDni.trim() || undefined });
-                clientId = newClient.id;
+                let clientId: string;
+                if (dpFound) {
+                    clientId = dpFound.id;
+                } else {
+                    const newClient = await clientsApi.create({ name: dpForm.name.trim(), phone: dpForm.phone.trim() || undefined, dni: dpDni.trim() || undefined });
+                    clientId = newClient.id;
+                }
+                await membershipsApi.dailyPass({ clientId, amountPaid: Number(dpForm.amountPaid) });
+                const fullClient = await clientsApi.get(clientId);
+                setDpResult(fullClient);
+                setDpStep('result');
+                toast('✅ Pase Diario asignado correctamente');
+                loadClients();
             }
-            await membershipsApi.dailyPass({ clientId, amountPaid: Number(dpForm.amountPaid) });
-            const fullClient = await clientsApi.get(clientId);
-            setDpResult(fullClient);
-            setDpStep('result');
-            toast('\u2705 Pase Diario asignado correctamente');
-            loadClients();
-        } catch (e: any) { toast(e.message || 'Error al crear pase diario', 'error'); }
+        } catch (e: any) { toast(e.message || 'Error', 'error'); }
         finally { setDpSaving(false); }
     };
 
@@ -735,15 +747,17 @@ export default function ClientsPage() {
                                         </div>
                                     </>
                                 )}
-                                <div>
-                                    <label className="form-label">Monto del Pase (S/) *</label>
-                                    <input className="input-field" type="number" step="0.01" min={0} value={dpForm.amountPaid}
-                                        onChange={(e) => setDpForm({ ...dpForm, amountPaid: Number(e.target.value) })} required />
-                                </div>
-                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                {!dpFound?.activeMembership && (
+                                    <div>
+                                        <label className="form-label">Monto del Pase (S/) *</label>
+                                        <input className="input-field" type="number" step="0.01" min={0} value={dpForm.amountPaid}
+                                            onChange={(e) => setDpForm({ ...dpForm, amountPaid: Number(e.target.value) })} required />
+                                    </div>
+                                )}
+                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: dpFound?.activeMembership ? '16px' : '0' }}>
                                     <button type="button" className="btn-secondary" onClick={() => setDpStep('search')}>← Cambiar DNI</button>
-                                    <button type="submit" className="btn-primary" disabled={dpSaving || (!dpFound && !dpForm.name.trim())} style={{ background: '#F59E0B' }}>
-                                        {dpSaving ? <div className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} /> : <><Zap size={14} /> {dpFound ? 'Asignar Pase' : 'Crear y Asignar'}</>}
+                                    <button type="submit" className="btn-primary" disabled={dpSaving || (!dpFound && !dpForm.name.trim())} style={{ background: dpFound?.activeMembership ? '#22c55e' : '#F59E0B' }}>
+                                        {dpSaving ? <div className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} /> : dpFound?.activeMembership ? '✅ Registrar Asistencia' : <><Zap size={14} /> {dpFound ? 'Asignar Pase' : 'Crear y Asignar'}</>}
                                     </button>
                                 </div>
                             </form>

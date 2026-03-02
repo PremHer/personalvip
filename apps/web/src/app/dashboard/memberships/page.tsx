@@ -1,11 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/lib/auth-context';
 import { plansApi, membershipsApi, clientsApi } from '@/lib/api';
 import { useUI } from '@/lib/ui-context';
 import { CreditCard, Plus, X, Snowflake, Play, Ban, AlertTriangle, DollarSign, Tag, Pencil } from 'lucide-react';
 
 export default function MembershipsPage() {
+    const { user } = useAuth();
+    const canEditPlans = user?.role === 'ADMIN' || user?.role === 'OWNER';
     const { toast, confirm } = useUI();
     const [plans, setPlans] = useState<any[]>([]);
     const [expiring, setExpiring] = useState<any[]>([]);
@@ -111,7 +114,7 @@ export default function MembershipsPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
                 <div className="page-header" style={{ marginBottom: 0 }}><h1>Membresías</h1><p>Planes y asignaciones</p></div>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                    <button className="btn-secondary" onClick={openNewPlan}><Plus size={16} /> Nuevo Plan</button>
+                    {canEditPlans && <button className="btn-secondary" onClick={openNewPlan}><Plus size={16} /> Nuevo Plan</button>}
                     <button className="btn-primary" onClick={() => { loadClients(); setShowAssignModal(true); }}><CreditCard size={16} /> Asignar</button>
                 </div>
             </div>
@@ -124,7 +127,7 @@ export default function MembershipsPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '12px', marginBottom: '32px' }}>
                 {plans.map((plan, i) => (
                     <div key={plan.id} className="glass-card" style={{ padding: '20px', animationDelay: `${i * 60}ms`, position: 'relative' }}>
-                        <button className="btn-icon" onClick={() => openEditPlan(plan)} title="Editar plan" style={{ position: 'absolute', top: '12px', right: '12px', opacity: 0.5 }}><Pencil size={14} /></button>
+                        {canEditPlans && <button className="btn-icon" onClick={() => openEditPlan(plan)} title="Editar plan" style={{ position: 'absolute', top: '12px', right: '12px', opacity: 0.5 }}><Pencil size={14} /></button>}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', paddingRight: '28px' }}>
                             <h3 style={{ fontSize: '14px', fontWeight: 600, lineHeight: 1.3 }}>{plan.name}</h3>
                             <span className={`badge ${plan.isActive ? 'badge-active' : 'badge-cancelled'}`}>

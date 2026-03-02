@@ -151,7 +151,7 @@ export const membershipsApi = {
 
 // ===== Attendance =====
 export const attendanceApi = {
-    checkIn: (qrCode: string) => api<any>('/attendance/check-in', { method: 'POST', body: { qrCode } }),
+    checkIn: (qrCode: string, method?: 'QR' | 'MANUAL') => api<any>('/attendance/check-in', { method: 'POST', body: { qrCode, method } }),
     checkOut: (clientId: string) => api<any>(`/attendance/check-out/${clientId}`, { method: 'POST' }),
     today: () => api<any[]>('/attendance/today'),
     history: (params?: { date?: string; from?: string; to?: string; page?: number; limit?: number }) => {
