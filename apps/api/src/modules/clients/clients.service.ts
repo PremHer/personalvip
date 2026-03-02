@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import * as QRCode from 'qrcode';
 import { v4 as uuid } from 'uuid';
@@ -156,11 +156,23 @@ export class ClientsService {
         name: string;
         email?: string;
         phone?: string;
-        dni?: string;
+        dni: string;
         emergencyContact?: string;
         birthDate?: string;
         medicalNotes?: string;
     }) {
+        if (!data.dni) {
+            throw new BadRequestException('El DNI es obligatorio.');
+        }
+
+        const existingDni = await this.prisma.client.findFirst({
+            where: { dni: data.dni }
+        });
+
+        if (existingDni) {
+            throw new BadRequestException(`El DNI ${data.dni} ya está registrado para el cliente ${existingDni.name}.`);
+        }
+
         const qrCode = `GYM-${uuid().substring(0, 8).toUpperCase()}`;
 
         return this.prisma.client.create({
@@ -168,7 +180,7 @@ export class ClientsService {
                 name: data.name,
                 email: data.email,
                 phone: data.phone,
-                dni: data.dni || undefined,
+                dni: data.dni,
                 emergencyContact: data.emergencyContact,
                 birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
                 medicalNotes: data.medicalNotes,

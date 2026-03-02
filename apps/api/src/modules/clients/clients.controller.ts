@@ -4,13 +4,13 @@ import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ClientsService } from './clients.service';
 import { Roles } from '../../common/decorators';
 import { RolesGuard } from '../../common/guards';
-import { IsString, IsOptional, IsEmail } from 'class-validator';
+import { IsString, IsOptional, IsEmail, IsNotEmpty } from 'class-validator';
 
 class CreateClientDto {
-    @IsString() name!: string;
+    @IsString() @IsNotEmpty() name!: string;
     @IsOptional() @IsEmail() email?: string;
     @IsOptional() @IsString() phone?: string;
-    @IsOptional() @IsString() dni?: string;
+    @IsString() @IsNotEmpty() dni!: string;
     @IsOptional() @IsString() emergencyContact?: string;
     @IsOptional() @IsString() birthDate?: string;
     @IsOptional() @IsString() medicalNotes?: string;

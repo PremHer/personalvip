@@ -394,7 +394,7 @@ export default function ClientsPage() {
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div><label className="form-label">Email</label><input className="input-field" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-                                <div><label className="form-label">DNI</label><input className="input-field" placeholder="12345678" value={form.dni} onChange={(e) => setForm({ ...form, dni: e.target.value })} /></div>
+                                <div><label className="form-label">DNI *</label><input className="input-field" placeholder="12345678" value={form.dni} onChange={(e) => setForm({ ...form, dni: e.target.value })} required /></div>
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div><label className="form-label">Teléfono</label><input className="input-field" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
