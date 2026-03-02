@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { todayStartPeru } from '../../common/timezone';
+import { todayStartPeru, dayStartPeru, dayEndPeru } from '../../common/timezone';
 
 @Injectable()
 export class MembershipsService {
@@ -29,19 +29,20 @@ export class MembershipsService {
         const mode = data.mode || 'replace';
 
         if (mode === 'queue' && activeMembership) {
-            startDate = new Date(activeMembership.endDate);
+            startDate = dayStartPeru(activeMembership.endDate);
         } else {
-            startDate = data.startDate ? new Date(data.startDate) : new Date();
+            startDate = data.startDate ? dayStartPeru(data.startDate) : dayStartPeru(new Date());
             if (activeMembership) {
                 await this.prisma.membership.update({
                     where: { id: activeMembership.id },
-                    data: { status: 'EXPIRED', endDate: new Date() },
+                    data: { status: 'EXPIRED', endDate: dayEndPeru(new Date()) },
                 });
             }
         }
 
-        const endDate = new Date(startDate);
-        endDate.setDate(endDate.getDate() + plan.durationDays);
+        const rawEndDate = new Date(startDate);
+        rawEndDate.setDate(rawEndDate.getDate() + plan.durationDays);
+        const endDate = dayEndPeru(rawEndDate);
 
         // Create membership
         const membership = await this.prisma.membership.create({

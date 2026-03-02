@@ -17,7 +17,7 @@ export default function MembershipsPage() {
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
     const [planForm, setPlanForm] = useState({ name: '', durationDays: 30, price: 0, description: '' });
-    const [assignForm, setAssignForm] = useState({ clientId: '', planId: '', amountPaid: 0, paymentMethod: 'CASH', receiptUrl: '' });
+    const [assignForm, setAssignForm] = useState({ clientId: '', planId: '', amountPaid: 0, paymentMethod: 'CASH', receiptUrl: '', startDate: '' });
     const [assignMode, setAssignMode] = useState<'replace' | 'queue'>('queue');
     const [activeClientMembership, setActiveClientMembership] = useState<any>(null);
     const [extraClients, setExtraClients] = useState<string[]>([]);
@@ -96,7 +96,7 @@ export default function MembershipsPage() {
                 await membershipsApi.assign({ ...baseData, clientId: cId, amountPaid: 0 });
             }
             setShowAssignModal(false);
-            setAssignForm({ clientId: '', planId: '', amountPaid: 0, paymentMethod: 'CASH', receiptUrl: '' });
+            setAssignForm({ clientId: '', planId: '', amountPaid: 0, paymentMethod: 'CASH', receiptUrl: '', startDate: '' });
             setActiveClientMembership(null); setExtraClients([]); loadData();
             toast('Membresía asignada correctamente');
         } catch (e: any) { toast(e.message || 'Error al asignar', 'error'); }
@@ -281,8 +281,14 @@ export default function MembershipsPage() {
                                 </div>
                             )}
 
-                            <div><label className="form-label">Monto Pagado (S/)</label>
-                                <input className="input-field" type="number" step="0.01" value={assignForm.amountPaid} onChange={(e) => setAssignForm({ ...assignForm, amountPaid: Number(e.target.value) })} min={0} required />
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                <div><label className="form-label">Monto Pagado (S/)</label>
+                                    <input className="input-field" type="number" step="0.01" value={assignForm.amountPaid} onChange={(e) => setAssignForm({ ...assignForm, amountPaid: Number(e.target.value) })} min={0} required />
+                                </div>
+                                <div><label className="form-label">Fecha de Inicio (Opcional)</label>
+                                    <input className="input-field" type="date" value={assignForm.startDate} onChange={(e) => setAssignForm({ ...assignForm, startDate: e.target.value })} />
+                                    <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '4px' }}>Si se deja en blanco inicia hoy</div>
+                                </div>
                             </div>
                             <div><label className="form-label">Método de Pago *</label>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>

@@ -31,7 +31,7 @@ export default function ClientsPage() {
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [assignClient, setAssignClient] = useState<any>(null);
     const [plans, setPlans] = useState<any[]>([]);
-    const [assignForm, setAssignForm] = useState({ planId: '', amountPaid: 0, mode: 'replace' as 'replace' | 'queue', paymentMethod: 'CASH', receiptUrl: '' });
+    const [assignForm, setAssignForm] = useState({ planId: '', amountPaid: 0, mode: 'replace' as 'replace' | 'queue', paymentMethod: 'CASH', receiptUrl: '', startDate: '' });
     const [assigning, setAssigning] = useState(false);
 
     // Detail modal
@@ -622,10 +622,18 @@ export default function ClientsPage() {
                                     </div>
                                 )}
 
-                                <div>
-                                    <label className="form-label">Monto Pagado (S/)</label>
-                                    <input className="input-field" type="number" step="0.01" value={assignForm.amountPaid}
-                                        onChange={(e) => setAssignForm({ ...assignForm, amountPaid: Number(e.target.value) })} min={0} required />
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                    <div>
+                                        <label className="form-label">Monto Pagado (S/)</label>
+                                        <input className="input-field" type="number" step="0.01" value={assignForm.amountPaid}
+                                            onChange={(e) => setAssignForm({ ...assignForm, amountPaid: Number(e.target.value) })} min={0} required />
+                                    </div>
+                                    <div>
+                                        <label className="form-label">Fecha de Inicio (opcional)</label>
+                                        <input className="input-field" type="date" value={assignForm.startDate}
+                                            onChange={(e) => setAssignForm({ ...assignForm, startDate: e.target.value })} />
+                                        <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '4px' }}>Si se deja en blanco inicia hoy</div>
+                                    </div>
                                 </div>
                                 <div><label className="form-label">Método de Pago *</label>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
