@@ -5,9 +5,9 @@
     "scripts": {
         "build": "npx prisma generate && nest build",
         "dev": "nest start --watch",
-        "start": "npx prisma migrate deploy && nest start",
+        "start": "npx prisma db push --accept-data-loss && nest start",
         "start:node": "node dist/main",
-        "start:prod": "npx prisma migrate deploy && node dist/main",
+        "start:prod": "npx prisma db push --accept-data-loss && node dist/main",
         "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
         "test": "jest",
         "test:e2e": "jest --config ./test/jest-e2e.json",
