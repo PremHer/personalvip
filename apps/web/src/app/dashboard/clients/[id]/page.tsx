@@ -8,6 +8,7 @@ import {
     Clock, Shield, AlertTriangle, Heart, UserCheck,
     TrendingUp, Star, DollarSign,
 } from 'lucide-react';
+import MembershipCalendar from '@/components/MembershipCalendar';
 
 export default function ClientProfilePage() {
     const params = useParams();
@@ -207,6 +208,22 @@ export default function ClientProfilePage() {
 
                 {/* Right column */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {/* Active Membership Calendar */}
+                    {activeMembership && (
+                        <div className="glass-card" style={{ padding: '20px' }}>
+                            <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Calendar size={16} color="#F59E0B" /> Días de Membresía
+                            </h3>
+                            <div style={{ pointerEvents: 'none', zoom: 0.9 }}>
+                                <MembershipCalendar
+                                    startDate={new Date(activeMembership.startDate)}
+                                    durationDays={activeMembership.plan?.durationDays || 30}
+                                    readOnly={true}
+                                />
+                            </div>
+                        </div>
+                    )}
+
                     {/* Memberships History */}
                     <div className="glass-card" style={{ padding: '20px' }}>
                         <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>

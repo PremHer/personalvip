@@ -210,7 +210,7 @@ export default function MembershipsPage() {
             {/* Assign Modal */}
             {showAssignModal && (
                 <div className="modal-overlay">
-                    <div className="modal-card slide-up" style={{ maxWidth: '480px' }}>
+                    <div className="modal-card slide-up" style={{ maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                             <h2 style={{ fontSize: '16px', fontWeight: 700 }}>Asignar Membresía</h2>
                             <button className="btn-icon" onClick={() => { setShowAssignModal(false); setActiveClientMembership(null); setExtraClients([]); }}><X size={16} /></button>

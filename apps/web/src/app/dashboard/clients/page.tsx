@@ -539,7 +539,7 @@ export default function ClientsPage() {
 
                 return (
                     <div className="modal-overlay">
-                        <div className="modal-card slide-up" style={{ maxWidth: '520px' }}>
+                        <div className="modal-card slide-up" style={{ maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                                 <div>
                                     <h2 style={{ fontSize: '16px', fontWeight: 700 }}>Asignar Membresía</h2>
