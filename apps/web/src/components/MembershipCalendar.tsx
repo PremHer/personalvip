@@ -117,13 +117,15 @@ export default function MembershipCalendar({
                     let textColor = isCurrentMth ? 'var(--color-text)' : 'var(--color-text-muted)';
                     let fontWeight = 500;
 
+                    const isConsumed = isActive && readOnly && isAfter(today, day) && !isToday; // Day is in the past
+
                     if (isStartDay || isEndDay) {
-                        bgColor = 'var(--color-primary)';
-                        textColor = 'white';
+                        bgColor = isConsumed ? 'var(--color-border)' : 'var(--color-primary)';
+                        textColor = isConsumed ? 'var(--color-text-muted)' : 'white';
                         fontWeight = 700;
                     } else if (isActive) {
-                        bgColor = 'rgba(124, 58, 237, 0.15)'; // Primary light 
-                        textColor = 'var(--color-primary-light)';
+                        bgColor = isConsumed ? 'var(--color-surface-1)' : 'rgba(124, 58, 237, 0.15)'; // Gray out or Primary light 
+                        textColor = isConsumed ? 'var(--color-text-muted)' : 'var(--color-primary-light)';
                     }
 
                     const isInteractive = !readOnly && isCurrentMth;
@@ -139,7 +141,7 @@ export default function MembershipCalendar({
                                 borderRadius: isStartDay ? '8px 0 0 8px' : isEndDay ? '0 8px 8px 0' : isActive ? '0' : '8px',
                                 opacity: isCurrentMth ? 1 : 0.3,
                                 cursor: isInteractive ? 'pointer' : 'default',
-                                border: isToday && !isActive ? '1px solid var(--color-border)' : '1px solid transparent',
+                                border: isToday && !isActive ? '1px solid var(--color-border)' : isToday && isActive ? '2px solid var(--color-primary)' : '1px solid transparent',
                                 transition: 'all 0.1s'
                             }}>
                             {format(day, 'd')}
