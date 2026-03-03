@@ -1,0 +1,7 @@
+# This file configures the build and run process for Railway so that the backend can run Prisma Migrations.
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "npm run start:prod --workspace=@gymcore/api"
+restartPolicyType = "ON_FAILURE"
