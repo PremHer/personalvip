@@ -51,24 +51,25 @@ export class MembershipsService {
                 planId: data.planId,
                 startDate,
                 endDate,
-                amountPaid: data.amountPaid,
+                amountPaid: plan.price, // Records the Total Debt Value of the plan for future calculation
                 createdBy: data.createdBy,
                 status: 'ACTIVE',
             },
             include: { plan: true, client: true },
         });
 
-        // Record the payment as a Sale for income tracking
-        await this.prisma.sale.create({
-            data: {
-                clientId: data.clientId,
-                cashierId: data.createdBy,
-                total: data.amountPaid,
-                paymentMethod: (data.paymentMethod || 'CASH') as any,
-                discount: 0,
-                receiptUrl: data.receiptUrl || null,
-            },
-        });
+        // Record the initial payment for this membership
+        if (data.amountPaid > 0) {
+            await this.prisma.payment.create({
+                data: {
+                    membershipId: membership.id,
+                    amount: data.amountPaid,
+                    paymentMethod: (data.paymentMethod || 'CASH') as any,
+                    cashierId: data.createdBy,
+                    receiptUrl: data.receiptUrl || null,
+                },
+            });
+        }
 
         return membership;
     }
@@ -142,6 +143,35 @@ export class MembershipsService {
         });
     }
 
+    async addPayment(id: string, data: { amountPaid: number; paymentMethod: 'CASH' | 'CARD' | 'TRANSFER' | 'YAPE_PLIN'; createdBy: string; receiptUrl?: string }) {
+        const membership = await this.prisma.membership.findUnique({
+            where: { id },
+            include: { plan: true }
+        });
+
+        if (!membership) throw new NotFoundException('Membresía no encontrada');
+
+        // Note: the original amountPaid field stored the plan price (total debt)
+        // We do NOT update it; we just append the payment to track actual income
+        return this.prisma.payment.create({
+            data: {
+                membershipId: id,
+                amount: data.amountPaid,
+                paymentMethod: data.paymentMethod,
+                cashierId: data.createdBy,
+                receiptUrl: data.receiptUrl || null,
+            }
+        });
+    }
+
+    async getPayments(id: string) {
+        return this.prisma.payment.findMany({
+            where: { membershipId: id },
+            orderBy: { createdAt: 'desc' },
+            include: { cashier: { select: { id: true, name: true } } }
+        });
+    }
+
     /**
      * Assign a daily pass — records payment as a Sale and check-in as Attendance.
      * Does NOT create a membership (daily pass is a one-time access, not a subscription).
@@ -156,17 +186,18 @@ export class MembershipsService {
             throw new BadRequestException('Este cliente ya tiene un pase/acceso registrado hoy');
         }
 
-        // 1. Record the payment as a Sale
-        await this.prisma.sale.create({
-            data: {
-                clientId: data.clientId,
-                cashierId: data.createdBy,
-                total: data.amountPaid,
-                paymentMethod: (data.paymentMethod || 'CASH') as any,
-                discount: 0,
-                receiptUrl: data.receiptUrl || null,
-            },
-        });
+        // 1. Record the one-off payment
+        if (data.amountPaid > 0) {
+            await this.prisma.payment.create({
+                data: {
+                    amount: data.amountPaid,
+                    paymentMethod: (data.paymentMethod || 'CASH') as any,
+                    cashierId: data.createdBy,
+                    receiptUrl: data.receiptUrl || null,
+                    notes: 'Pase Diario',
+                },
+            });
+        }
 
         // 2. Record check-in attendance
         await this.prisma.attendance.create({

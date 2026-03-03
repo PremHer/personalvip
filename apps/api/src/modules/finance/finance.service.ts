@@ -14,21 +14,20 @@ export class FinanceService {
         const monthStart = dayStartPeru(new Date(now.getFullYear(), now.getMonth(), 1));
 
         const [
-            todaySales, weekSales, monthSales, yesterdaySales,
-            todayMemberships, weekMemberships, monthMemberships, yesterdayMemberships,
+            todayPayments, weekPayments, monthPayments, yesterdayPayments,
+            todayMembershipCount, yesterdayMembershipCount,
             todayAttendance, yesterdayAttendance,
             activeMembers, expiringCount, lowStock, recentSales,
             totalClients, newClientsMonth,
         ] = await Promise.all([
-            this.prisma.sale.aggregate({ where: { createdAt: { gte: todayStart } }, _sum: { total: true }, _count: true }),
-            this.prisma.sale.aggregate({ where: { createdAt: { gte: weekStart } }, _sum: { total: true } }),
-            this.prisma.sale.aggregate({ where: { createdAt: { gte: monthStart } }, _sum: { total: true } }),
-            this.prisma.sale.aggregate({ where: { createdAt: { gte: yesterdayStart, lt: todayStart } }, _sum: { total: true } }),
-            // Membership income
-            this.prisma.membership.aggregate({ where: { createdAt: { gte: todayStart } }, _sum: { amountPaid: true }, _count: true }),
-            this.prisma.membership.aggregate({ where: { createdAt: { gte: weekStart } }, _sum: { amountPaid: true } }),
-            this.prisma.membership.aggregate({ where: { createdAt: { gte: monthStart } }, _sum: { amountPaid: true } }),
-            this.prisma.membership.aggregate({ where: { createdAt: { gte: yesterdayStart, lt: todayStart } }, _sum: { amountPaid: true } }),
+            // Unified Income
+            this.prisma.payment.aggregate({ where: { createdAt: { gte: todayStart } }, _sum: { amount: true }, _count: true }),
+            this.prisma.payment.aggregate({ where: { createdAt: { gte: weekStart } }, _sum: { amount: true } }),
+            this.prisma.payment.aggregate({ where: { createdAt: { gte: monthStart } }, _sum: { amount: true } }),
+            this.prisma.payment.aggregate({ where: { createdAt: { gte: yesterdayStart, lt: todayStart } }, _sum: { amount: true } }),
+            // Pure Counts
+            this.prisma.membership.count({ where: { createdAt: { gte: todayStart } } }),
+            this.prisma.membership.count({ where: { createdAt: { gte: yesterdayStart, lt: todayStart } } }),
             this.prisma.attendance.count({ where: { checkIn: { gte: todayStart } } }),
             this.prisma.attendance.count({ where: { checkIn: { gte: yesterdayStart, lt: todayStart } } }),
             this.prisma.membership.count({ where: { status: 'ACTIVE' } }),
@@ -52,10 +51,10 @@ export class FinanceService {
         ]);
 
         // Income by payment method today
-        const todayByMethod = await this.prisma.sale.groupBy({
+        const todayByMethod = await this.prisma.payment.groupBy({
             by: ['paymentMethod'],
             where: { createdAt: { gte: todayStart } },
-            _sum: { total: true },
+            _sum: { amount: true },
         });
 
         // Attendance last 7 days for trend chart
@@ -92,15 +91,15 @@ export class FinanceService {
             }
         }
 
-        // Combine sales + membership income
-        const totalTodayIncome = Number(todaySales._sum.total || 0) + Number(todayMemberships._sum.amountPaid || 0);
-        const totalYesterdayIncome = Number(yesterdaySales._sum.total || 0) + Number(yesterdayMemberships._sum.amountPaid || 0);
-        const totalWeekIncome = Number(weekSales._sum.total || 0) + Number(weekMemberships._sum.amountPaid || 0);
-        const totalMonthIncome = Number(monthSales._sum.total || 0) + Number(monthMemberships._sum.amountPaid || 0);
+        // Unified income for the Dashboard
+        const totalTodayIncome = Number(todayPayments._sum.amount || 0);
+        const totalYesterdayIncome = Number(yesterdayPayments._sum.amount || 0);
+        const totalWeekIncome = Number(weekPayments._sum.amount || 0);
+        const totalMonthIncome = Number(monthPayments._sum.amount || 0);
 
         return {
             todayIncome: totalTodayIncome,
-            todaySales: todaySales._count + todayMemberships._count,
+            todaySales: todayPayments._count,
             yesterdayIncome: totalYesterdayIncome,
             weekIncome: totalWeekIncome,
             monthIncome: totalMonthIncome,
@@ -115,11 +114,10 @@ export class FinanceService {
             attendanceTrend,
             peakHours,
             todayByPaymentMethod: todayByMethod.reduce(
-                (acc, item) => ({ ...acc, [item.paymentMethod]: Number(item._sum.total || 0) }),
-                { CASH: 0, CARD: 0, TRANSFER: 0 },
+                (acc, item) => ({ ...acc, [item.paymentMethod]: Number(item._sum.amount || 0) }),
+                { CASH: 0, CARD: 0, TRANSFER: 0, YAPE_PLIN: 0 },
             ),
-            todayMembershipIncome: Number(todayMemberships._sum.amountPaid || 0),
-            todayMembershipCount: todayMemberships._count,
+            todayMembershipCount,
         };
     }
 
@@ -128,35 +126,36 @@ export class FinanceService {
         const dayStart = dayStartPeru(reportDate);
         const dayEnd = dayEndPeru(reportDate);
 
-        const [sales, attendance, byMethod] = await Promise.all([
-            this.prisma.sale.aggregate({
+        const [payments, attendance, byMethod] = await Promise.all([
+            this.prisma.payment.aggregate({
                 where: { createdAt: { gte: dayStart, lte: dayEnd } },
-                _sum: { total: true },
+                _sum: { amount: true },
                 _count: true,
             }),
             this.prisma.attendance.count({
                 where: { checkIn: { gte: dayStart, lte: dayEnd } },
             }),
-            this.prisma.sale.groupBy({
+            this.prisma.payment.groupBy({
                 by: ['paymentMethod'],
                 where: { createdAt: { gte: dayStart, lte: dayEnd } },
-                _sum: { total: true },
+                _sum: { amount: true },
             }),
         ]);
 
         const methodTotals = byMethod.reduce(
-            (acc, item) => ({ ...acc, [item.paymentMethod]: Number(item._sum.total || 0) }),
-            { CASH: 0, CARD: 0, TRANSFER: 0 },
+            (acc, item) => ({ ...acc, [item.paymentMethod]: Number(item._sum.amount || 0) }),
+            { CASH: 0, CARD: 0, TRANSFER: 0, YAPE_PLIN: 0 },
         );
 
         return {
             date: reportDate.toISOString().split('T')[0],
-            totalIncome: Number(sales._sum.total || 0),
-            totalSales: sales._count,
+            totalIncome: Number(payments._sum.amount || 0),
+            totalSales: payments._count, // Representa Transacciones, no solo el record Sale
             totalAttendance: attendance,
             cashAmount: methodTotals.CASH,
             cardAmount: methodTotals.CARD,
             transferAmount: methodTotals.TRANSFER,
+            yapeAmount: methodTotals.YAPE_PLIN,
         };
     }
 
@@ -236,17 +235,17 @@ export class FinanceService {
                 break;
         }
 
-        const sales = await this.prisma.sale.findMany({
+        const payments = await this.prisma.payment.findMany({
             where: { createdAt: { gte: startDate } },
-            select: { total: true, createdAt: true },
+            select: { amount: true, createdAt: true },
             orderBy: { createdAt: 'asc' },
         });
 
         // Group by day
         const grouped = new Map<string, number>();
-        for (const sale of sales) {
-            const date = sale.createdAt.toISOString().split('T')[0];
-            grouped.set(date, (grouped.get(date) || 0) + Number(sale.total));
+        for (const payment of payments) {
+            const date = payment.createdAt.toISOString().split('T')[0];
+            grouped.set(date, (grouped.get(date) || 0) + Number(payment.amount));
         }
 
         return Array.from(grouped.entries()).map(([date, total]) => ({ date, total }));
@@ -266,16 +265,16 @@ export class FinanceService {
         const register = await this.prisma.cashRegister.findUnique({ where: { id: registerId } });
         if (!register) throw new Error('Caja no encontrada');
 
-        // Calculate expected amount
-        const sales = await this.prisma.sale.aggregate({
+        // Calculate expected amount based strictly on Cash Payments
+        const payments = await this.prisma.payment.aggregate({
             where: {
                 createdAt: { gte: register.openedAt },
-                paymentMethod: 'CASH', // Only count cash sales
+                paymentMethod: 'CASH', // Only count cash income
             },
-            _sum: { total: true },
+            _sum: { amount: true },
         });
 
-        const expectedAmount = Number(register.openingAmount) + Number(sales._sum.total || 0);
+        const expectedAmount = Number(register.openingAmount) + Number(payments._sum.amount || 0);
 
         return this.prisma.cashRegister.update({
             where: { id: registerId },

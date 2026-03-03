@@ -39,6 +39,22 @@ export class MembershipsController {
         return this.service.cancel(id);
     }
 
+    @Post(':id/payments')
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
+    addPayment(
+        @Param('id') id: string,
+        @Body() data: { amountPaid: number; paymentMethod: 'CASH' | 'CARD' | 'TRANSFER' | 'YAPE_PLIN'; receiptUrl?: string },
+        @CurrentUser() user: { id: string },
+    ) {
+        return this.service.addPayment(id, { ...data, createdBy: user.id });
+    }
+
+    @Get(':id/payments')
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
+    getPayments(@Param('id') id: string) {
+        return this.service.getPayments(id);
+    }
+
     @Post('daily-pass')
     @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
     assignDailyPass(

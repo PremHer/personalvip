@@ -296,8 +296,34 @@ export default function MembershipsPage() {
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
-                                <div><label className="form-label">Monto Pagado (S/)</label>
-                                    <input className="input-field" type="number" step="0.01" value={assignForm.amountPaid} onChange={(e) => setAssignForm({ ...assignForm, amountPaid: Number(e.target.value) })} min={0} required />
+                                <div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                        <label className="form-label" style={{ marginBottom: 0 }}>Monto Pagado Hoy (S/)</label>
+                                        {assignForm.planId && (() => {
+                                            const plan = plans.find(p => p.id === assignForm.planId);
+                                            const pName = (plan?.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                                            const slots = pName.includes('trio') ? 2 : pName.includes('duo') ? 1 : 0;
+                                            const multiplier = slots + 1;
+                                            const totalPrice = plan ? Number(plan.price) * multiplier : 0;
+
+                                            if (assignForm.amountPaid < totalPrice) {
+                                                return (
+                                                    <span className="badge badge-warning" style={{ fontSize: '10px' }}>
+                                                        Deuda: S/ {(totalPrice - assignForm.amountPaid).toFixed(2)}
+                                                    </span>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
+                                    </div>
+                                    <input className="input-field" type="number" step="0.10" value={assignForm.amountPaid} onChange={(e) => setAssignForm({ ...assignForm, amountPaid: Number(e.target.value) })} min={0}
+                                        max={assignForm.planId ? (() => {
+                                            const p = plans.find(pl => pl.id === assignForm.planId);
+                                            const pN = (p?.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                                            const m = (pN.includes('trio') ? 2 : pN.includes('duo') ? 1 : 0) + 1;
+                                            return p ? Number(p.price) * m : undefined;
+                                        })() : undefined} required
+                                    />
                                 </div>
                             </div>
                             <div><label className="form-label">Método de Pago *</label>

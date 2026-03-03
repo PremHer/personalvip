@@ -19,6 +19,11 @@ export default function ClientProfilePage() {
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [paymentAmount, setPaymentAmount] = useState('');
+    const [paymentMethod, setPaymentMethod] = useState('CASH');
+    const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
+
     useEffect(() => {
         if (!clientId) return;
         Promise.all([
@@ -60,6 +65,33 @@ export default function ClientProfilePage() {
     const daysLeft = activeMembership
         ? Math.ceil((new Date(activeMembership.endDate).getTime() - now.getTime()) / 86400000)
         : 0;
+
+    const totalPlanPrice = activeMembership ? Number(activeMembership.amountPaid || 0) : 0;
+    const payments = activeMembership?.payments || [];
+    const totalPaidAmount = payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+    const pendingAmount = Math.max(0, totalPlanPrice - totalPaidAmount);
+    const isPaidInFull = pendingAmount <= 0;
+    const progressPercent = totalPlanPrice > 0 ? Math.min(100, Math.round((totalPaidAmount / totalPlanPrice) * 100)) : 100;
+
+    const handleAddPayment = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!activeMembership || !paymentAmount) return;
+        setIsSubmittingPayment(true);
+        try {
+            await membershipsApi.addPayment(activeMembership.id, {
+                amountPaid: Number(paymentAmount),
+                paymentMethod,
+            });
+            setShowPaymentModal(false);
+            setPaymentAmount('');
+            const c = await clientsApi.get(clientId);
+            setClient(c);
+        } catch (error: any) {
+            alert(error.message);
+        } finally {
+            setIsSubmittingPayment(false);
+        }
+    };
 
     const formatDate = (d: string) => new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
     const formatTime = (d: string) => new Date(d).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
@@ -224,6 +256,68 @@ export default function ClientProfilePage() {
                         </div>
                     )}
 
+                    {/* Pagos y Deuda */}
+                    {activeMembership && (
+                        <div className="glass-card" style={{ padding: '20px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                                <h3 style={{ fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <DollarSign size={16} color="#10B981" /> Estado de Pago
+                                </h3>
+                                {!isPaidInFull && (
+                                    <button
+                                        className="btn-primary"
+                                        style={{ padding: '6px 12px', fontSize: '12px' }}
+                                        onClick={() => setShowPaymentModal(true)}
+                                    >
+                                        Abonar Pago
+                                    </button>
+                                )}
+                            </div>
+
+                            <div style={{ background: 'var(--color-surface-2)', padding: '16px', borderRadius: '12px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                    <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Monto Pagado</span>
+                                    <span style={{ fontSize: '14px', fontWeight: 600, color: '#10B981' }}>S/ {totalPaidAmount.toFixed(2)}</span>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                    <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Monto Pendiente</span>
+                                    <span style={{ fontSize: '14px', fontWeight: 600, color: pendingAmount > 0 ? '#F43F5E' : 'var(--color-text)' }}>S/ {pendingAmount.toFixed(2)}</span>
+                                </div>
+
+                                <div style={{ height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+                                    <div style={{
+                                        height: '100%',
+                                        width: `${progressPercent}%`,
+                                        background: progressPercent === 100 ? '#10B981' : 'linear-gradient(90deg, #3B82F6, #8B5CF6)',
+                                        borderRadius: '4px',
+                                        transition: 'width 0.5s ease-out'
+                                    }} />
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                                    <span>{progressPercent}% Pagado</span>
+                                    <span>Total: S/ {totalPlanPrice.toFixed(2)}</span>
+                                </div>
+                            </div>
+
+                            {(payments?.length || 0) > 0 && (
+                                <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '4px' }}>Abonos Realizados</span>
+                                    {payments.map((p: any) => (
+                                        <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--color-surface)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '6px' }}>
+                                            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{formatDate(p.createdAt)}</div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)' }}>
+                                                    {p.paymentMethod}
+                                                </span>
+                                                <span style={{ fontSize: '13px', fontWeight: 600, color: '#10B981' }}>+ S/ {Number(p.amount).toFixed(2)}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Memberships History */}
                     <div className="glass-card" style={{ padding: '20px' }}>
                         <h3 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -331,6 +425,49 @@ export default function ClientProfilePage() {
                     </div>
                 </div>
             </div>
+
+            {/* Add Payment Modal */}
+            {showPaymentModal && (
+                <div className="modal-overlay" onClick={() => setShowPaymentModal(false)}>
+                    <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+                        <div className="modal-header">
+                            <h2>Abonar Pago</h2>
+                            <button className="icon-btn" onClick={() => setShowPaymentModal(false)}>✕</button>
+                        </div>
+                        <form onSubmit={handleAddPayment} className="modal-body">
+                            <div className="form-group">
+                                <label>Monto a Abonar (S/)</label>
+                                <input
+                                    type="number"
+                                    className="input"
+                                    min="1"
+                                    max={pendingAmount}
+                                    step="0.10"
+                                    value={paymentAmount}
+                                    onChange={e => setPaymentAmount(e.target.value)}
+                                    required
+                                    placeholder={`Máx. S/ ${pendingAmount.toFixed(2)}`}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Método de Pago</label>
+                                <select className="input" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
+                                    <option value="CASH">Efectivo 💵</option>
+                                    <option value="CARD">Tarjeta 💳</option>
+                                    <option value="TRANSFER">Transferencia 🏦</option>
+                                    <option value="YAPE_PLIN">Yape / Plin 📱</option>
+                                </select>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn-secondary" onClick={() => setShowPaymentModal(false)}>Cancelar</button>
+                                <button type="submit" className="btn-primary" disabled={isSubmittingPayment}>
+                                    {isSubmittingPayment ? 'Registrando...' : 'Registrar Pago'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

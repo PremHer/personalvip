@@ -62,6 +62,7 @@ model User {
   createdMemberships Membership[] @relation("CreatedBy")
   openedRegisters  CashRegister[] @relation("OpenedBy")
   closedRegisters  CashRegister[] @relation("ClosedBy")
+  collectedPayments Payment[]
 
   @@map("users")
 }
@@ -118,6 +119,7 @@ model Membership {
   startDate  DateTime         @map("start_date") @db.Date
   endDate    DateTime         @map("end_date") @db.Date
   status     MembershipStatus @default(ACTIVE)
+  // amountPaid will now represent the PLAN's total assigned price (so we know what the debt is against)
   amountPaid Decimal          @map("amount_paid") @db.Decimal(10, 2)
   createdBy  String           @map("created_by")
   createdAt  DateTime         @default(now()) @map("created_at")
@@ -127,6 +129,7 @@ model Membership {
   client     Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
   plan       MembershipPlan @relation(fields: [planId], references: [id])
   creator    User           @relation("CreatedBy", fields: [createdBy], references: [id])
+  payments   Payment[]
 
   @@map("memberships")
 }
@@ -197,6 +200,7 @@ model Sale {
   client   Client?    @relation(fields: [clientId], references: [id], onDelete: Cascade)
   cashier  User       @relation("CashierSales", fields: [cashierId], references: [id])
   items    SaleItem[]
+  payments Payment[]
 
   @@map("sales")
 }
@@ -233,6 +237,33 @@ model CashRegister {
   closedBy User? @relation("ClosedBy", fields: [closedById], references: [id])
 
   @@map("cash_registers")
+}
+
+// ===== UNIFIED PAYMENTS (New) =====
+// Handles partial payments, split methods, and prevents double counting of incomes
+model Payment {
+  id            String        @id @default(uuid())
+  amount        Decimal       @db.Decimal(10, 2)
+  paymentMethod PaymentMethod @map("payment_method")
+  cashierId     String        @map("cashier_id")
+  
+  // Optional relations - a payment belongs to EITHER a Membership OR a POS Sale
+  membershipId  String?       @map("membership_id")
+  saleId        String?       @map("sale_id")
+  
+  notes         String?
+  receiptUrl    String?       @map("receipt_url") @db.Text
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  // Relations
+  cashier       User        @relation(fields: [cashierId], references: [id])
+  membership    Membership? @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  sale          Sale?       @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([membershipId])
+  @@index([saleId])
+  @@index([cashierId])
+  @@map("payments")
 }
 
 // ===== TRAINERS =====

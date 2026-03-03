@@ -62,6 +62,16 @@ export class SalesService {
                 },
             });
 
+            // Create unified payment record for finance tracking
+            await tx.payment.create({
+                data: {
+                    amount: finalTotal,
+                    paymentMethod: data.paymentMethod,
+                    cashierId: data.cashierId,
+                    saleId: sale.id,
+                },
+            });
+
             return sale;
         });
     }

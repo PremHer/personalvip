@@ -143,6 +143,9 @@ export const membershipsApi = {
         api<any>('/memberships', { method: 'POST', body: data }),
     dailyPass: (data: { clientId: string; amountPaid: number; paymentMethod?: string; receiptUrl?: string }) =>
         api<any>('/memberships/daily-pass', { method: 'POST', body: data }),
+    addPayment: (id: string, data: { amountPaid: number; paymentMethod: string; receiptUrl?: string }) =>
+        api<any>(`/memberships/${id}/payments`, { method: 'POST', body: data }),
+    getPayments: (id: string) => api<any[]>(`/memberships/${id}/payments`),
     freeze: (id: string) => api<any>(`/memberships/${id}/freeze`, { method: 'PATCH' }),
     unfreeze: (id: string) => api<any>(`/memberships/${id}/unfreeze`, { method: 'PATCH' }),
     cancel: (id: string) => api<any>(`/memberships/${id}/cancel`, { method: 'PATCH' }),

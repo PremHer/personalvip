@@ -68,7 +68,7 @@ export class ClientsService {
             where: { id },
             include: {
                 memberships: {
-                    include: { plan: true },
+                    include: { plan: true, payments: true },
                     orderBy: { createdAt: 'desc' },
                 },
                 attendances: {
