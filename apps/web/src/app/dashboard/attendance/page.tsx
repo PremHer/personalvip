@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { attendanceApi } from '@/lib/api';
+import { attendanceApi, clientsApi } from '@/lib/api';
 import { exportToCSV } from '@/lib/export';
-import { QrCode, LogOut, Users, CheckCircle, ArrowRight, Scan, Calendar, ChevronLeft, ChevronRight, History, Download } from 'lucide-react';
+import { QrCode, LogOut, Users, CheckCircle, ArrowRight, Scan, Calendar, ChevronLeft, ChevronRight, History, Download, Search } from 'lucide-react';
 
 export default function AttendancePage() {
     const [todayRecords, setTodayRecords] = useState<any[]>([]);
@@ -20,6 +20,11 @@ export default function AttendancePage() {
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+
+    // Autocomplete Search State
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [showResults, setShowResults] = useState(false);
+    const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => { loadToday(); }, []);
 
@@ -51,11 +56,16 @@ export default function AttendancePage() {
         if (viewMode === 'history') loadHistory(1);
     }, [viewMode, selectedDate, dateFrom, dateTo]);
 
-    const handleCheckIn = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!qrCode.trim()) return;
+    const handleCheckIn = async (e: React.FormEvent | string) => {
+        if (typeof e !== 'string') e.preventDefault();
+        const codeToSubmit = typeof e === 'string' ? e : qrCode.trim();
+        if (!codeToSubmit) return;
+
         try {
-            const result = await attendanceApi.checkIn(qrCode.trim());
+            // Check if the input is likely a UUID (Manual Name/DNI search) or a QR code
+            const isManualUUID = codeToSubmit.length === 36 && codeToSubmit.includes('-');
+            const result = await attendanceApi.checkIn(codeToSubmit, isManualUUID ? 'MANUAL' : 'QR');
+
             if (result.success === false) {
                 setMessage({ type: 'error', text: result.message });
             } else {
@@ -63,9 +73,31 @@ export default function AttendancePage() {
                 loadToday();
             }
             setQrCode('');
+            setShowResults(false);
         } catch (e: any) { setMessage({ type: 'error', text: e.message }); }
         setTimeout(() => setMessage(null), 5000);
         inputRef.current?.focus();
+    };
+
+    const handleSearchChange = (value: string) => {
+        setQrCode(value);
+        if (searchTimeout.current) clearTimeout(searchTimeout.current);
+
+        if (value.trim().length < 3) {
+            setSearchResults([]);
+            setShowResults(false);
+            return;
+        }
+
+        searchTimeout.current = setTimeout(async () => {
+            try {
+                const res = await clientsApi.list(1, 5, value);
+                setSearchResults(res.data);
+                setShowResults(true);
+            } catch (error) {
+                console.error('Error searching clients:', error);
+            }
+        }, 300);
     };
 
     const handleCheckOut = async (clientId: string, name: string) => {
@@ -186,20 +218,71 @@ export default function AttendancePage() {
                         ))}
                     </div>
 
-                    {/* QR Scanner */}
-                    <div className="glass-card" style={{ padding: '20px', marginBottom: '20px' }}>
+                    {/* QR / Search Scanner */}
+                    <div className="glass-card" style={{ padding: '20px', marginBottom: '20px', position: 'relative' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                             <Scan size={18} color="var(--color-primary-light)" />
                             <h2 style={{ fontSize: '14px', fontWeight: 600 }}>Registro de Entrada</h2>
                             <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginLeft: 'auto' }}>
-                                Escanea el QR del cliente o ingresa su código
+                                Escanea el QR, o busca por Nombre / DNI
                             </span>
                         </div>
+
                         <form onSubmit={handleCheckIn} style={{ display: 'flex', gap: '10px' }}>
-                            <input ref={inputRef} className="input-field" placeholder="Escanear QR o ingresar código del cliente..." value={qrCode}
-                                onChange={(e) => setQrCode(e.target.value)} autoFocus style={{ flex: 1 }} />
-                            <button type="submit" className="btn-primary"><ArrowRight size={16} /> Registrar</button>
+                            <div style={{ position: 'relative', flex: 1 }}>
+                                <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }}>
+                                    <Search size={16} />
+                                </div>
+                                <input
+                                    ref={inputRef}
+                                    className="input-field"
+                                    style={{ paddingLeft: '36px' }}
+                                    placeholder="Escanear QR o buscar cliente por nombre o DNI..."
+                                    value={qrCode}
+                                    onChange={(e) => handleSearchChange(e.target.value)}
+                                    onBlur={() => setTimeout(() => setShowResults(false), 200)}
+                                    onFocus={() => { if (searchResults.length > 0) setShowResults(true); }}
+                                    autoFocus
+                                />
+
+                                {/* Autocomplete Dropdown */}
+                                {showResults && searchResults.length > 0 && (
+                                    <div style={{
+                                        position: 'absolute', top: '100%', left: 0, right: 0, marginTop: '4px',
+                                        background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+                                        borderRadius: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.2)', zIndex: 10,
+                                        maxHeight: '260px', overflowY: 'auto'
+                                    }}>
+                                        {searchResults.map(client => (
+                                            <div
+                                                key={client.id}
+                                                style={{ padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'background 0.2s' }}
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault(); // Prevent input blur
+                                                    handleCheckIn(client.id);
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-surface-2)'}
+                                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                            >
+                                                <div>
+                                                    <div style={{ fontSize: '13px', fontWeight: 600 }}>{client.name}</div>
+                                                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                                                        DNI: {client.dni || 'N/A'} {client.email ? ` • ${client.email}` : ''}
+                                                    </div>
+                                                </div>
+                                                {client.activeMembership ? (
+                                                    <span className="badge badge-active" style={{ fontSize: '10px' }}>Activo</span>
+                                                ) : (
+                                                    <span className="badge badge-expired" style={{ fontSize: '10px' }}>Sin Membresía</span>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <button type="submit" className="btn-primary" style={{ padding: '0 20px' }}><ArrowRight size={16} /> Entrar</button>
                         </form>
+
                         {message && (
                             <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-danger'}`} style={{ marginTop: '12px', fontSize: '13px' }}>
                                 {message.text}
