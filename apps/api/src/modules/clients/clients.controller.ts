@@ -1,10 +1,10 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, Request } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ClientsService } from './clients.service';
 import { Roles } from '../../common/decorators';
 import { RolesGuard } from '../../common/guards';
-import { IsString, IsOptional, IsEmail, IsNotEmpty, ValidateIf } from 'class-validator';
+import { IsString, IsOptional, IsEmail, IsNotEmpty, ValidateIf, IsBoolean } from 'class-validator';
 
 class CreateClientDto {
     @IsString() @IsNotEmpty() name!: string;
@@ -20,7 +20,7 @@ class CreateClientDto {
     @IsOptional() @IsString() medicalNotes?: string;
 
     // Migration fields
-    @IsOptional() isMigration?: boolean;
+    @IsOptional() @IsBoolean() isMigration?: boolean;
     @IsOptional() @IsString() migrationPlanId?: string;
     @IsOptional() @IsString() migrationEndDate?: string;
 }
@@ -62,8 +62,8 @@ export class ClientsController {
 
     @Post()
     @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
-    create(@Body() dto: CreateClientDto) {
-        return this.clientsService.create(dto);
+    create(@Body() dto: CreateClientDto, @Request() req: any) {
+        return this.clientsService.create({ ...dto, createdBy: req.user.id });
     }
 
     @Patch(':id')

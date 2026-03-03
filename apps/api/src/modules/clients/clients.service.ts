@@ -163,6 +163,7 @@ export class ClientsService {
         isMigration?: boolean;
         migrationPlanId?: string;
         migrationEndDate?: string;
+        createdBy?: string;
     }) {
         if (!data.isMigration && !data.dni) {
             throw new BadRequestException('El DNI es obligatorio para clientes nuevos.');
@@ -217,7 +218,7 @@ export class ClientsService {
                         endDate,
                         status: 'ACTIVE',
                         amountPaid: 0,
-                        createdBy: 'SYSTEM-MIGRATION'
+                        createdBy: data.createdBy || 'SYSTEM' // Fallback to 'SYSTEM' if undefined
                     }
                 });
             }
