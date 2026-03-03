@@ -2,9 +2,6 @@
 [build]
 builder = "NIXPACKS"
 
-[build.nixpacksPlan.variables]
-NIXPACKS_NODE_VERSION = "20"
-
 [deploy]
 startCommand = "npm run start:prod --workspace=@gymcore/api"
 restartPolicyType = "ON_FAILURE"
