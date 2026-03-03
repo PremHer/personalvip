@@ -1,7 +1,0 @@
-[build]
-builder = "NIXPACKS"
-buildCommand = "npm run build --workspace=@gymcore/web"
-
-[deploy]
-startCommand = "npm start --workspace=@gymcore/web"
-restartPolicyType = "ON_FAILURE"
