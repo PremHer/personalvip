@@ -26,12 +26,13 @@ export default function MembershipCalendar({
 }: MembershipCalendarProps) {
     const today = startOfDay(new Date());
 
-    // Safely parse Date or String
+    // Safely parse Date or String by strictly enforcing local midnight for the calendar day
     const parseSafeDate = (d: Date | string | undefined): Date => {
         if (!d) return today;
         if (typeof d === 'string') {
-            // "2026-03-05" -> append time to force local parsing rather than UTC shift
-            return startOfDay(new Date(d.includes('T') ? d : `${d}T00:00:00`));
+            // "2026-03-05T05:00:00Z" -> "2026-03-05" -> local midnight. Avoids UTC-5 shift backwards.
+            const dateOnly = d.split('T')[0];
+            return startOfDay(new Date(`${dateOnly}T00:00:00`));
         }
         return startOfDay(d);
     };

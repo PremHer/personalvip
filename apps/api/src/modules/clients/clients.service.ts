@@ -204,10 +204,12 @@ export class ClientsService {
 
             if (plan) {
                 // Determine exact start and end boundaries
-                const startDate = dayStartPeru(new Date());
                 const endDate = dayEndPeru(data.migrationEndDate);
 
-                // Create solely the membership (skip Sale creation so finances remain S/ 0 for this day)
+                // Deduce the original start date by subtracting the plan duration
+                const deducedStart = new Date(endDate);
+                deducedStart.setDate(deducedStart.getDate() - (plan.durationDays - 1));
+                const startDate = dayStartPeru(deducedStart);
                 await this.prisma.membership.create({
                     data: {
                         clientId: client.id,
