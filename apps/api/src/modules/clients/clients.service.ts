@@ -204,12 +204,9 @@ export class ClientsService {
 
             if (plan) {
                 // Determine exact start and end boundaries
+                const startDate = dayStartPeru(new Date());
                 const endDate = dayEndPeru(data.migrationEndDate);
 
-                // Deduce the original start date by subtracting the plan duration
-                const deducedStart = new Date(endDate);
-                deducedStart.setDate(deducedStart.getDate() - (plan.durationDays - 1));
-                const startDate = dayStartPeru(deducedStart);
                 await this.prisma.membership.create({
                     data: {
                         clientId: client.id,
@@ -217,7 +214,7 @@ export class ClientsService {
                         startDate,
                         endDate,
                         status: 'ACTIVE',
-                        amountPaid: 0,
+                        amountPaid: plan.price, // Mark it as fully paid to avoid Debt Card flagging
                         createdBy: data.createdBy || 'SYSTEM' // Fallback to 'SYSTEM' if undefined
                     }
                 });

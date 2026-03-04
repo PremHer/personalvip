@@ -63,7 +63,9 @@ export default function ClientProfilePage() {
     });
 
     const targetMembership = client.memberships?.filter((m: any) => {
-        const totalPaid = m.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
+        const totalPaid = m.payments?.length > 0
+            ? m.payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0)
+            : Number(m.amountPaid || 0);
         return m.status === 'ACTIVE' && totalPaid < Number(m.plan?.price || 0);
     }).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] || activeMembership;
 
@@ -73,7 +75,10 @@ export default function ClientProfilePage() {
 
     const totalPlanPrice = targetMembership ? Number(targetMembership.plan?.price || 0) : 0;
     const payments = targetMembership?.payments || [];
-    const totalPaidAmount = payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+    const totalPaidAmount = payments.length > 0
+        ? payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0)
+        : targetMembership ? Number(targetMembership.amountPaid || 0) : 0;
+
     const pendingAmount = Math.max(0, totalPlanPrice - totalPaidAmount);
     const isPaidInFull = pendingAmount <= 0;
     const progressPercent = totalPlanPrice > 0 ? Math.min(100, Math.round((totalPaidAmount / totalPlanPrice) * 100)) : 100;
