@@ -28,7 +28,7 @@ export class ClientsService {
                 include: {
                     memberships: {
                         where: { status: 'ACTIVE' },
-                        include: { plan: true },
+                        include: { plan: true, payments: true },
                         orderBy: { endDate: 'desc' },
                     },
                 },

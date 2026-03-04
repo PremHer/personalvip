@@ -6,7 +6,7 @@ import { clientsApi, attendanceApi, membershipsApi } from '@/lib/api';
 import {
     ArrowLeft, User, Mail, Phone, Calendar, Activity,
     Clock, Shield, AlertTriangle, Heart, UserCheck,
-    TrendingUp, Star, DollarSign,
+    TrendingUp, Star, DollarSign, X
 } from 'lucide-react';
 import MembershipCalendar from '@/components/MembershipCalendar';
 
@@ -62,12 +62,17 @@ export default function ClientProfilePage() {
         return m.status === 'ACTIVE' && start <= now && end >= now;
     });
 
+    const targetMembership = client.memberships?.filter((m: any) => {
+        const totalPaid = m.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
+        return m.status === 'ACTIVE' && totalPaid < Number(m.plan?.price || 0);
+    }).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] || activeMembership;
+
     const daysLeft = activeMembership
         ? Math.ceil((new Date(activeMembership.endDate).getTime() - now.getTime()) / 86400000)
         : 0;
 
-    const totalPlanPrice = activeMembership ? Number(activeMembership.amountPaid || 0) : 0;
-    const payments = activeMembership?.payments || [];
+    const totalPlanPrice = targetMembership ? Number(targetMembership.plan?.price || 0) : 0;
+    const payments = targetMembership?.payments || [];
     const totalPaidAmount = payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0);
     const pendingAmount = Math.max(0, totalPlanPrice - totalPaidAmount);
     const isPaidInFull = pendingAmount <= 0;
@@ -75,10 +80,10 @@ export default function ClientProfilePage() {
 
     const handleAddPayment = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!activeMembership || !paymentAmount) return;
+        if (!targetMembership || !paymentAmount) return;
         setIsSubmittingPayment(true);
         try {
-            await membershipsApi.addPayment(activeMembership.id, {
+            await membershipsApi.addPayment(targetMembership.id, {
                 amountPaid: Number(paymentAmount),
                 paymentMethod,
             });
@@ -258,11 +263,12 @@ export default function ClientProfilePage() {
                     )}
 
                     {/* Pagos y Deuda */}
-                    {activeMembership && (
+                    {targetMembership && (
                         <div className="glass-card" style={{ padding: '20px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                                 <h3 style={{ fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <DollarSign size={16} color="#10B981" /> Estado de Pago
+                                    {targetMembership !== activeMembership && <span style={{ fontSize: '10px', color: '#F59E0B', fontWeight: 700, background: 'rgba(245,158,11,0.1)', padding: '2px 6px', borderRadius: '4px' }}>EN COLA</span>}
                                 </h3>
                                 {!isPaidInFull && (
                                     <button
@@ -429,40 +435,58 @@ export default function ClientProfilePage() {
 
             {/* Add Payment Modal */}
             {showPaymentModal && (
-                <div className="modal-overlay" onClick={() => setShowPaymentModal(false)}>
-                    <div className="modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
-                        <div className="modal-header">
-                            <h2>Abonar Pago</h2>
-                            <button className="icon-btn" onClick={() => setShowPaymentModal(false)}>✕</button>
+                <div className="modal-overlay">
+                    <div className="modal-card slide-up" style={{ maxWidth: '420px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h2 style={{ fontSize: '16px', fontWeight: 700 }}>Abonar a la Deuda</h2>
+                            <button className="btn-icon" onClick={() => setShowPaymentModal(false)}><X size={16} /></button>
                         </div>
-                        <form onSubmit={handleAddPayment} className="modal-body">
-                            <div className="form-group">
-                                <label>Monto a Abonar (S/)</label>
+                        <div style={{ padding: '12px', background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '10px', marginBottom: '20px' }}>
+                            <div style={{ fontSize: '11px', color: 'var(--color-warning)', fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>Deuda Total</div>
+                            <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--color-warning)' }}>S/ {pendingAmount.toFixed(2)}</div>
+                        </div>
+                        <form onSubmit={handleAddPayment} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <div>
+                                <label className="form-label">Monto a Abonar (S/) *</label>
                                 <input
                                     type="number"
-                                    className="input"
+                                    className="input-field"
                                     min="1"
                                     max={pendingAmount}
                                     step="0.10"
                                     value={paymentAmount}
                                     onChange={e => setPaymentAmount(e.target.value)}
                                     required
-                                    placeholder={`Máx. S/ ${pendingAmount.toFixed(2)}`}
+                                    placeholder={`Ej. ${pendingAmount.toFixed(2)}`}
+                                    style={{ fontSize: '16px', fontWeight: 600, padding: '12px' }}
                                 />
                             </div>
-                            <div className="form-group">
-                                <label>Método de Pago</label>
-                                <select className="input" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
-                                    <option value="CASH">Efectivo 💵</option>
-                                    <option value="CARD">Tarjeta 💳</option>
-                                    <option value="TRANSFER">Transferencia 🏦</option>
-                                    <option value="YAPE_PLIN">Yape / Plin 📱</option>
-                                </select>
+                            <div>
+                                <label className="form-label" style={{ marginBottom: '8px' }}>Método de Pago *</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                                    {[
+                                        { v: 'CASH', l: '💵 Efectivo' },
+                                        { v: 'CARD', l: '💳 Tarjeta' },
+                                        { v: 'TRANSFER', l: '🏦 Transferencia' },
+                                        { v: 'YAPE_PLIN', l: '📱 Yape/Plin' }
+                                    ].map(m => (
+                                        <button key={m.v} type="button" onClick={() => setPaymentMethod(m.v)}
+                                            style={{
+                                                padding: '12px 8px', borderRadius: '10px',
+                                                border: paymentMethod === m.v ? '2px solid var(--color-primary-light)' : '1px solid var(--color-border)',
+                                                backgroundColor: paymentMethod === m.v ? 'rgba(124,58,237,0.15)' : 'var(--color-bg-tertiary)',
+                                                color: paymentMethod === m.v ? 'var(--color-primary-light)' : 'var(--color-text-muted)',
+                                                fontSize: '13px', fontWeight: 600, cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s'
+                                            }}>
+                                            {m.l}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                            <div className="modal-footer">
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '10px' }}>
                                 <button type="button" className="btn-secondary" onClick={() => setShowPaymentModal(false)}>Cancelar</button>
                                 <button type="submit" className="btn-primary" disabled={isSubmittingPayment}>
-                                    {isSubmittingPayment ? 'Registrando...' : 'Registrar Pago'}
+                                    {isSubmittingPayment ? <div className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }} /> : 'Registrar Abono'}
                                 </button>
                             </div>
                         </form>

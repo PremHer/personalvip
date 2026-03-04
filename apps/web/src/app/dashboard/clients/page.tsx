@@ -407,7 +407,19 @@ export default function ClientsPage() {
                                     <td style={{ fontSize: '12px', fontFamily: 'monospace' }}>{c.dni || '—'}</td>
                                     <td>{c.email || '—'}</td>
                                     <td>{c.phone || '—'}</td>
-                                    <td>{c.activeMembership?.plan?.name || <span style={{ color: 'var(--color-text-muted)' }}>—</span>}</td>
+                                    <td>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <span>{c.activeMembership?.plan?.name || <span style={{ color: 'var(--color-text-muted)' }}>—</span>}</span>
+                                            {c.activeMembership && c.activeMembership.plan && (
+                                                (() => {
+                                                    const paid = c.activeMembership.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
+                                                    const price = Number(c.activeMembership.plan.price);
+                                                    if (paid < price) return <span className="badge badge-error" style={{ fontSize: '9px', alignSelf: 'flex-start' }}>Deuda S/ {(price - paid).toFixed(2)}</span>;
+                                                    return null;
+                                                })()
+                                            )}
+                                        </div>
+                                    </td>
                                     <td>
                                         {c.activeMembership?.endDate ? (
                                             <span style={{ fontSize: '12px', color: new Date(c.activeMembership.endDate) < new Date() ? 'var(--color-danger)' : 'var(--color-text-secondary)' }}>
