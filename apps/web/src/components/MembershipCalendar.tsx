@@ -30,9 +30,13 @@ export default function MembershipCalendar({
     const parseSafeDate = (d: Date | string | undefined): Date => {
         if (!d) return today;
         if (typeof d === 'string') {
-            // "2026-03-05T05:00:00Z" -> "2026-03-05" -> local midnight. Avoids UTC-5 shift backwards.
-            const dateOnly = d.split('T')[0];
-            return startOfDay(new Date(`${dateOnly}T00:00:00`));
+            // A pure UTC strings like "2026-03-09T04:59:59.999Z" is Peru's Mar 8th at 11:59PM.
+            // Slicing "T" yields Mar 9th (WRONG). We must let Date parse it, subtract the local offset, then get the literal day.
+            if (!d.includes('T')) return startOfDay(new Date(`${d}T00:00:00`)); // Local date input "YYYY-MM-DD"
+
+            const interpreted = new Date(d);
+            // shift it so `startOfDay` grabs the correct midnight in local timezone
+            return startOfDay(new Date(interpreted.getTime() - interpreted.getTimezoneOffset() * 60000));
         }
         return startOfDay(d);
     };
