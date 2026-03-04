@@ -412,8 +412,11 @@ export default function ClientsPage() {
                                             <span>{c.activeMembership?.plan?.name || <span style={{ color: 'var(--color-text-muted)' }}>—</span>}</span>
                                             {c.activeMembership && c.activeMembership.plan && (
                                                 (() => {
-                                                    const paid = c.activeMembership.payments?.reduce((acc: number, p: any) => acc + Number(p.amount), 0) || 0;
-                                                    const price = Number(c.activeMembership.plan.price);
+                                                    const m = c.activeMembership;
+                                                    const paid = m.payments?.length > 0
+                                                        ? m.payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0)
+                                                        : Number(m.amountPaid || 0);
+                                                    const price = Number(m.plan.price);
                                                     if (paid < price) return <span className="badge badge-error" style={{ fontSize: '9px', alignSelf: 'flex-start' }}>Deuda S/ {(price - paid).toFixed(2)}</span>;
                                                     return null;
                                                 })()

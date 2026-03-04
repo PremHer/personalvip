@@ -60,5 +60,8 @@ export function dayEndPeru(date: Date | string): Date {
         d = peruDate.getUTCDate();
     }
     // Force to Peru end of day (23:59:59.999) using UTC constructor offset
-    return new Date(Date.UTC(y, m, d, 23 - PERU_OFFSET_HOURS, 59, 59, 999));
+    // Instead of forcing mathematical Peru time boundaries (which leaks +5 hours into the next UTC day like "2026-03-09T04:59Z"),
+    // We intentionally store the end of the current UTC calendar day ("2026-03-08T23:59:59Z").
+    // This allows the Frontend to simply split('T')[0] yielding "2026-03-08" correctly.
+    return new Date(Date.UTC(y, m, d, 23, 59, 59, 999));
 }
