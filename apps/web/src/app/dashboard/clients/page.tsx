@@ -33,7 +33,7 @@ export default function ClientsPage() {
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [assignClient, setAssignClient] = useState<any>(null);
     const [plans, setPlans] = useState<any[]>([]);
-    const [assignForm, setAssignForm] = useState({ planId: '', amountPaid: 0, mode: 'replace' as 'replace' | 'queue', paymentMethod: 'CASH', receiptUrl: '', startDate: '' });
+    const [assignForm, setAssignForm] = useState({ planId: '', amountPaid: 0, mode: 'replace' as 'replace' | 'queue', paymentMethod: 'CASH', receiptUrl: '', startDate: '', endDate: undefined as string | undefined });
     const [assigning, setAssigning] = useState(false);
 
     // Detail modal
@@ -206,7 +206,7 @@ export default function ClientsPage() {
 
     const openAssign = async (client: any) => {
         setAssignClient(client);
-        setAssignForm({ planId: '', amountPaid: 0, mode: 'replace', paymentMethod: 'CASH', receiptUrl: '', startDate: '' });
+        setAssignForm({ planId: '', amountPaid: 0, mode: 'replace', paymentMethod: 'CASH', receiptUrl: '', startDate: '', endDate: undefined });
         try {
             const p = await plansApi.list();
             setPlans(p.filter((pl: any) => pl.isActive));
@@ -629,8 +629,17 @@ export default function ClientsPage() {
                                     <label className="form-label" style={{ marginBottom: '8px' }}>Periodo de Entrenamiento (Fechas)</label>
                                     <MembershipCalendar
                                         startDate={assignForm.startDate ? new Date(`${assignForm.startDate}T00:00:00`) : newStartDate}
+                                        endDate={assignForm.endDate ? new Date(`${assignForm.endDate}T00:00:00`) : newEndDate?.toISOString()}
                                         durationDays={plans.find(p => p.id === assignForm.planId)?.durationDays || 0}
-                                        onChange={(date) => setAssignForm({ ...assignForm, startDate: format(date, 'yyyy-MM-dd') })}
+                                        onChange={(date) => {
+                                            const plan = plans.find(p => p.id === assignForm.planId);
+                                            const end = plan ? new Date(date.getTime() + plan.durationDays * 24 * 60 * 60 * 1000) : null;
+                                            setAssignForm({
+                                                ...assignForm,
+                                                startDate: format(date, 'yyyy-MM-dd'),
+                                                endDate: end ? format(end, 'yyyy-MM-dd') : undefined
+                                            });
+                                        }}
                                     />
                                     <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '6px' }}>
                                         Toque cualquier día para cambiar la fecha de inicio.

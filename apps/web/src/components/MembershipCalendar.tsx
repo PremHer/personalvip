@@ -9,7 +9,8 @@ import { es } from 'date-fns/locale';
 
 interface MembershipCalendarProps {
     startDate?: Date | string;  // Optional currently selected start date (support string to avoid outer components parsing it wrongly)
-    durationDays?: number;      // How many days the plan covers (e.g. 30)
+    endDate?: Date | string;    // Override the duration mathematics with an absolute end date
+    durationDays?: number;      // How many days the plan covers (e.g. 30) if no endDate
     readOnly?: boolean;         // If true, the user cannot pick a new date (used in Profile view)
     onChange?: (date: Date) => void; // Callback when a new start date is picked
     memberships?: any[];        // Optional array of memberships to render multiple overlapping plans
@@ -17,6 +18,7 @@ interface MembershipCalendarProps {
 
 export default function MembershipCalendar({
     startDate,
+    endDate: absoluteEndDate,
     durationDays = 0,
     readOnly = false,
     onChange,
@@ -52,12 +54,15 @@ export default function MembershipCalendar({
         }
     }, [startDate]);
 
-    // Calculate the end date strictly based on activeStart + durationDays
+    // Calculate the end date strictly based on activeStart + durationDays, or literal prop
     const endDate = useMemo(() => {
+        if (absoluteEndDate) {
+            return parseSafeDate(absoluteEndDate);
+        }
         if (!durationDays || durationDays <= 0) return null;
         // The last day is activeStart + duration - 1
         return addDays(activeStart, durationDays - 1);
-    }, [activeStart, durationDays]);
+    }, [activeStart, durationDays, absoluteEndDate]);
 
     const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
     const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
