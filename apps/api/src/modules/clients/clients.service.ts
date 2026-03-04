@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../../prisma/prisma.service';
 import * as QRCode from 'qrcode';
 import { v4 as uuid } from 'uuid';
+import { dayStartPeru, dayEndPeru } from '../../common/timezone';
 
 @Injectable()
 export class ClientsService {
@@ -203,11 +204,8 @@ export class ClientsService {
 
             if (plan) {
                 // Determine exact start and end boundaries
-                const startDate = new Date();
-                const endDate = new Date(data.migrationEndDate.includes('T') ? data.migrationEndDate : `${data.migrationEndDate}T00:00:00`);
-
-                // Set endDate to 23:59:59 to give a full day
-                endDate.setHours(23, 59, 59, 999);
+                const startDate = dayStartPeru(new Date());
+                const endDate = dayEndPeru(data.migrationEndDate);
 
                 // Create solely the membership (skip Sale creation so finances remain S/ 0 for this day)
                 await this.prisma.membership.create({

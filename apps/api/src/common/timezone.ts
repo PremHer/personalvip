@@ -29,18 +29,36 @@ export function todayEndPeru(): Date {
 
 /** Returns start of a specific date in Peru time, as a UTC Date */
 export function dayStartPeru(date: Date | string): Date {
-    const d = new Date(date);
-    const utcMs = d.getTime() + d.getTimezoneOffset() * 60000;
-    const peru = new Date(utcMs + PERU_OFFSET_HOURS * 3600000);
-    peru.setHours(0, 0, 0, 0);
-    return new Date(peru.getTime() - PERU_OFFSET_HOURS * 3600000);
+    let y, m, d;
+    if (typeof date === 'string') {
+        const parts = date.split('T')[0].split('-');
+        y = parseInt(parts[0], 10);
+        m = parseInt(parts[1], 10) - 1;
+        d = parseInt(parts[2], 10);
+    } else {
+        const peruDate = new Date(date.getTime() - (-PERU_OFFSET_HOURS) * 3600000);
+        y = peruDate.getUTCFullYear();
+        m = peruDate.getUTCMonth();
+        d = peruDate.getUTCDate();
+    }
+    // Force to Peru start of day (00:00:00) using UTC constructor offset
+    return new Date(Date.UTC(y, m, d, -PERU_OFFSET_HOURS, 0, 0, 0)); // 05:00 UTC = 00:00 Peru
 }
 
 /** Returns end of a specific date in Peru time, as a UTC Date */
 export function dayEndPeru(date: Date | string): Date {
-    const d = new Date(date);
-    const utcMs = d.getTime() + d.getTimezoneOffset() * 60000;
-    const peru = new Date(utcMs + PERU_OFFSET_HOURS * 3600000);
-    peru.setHours(23, 59, 59, 999);
-    return new Date(peru.getTime() - PERU_OFFSET_HOURS * 3600000);
+    let y, m, d;
+    if (typeof date === 'string') {
+        const parts = date.split('T')[0].split('-');
+        y = parseInt(parts[0], 10);
+        m = parseInt(parts[1], 10) - 1;
+        d = parseInt(parts[2], 10);
+    } else {
+        const peruDate = new Date(date.getTime() - (-PERU_OFFSET_HOURS) * 3600000);
+        y = peruDate.getUTCFullYear();
+        m = peruDate.getUTCMonth();
+        d = peruDate.getUTCDate();
+    }
+    // Force to Peru end of day (23:59:59.999) using UTC constructor offset
+    return new Date(Date.UTC(y, m, d, 23 - PERU_OFFSET_HOURS, 59, 59, 999));
 }
