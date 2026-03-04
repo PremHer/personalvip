@@ -8,22 +8,34 @@ import {
 import { es } from 'date-fns/locale';
 
 interface MembershipCalendarProps {
-    startDate?: Date;           // Optional currently selected start date
+    startDate?: Date | string;  // Optional currently selected start date (support string to avoid outer components parsing it wrongly)
     durationDays?: number;      // How many days the plan covers (e.g. 30)
     readOnly?: boolean;         // If true, the user cannot pick a new date (used in Profile view)
     onChange?: (date: Date) => void; // Callback when a new start date is picked
+    memberships?: any[];        // Optional array of memberships to render multiple overlapping plans
 }
 
 export default function MembershipCalendar({
     startDate,
     durationDays = 0,
     readOnly = false,
-    onChange
+    onChange,
+    memberships = [] // For displaying multiple read-only memberships
 }: MembershipCalendarProps) {
     const today = startOfDay(new Date());
 
+    // Safely parse Date or String
+    const parseSafeDate = (d: Date | string | undefined): Date => {
+        if (!d) return today;
+        if (typeof d === 'string') {
+            // "2026-03-05" -> append time to force local parsing rather than UTC shift
+            return startOfDay(new Date(d.includes('T') ? d : `${d}T00:00:00`));
+        }
+        return startOfDay(d);
+    };
+
     // Fallback to today if no date provided, otherwise use provided start date
-    const initialBase = startDate ? startOfDay(startDate) : today;
+    const initialBase = startDate ? parseSafeDate(startDate) : today;
 
     // Track the currently viewed month in the UI
     const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(initialBase));
@@ -34,8 +46,9 @@ export default function MembershipCalendar({
     // Sync external props back into state if they change from above (e.g resetting forms)
     useEffect(() => {
         if (startDate) {
-            setActiveStart(startOfDay(startDate));
-            setCurrentMonth(startOfMonth(startDate));
+            const parsed = parseSafeDate(startDate);
+            setActiveStart(parsed);
+            setCurrentMonth(startOfMonth(parsed));
         }
     }, [startDate]);
 
@@ -65,13 +78,49 @@ export default function MembershipCalendar({
 
     // Helper checks for styling rendering
     const isDayActive = (day: Date) => {
+        if (memberships.length > 0) {
+            return memberships.some(m => {
+                const s = parseSafeDate(m.startDate);
+                const e = parseSafeDate(m.endDate);
+                return (isAfter(day, s) || isSameDay(day, s)) && (isAfter(e, day) || isSameDay(day, e));
+            });
+        }
+
         if (!endDate) return false;
         return (isAfter(day, activeStart) || isSameDay(day, activeStart)) &&
             (isAfter(endDate, day) || isSameDay(day, endDate));
     };
 
-    const isStart = (day: Date) => isSameDay(day, activeStart);
-    const isEnd = (day: Date) => !!endDate && isSameDay(day, endDate);
+    const isStart = (day: Date) => {
+        if (memberships.length > 0) return memberships.some(m => isSameDay(day, parseSafeDate(m.startDate)));
+        return isSameDay(day, activeStart);
+    };
+
+    const isEnd = (day: Date) => {
+        if (memberships.length > 0) return memberships.some(m => isSameDay(day, parseSafeDate(m.endDate)));
+        return !!endDate && isSameDay(day, endDate);
+    };
+
+    // Style resolver for multiple overlapping plans
+    const getMembershipStyle = (day: Date) => {
+        if (!readOnly || memberships.length === 0) {
+            return { bg: 'rgba(124, 58, 237, 0.15)', color: 'var(--color-primary-light)' };
+        }
+
+        const activeMems = memberships.filter(m => {
+            const s = parseSafeDate(m.startDate);
+            const e = parseSafeDate(m.endDate);
+            return (isAfter(day, s) || isSameDay(day, s)) && (isAfter(e, day) || isSameDay(day, e));
+        });
+
+        if (activeMems.length === 0) return {};
+
+        // Differentiate colors if it's the current active vs queued vs expired
+        const m = activeMems[0];
+        if (m.status === 'EXPIRED') return { bg: 'rgba(255, 255, 255, 0.05)', color: 'var(--color-text-muted)' };
+        if (m.status === 'ACTIVE' && isAfter(parseSafeDate(m.startDate), today)) return { bg: 'rgba(245, 158, 11, 0.15)', color: '#F59E0B' }; // Queued (orangeish)
+        return { bg: 'rgba(124, 58, 237, 0.15)', color: 'var(--color-primary-light)' }; // Active (purple)
+    };
 
     return (
         <div style={{
@@ -118,14 +167,15 @@ export default function MembershipCalendar({
                     let fontWeight = 500;
 
                     const isConsumed = isActive && readOnly && isAfter(today, day) && !isToday; // Day is in the past
+                    const memStyle = getMembershipStyle(day);
 
                     if (isStartDay || isEndDay) {
-                        bgColor = isConsumed ? 'var(--color-border)' : 'var(--color-primary)';
+                        bgColor = isConsumed ? 'var(--color-border)' : (memStyle.color || 'var(--color-primary)');
                         textColor = isConsumed ? 'var(--color-text-muted)' : 'white';
                         fontWeight = 700;
                     } else if (isActive) {
-                        bgColor = isConsumed ? 'var(--color-surface-1)' : 'rgba(124, 58, 237, 0.15)'; // Gray out or Primary light 
-                        textColor = isConsumed ? 'var(--color-text-muted)' : 'var(--color-primary-light)';
+                        bgColor = isConsumed ? 'var(--color-surface-1)' : (memStyle.bg || 'rgba(124, 58, 237, 0.15)');
+                        textColor = isConsumed ? 'var(--color-text-muted)' : (memStyle.color || 'var(--color-primary-light)');
                     }
 
                     const isInteractive = !readOnly && isCurrentMth;
@@ -141,7 +191,7 @@ export default function MembershipCalendar({
                                 borderRadius: isStartDay ? '8px 0 0 8px' : isEndDay ? '0 8px 8px 0' : isActive ? '0' : '8px',
                                 opacity: isCurrentMth ? 1 : 0.3,
                                 cursor: isInteractive ? 'pointer' : 'default',
-                                border: isToday && !isActive ? '1px solid var(--color-border)' : isToday && isActive ? '2px solid var(--color-primary)' : '1px solid transparent',
+                                border: isToday && !isActive ? '1px solid var(--color-border)' : isToday && isActive ? `2px solid ${memStyle.color || 'var(--color-primary)'}` : '1px solid transparent',
                                 transition: 'all 0.1s'
                             }}>
                             {format(day, 'd')}

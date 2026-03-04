@@ -533,7 +533,8 @@ export default function ClientsPage() {
                 // Calculate new membership dates based on mode
                 let newStartDate = new Date();
                 if (hasActive && assignForm.mode === 'queue' && currentEndDate) {
-                    newStartDate = currentEndDate;
+                    newStartDate = new Date(currentEndDate);
+                    newStartDate.setDate(newStartDate.getDate() + 1);
                 }
                 const newEndDate = selectedPlan ? new Date(newStartDate.getTime() + selectedPlan.durationDays * 24 * 60 * 60 * 1000) : null;
 
@@ -627,7 +628,7 @@ export default function ClientsPage() {
                                 <div style={{ marginBottom: '16px' }}>
                                     <label className="form-label" style={{ marginBottom: '8px' }}>Periodo de Entrenamiento (Fechas)</label>
                                     <MembershipCalendar
-                                        startDate={assignForm.startDate ? new Date(`${assignForm.startDate}T00:00:00`) : undefined}
+                                        startDate={assignForm.startDate ? new Date(`${assignForm.startDate}T00:00:00`) : newStartDate}
                                         durationDays={plans.find(p => p.id === assignForm.planId)?.durationDays || 0}
                                         onChange={(date) => setAssignForm({ ...assignForm, startDate: format(date, 'yyyy-MM-dd') })}
                                     />

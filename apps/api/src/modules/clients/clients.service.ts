@@ -204,7 +204,7 @@ export class ClientsService {
             if (plan) {
                 // Determine exact start and end boundaries
                 const startDate = new Date();
-                const endDate = new Date(data.migrationEndDate);
+                const endDate = new Date(data.migrationEndDate.includes('T') ? data.migrationEndDate : `${data.migrationEndDate}T00:00:00`);
 
                 // Set endDate to 23:59:59 to give a full day
                 endDate.setHours(23, 59, 59, 999);

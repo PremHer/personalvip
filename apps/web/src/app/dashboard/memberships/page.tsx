@@ -286,7 +286,11 @@ export default function MembershipsPage() {
                             <div style={{ marginBottom: '16px' }}>
                                 <label className="form-label" style={{ marginBottom: '8px' }}>Periodo de Entrenamiento (Fechas)</label>
                                 <MembershipCalendar
-                                    startDate={assignForm.startDate ? new Date(`${assignForm.startDate}T00:00:00`) : undefined}
+                                    startDate={assignForm.startDate
+                                        ? new Date(`${assignForm.startDate}T00:00:00`)
+                                        : (assignMode === 'queue' && activeClientMembership)
+                                            ? (() => { const d = new Date(activeClientMembership.endDate); d.setDate(d.getDate() + 1); return d; })()
+                                            : undefined}
                                     durationDays={plans.find(p => p.id === assignForm.planId)?.durationDays || 0}
                                     onChange={(date) => setAssignForm({ ...assignForm, startDate: format(date, 'yyyy-MM-dd') })}
                                 />

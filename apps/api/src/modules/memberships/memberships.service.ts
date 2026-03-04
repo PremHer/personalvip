@@ -29,7 +29,10 @@ export class MembershipsService {
         const mode = data.mode || 'replace';
 
         if (mode === 'queue' && activeMembership) {
-            startDate = dayStartPeru(activeMembership.endDate);
+            // Queue means we start the day AFTER the current active plan ends
+            const nextDay = new Date(activeMembership.endDate);
+            nextDay.setDate(nextDay.getDate() + 1);
+            startDate = dayStartPeru(nextDay);
         } else {
             startDate = data.startDate ? dayStartPeru(data.startDate) : dayStartPeru(new Date());
             if (activeMembership) {
