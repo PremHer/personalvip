@@ -131,6 +131,17 @@ export class MembershipsService {
         });
     }
 
+    async delete(id: string) {
+        // Find if it exists
+        const membership = await this.prisma.membership.findUnique({ where: { id } });
+        if (!membership) throw new NotFoundException('Membresía no encontrada');
+
+        // Prisma cascade delete will handle related Payments automatically
+        return this.prisma.membership.delete({
+            where: { id },
+        });
+    }
+
     async getExpiring(days = 7) {
         const future = new Date();
         future.setDate(future.getDate() + days);

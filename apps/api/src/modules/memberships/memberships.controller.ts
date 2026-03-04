@@ -1,4 +1,4 @@
-import { Controller, Post, Patch, Get, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Post, Patch, Get, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { MembershipsService } from './memberships.service';
@@ -37,6 +37,12 @@ export class MembershipsController {
     @Roles('ADMIN', 'OWNER')
     cancel(@Param('id') id: string) {
         return this.service.cancel(id);
+    }
+
+    @Delete(':id')
+    @Roles('ADMIN', 'OWNER')
+    delete(@Param('id') id: string) {
+        return this.service.delete(id);
     }
 
     @Post(':id/payments')

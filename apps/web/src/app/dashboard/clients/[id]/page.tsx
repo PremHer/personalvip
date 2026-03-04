@@ -6,7 +6,7 @@ import { clientsApi, attendanceApi, membershipsApi } from '@/lib/api';
 import {
     ArrowLeft, User, Mail, Phone, Calendar, Activity,
     Clock, Shield, AlertTriangle, Heart, UserCheck,
-    TrendingUp, Star, DollarSign, X
+    TrendingUp, Star, DollarSign, X, Trash2
 } from 'lucide-react';
 import MembershipCalendar from '@/components/MembershipCalendar';
 
@@ -100,6 +100,17 @@ export default function ClientProfilePage() {
             alert(error.message);
         } finally {
             setIsSubmittingPayment(false);
+        }
+    };
+
+    const handleDeleteMembership = async (membershipId: string) => {
+        if (!confirm('¿Estás seguro de que deseas eliminar esta membresía? Esta acción no se puede deshacer y borrará los pagos asociados.')) return;
+        try {
+            await membershipsApi.delete(membershipId);
+            const c = await clientsApi.get(clientId);
+            setClient(c);
+        } catch (error: any) {
+            alert(error.message || 'Error eliminando membresía');
         }
     };
 
@@ -351,9 +362,19 @@ export default function ClientProfilePage() {
                                                     {formatDate(m.startDate)} — {formatDate(m.endDate)}
                                                 </div>
                                             </div>
-                                            <span className={`badge ${isActive ? 'badge-active' : m.status === 'EXPIRED' ? 'badge-expired' : 'badge-warning'}`} style={{ fontSize: '10px' }}>
-                                                {isActive ? 'Activa' : m.status === 'EXPIRED' ? 'Expirada' : m.status === 'FROZEN' ? 'Congelada' : m.status}
-                                            </span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span className={`badge ${isActive ? 'badge-active' : m.status === 'EXPIRED' ? 'badge-expired' : 'badge-warning'}`} style={{ fontSize: '10px' }}>
+                                                    {isActive ? 'Activa' : m.status === 'EXPIRED' ? 'Expirada' : m.status === 'FROZEN' ? 'Congelada' : m.status}
+                                                </span>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleDeleteMembership(m.id); }}
+                                                    className="btn-icon danger"
+                                                    title="Eliminar Membresía"
+                                                    style={{ padding: '4px', background: 'rgba(244,63,94,0.1)', color: '#F43F5E', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
+                                                >
+                                                    <Trash2 size={13} />
+                                                </button>
+                                            </div>
                                         </div>
                                     );
                                 })}
