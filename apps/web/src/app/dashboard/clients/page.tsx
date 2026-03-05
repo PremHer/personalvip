@@ -206,7 +206,10 @@ export default function ClientsPage() {
 
     const openAssign = async (client: any) => {
         setAssignClient(client);
-        setAssignForm({ planId: '', amountPaid: 0, mode: 'replace', paymentMethod: 'CASH', receiptUrl: '', startDate: '', endDate: undefined });
+        const d = new Date();
+        const y = d.getFullYear(); const m = String(d.getMonth() + 1).padStart(2, '0'); const dy = String(d.getDate()).padStart(2, '0');
+        const todayStr = `${y}-${m}-${dy}`;
+        setAssignForm({ planId: '', amountPaid: 0, mode: 'replace', paymentMethod: 'CASH', receiptUrl: '', startDate: todayStr, endDate: undefined });
         try {
             const p = await plansApi.list();
             setPlans(p.filter((pl: any) => pl.isActive));
@@ -226,6 +229,8 @@ export default function ClientsPage() {
                 paymentMethod: assignForm.paymentMethod,
                 receiptUrl: assignForm.receiptUrl,
                 mode: assignClient.activeMembership?.status === 'ACTIVE' ? assignForm.mode : 'replace',
+                startDate: assignForm.startDate,
+                endDate: assignForm.endDate
             });
             setShowAssignModal(false);
             setAssignClient(null);
@@ -641,7 +646,42 @@ export default function ClientsPage() {
                                 )}
 
                                 <div style={{ marginBottom: '16px' }}>
-                                    <label className="form-label" style={{ marginBottom: '8px' }}>Periodo de Entrenamiento (Fechas)</label>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                        <label className="form-label" style={{ marginBottom: 0 }}>Periodo de Entrenamiento (Fechas)</label>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', background: 'var(--color-surface-2)', padding: '12px', borderRadius: '10px', border: '1px solid var(--color-border)' }}>
+                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <label style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 700, color: 'var(--color-primary)' }}>Inicio</label>
+                                            <input type="date" className="input-field" style={{ padding: '8px 12px', fontSize: '13px' }}
+                                                value={assignForm.startDate || ''}
+                                                onChange={(e) => {
+                                                    const newStart = e.target.value;
+                                                    const plan = plans.find(p => p.id === assignForm.planId);
+                                                    let endStr = assignForm.endDate;
+                                                    if (plan && newStart) {
+                                                        const d = new Date(newStart);
+                                                        d.setUTCDate(d.getUTCDate() + plan.durationDays);
+                                                        endStr = d.toISOString().split('T')[0];
+                                                    }
+                                                    setAssignForm({ ...assignForm, startDate: newStart, endDate: endStr });
+                                                }}
+                                            />
+                                        </div>
+                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <label style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 700, color: 'var(--color-secondary)' }}>Fin (Máx 35d)</label>
+                                            <input type="date" className="input-field" style={{ padding: '8px 12px', fontSize: '13px' }}
+                                                value={assignForm.endDate || ''}
+                                                min={assignForm.startDate}
+                                                max={assignForm.startDate ? (() => {
+                                                    const maxD = new Date(assignForm.startDate);
+                                                    maxD.setUTCDate(maxD.getUTCDate() + 35);
+                                                    return maxD.toISOString().split('T')[0];
+                                                })() : undefined}
+                                                onChange={(e) => setAssignForm({ ...assignForm, endDate: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+
                                     <MembershipCalendar
                                         startDate={assignForm.startDate ? new Date(`${assignForm.startDate}T00:00:00`) : newStartDate}
                                         endDate={assignForm.endDate ? new Date(`${assignForm.endDate}T00:00:00`) : newEndDate?.toISOString()}
@@ -714,38 +754,10 @@ export default function ClientsPage() {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <div>
                                                 <div style={{ fontWeight: 600, fontSize: '14px' }}>{selectedPlan.name}</div>
-                                                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                        <label style={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 600 }}>Inicio</label>
-                                                        <input type="date" className="input-field" style={{ padding: '4px 6px', fontSize: '11px', width: '115px' }}
-                                                            value={assignForm.startDate}
-                                                            onChange={(e) => {
-                                                                const newStart = e.target.value;
-                                                                const plan = plans.find(p => p.id === assignForm.planId);
-                                                                let endStr = assignForm.endDate;
-                                                                if (plan && newStart) {
-                                                                    const d = new Date(newStart);
-                                                                    d.setUTCDate(d.getUTCDate() + plan.durationDays);
-                                                                    endStr = d.toISOString().split('T')[0];
-                                                                }
-                                                                setAssignForm({ ...assignForm, startDate: newStart, endDate: endStr });
-                                                            }}
-                                                        />
-                                                    </div>
-                                                    <span style={{ marginTop: '14px' }}>→</span>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                                        <label style={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 600 }}>Fin (Máx 35d)</label>
-                                                        <input type="date" className="input-field" style={{ padding: '4px 6px', fontSize: '11px', width: '115px' }}
-                                                            value={assignForm.endDate || ''}
-                                                            min={assignForm.startDate}
-                                                            max={assignForm.startDate ? (() => {
-                                                                const maxD = new Date(assignForm.startDate);
-                                                                maxD.setUTCDate(maxD.getUTCDate() + 35);
-                                                                return maxD.toISOString().split('T')[0];
-                                                            })() : undefined}
-                                                            onChange={(e) => setAssignForm({ ...assignForm, endDate: e.target.value })}
-                                                        />
-                                                    </div>
+                                                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                                                    {assignForm.startDate ? new Date(`${assignForm.startDate}T00:00:00`).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : newStartDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                    {' → '}
+                                                    {assignForm.endDate ? new Date(`${assignForm.endDate}T00:00:00`).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : newEndDate?.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
                                                 </div>
                                                 {hasActive && assignForm.mode === 'queue' && (
                                                     <div style={{ fontSize: '11px', color: 'var(--color-secondary)', marginTop: '4px', fontWeight: 500 }}>
