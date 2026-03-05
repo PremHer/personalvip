@@ -714,8 +714,38 @@ export default function ClientsPage() {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <div>
                                                 <div style={{ fontWeight: 600, fontSize: '14px' }}>{selectedPlan.name}</div>
-                                                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                                                    {newStartDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })} → {newEndDate!.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                        <label style={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 600 }}>Inicio</label>
+                                                        <input type="date" className="input-field" style={{ padding: '4px 6px', fontSize: '11px', width: '115px' }}
+                                                            value={assignForm.startDate}
+                                                            onChange={(e) => {
+                                                                const newStart = e.target.value;
+                                                                const plan = plans.find(p => p.id === assignForm.planId);
+                                                                let endStr = assignForm.endDate;
+                                                                if (plan && newStart) {
+                                                                    const d = new Date(newStart);
+                                                                    d.setUTCDate(d.getUTCDate() + plan.durationDays);
+                                                                    endStr = d.toISOString().split('T')[0];
+                                                                }
+                                                                setAssignForm({ ...assignForm, startDate: newStart, endDate: endStr });
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <span style={{ marginTop: '14px' }}>→</span>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                        <label style={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 600 }}>Fin (Máx 35d)</label>
+                                                        <input type="date" className="input-field" style={{ padding: '4px 6px', fontSize: '11px', width: '115px' }}
+                                                            value={assignForm.endDate || ''}
+                                                            min={assignForm.startDate}
+                                                            max={assignForm.startDate ? (() => {
+                                                                const maxD = new Date(assignForm.startDate);
+                                                                maxD.setUTCDate(maxD.getUTCDate() + 35);
+                                                                return maxD.toISOString().split('T')[0];
+                                                            })() : undefined}
+                                                            onChange={(e) => setAssignForm({ ...assignForm, endDate: e.target.value })}
+                                                        />
+                                                    </div>
                                                 </div>
                                                 {hasActive && assignForm.mode === 'queue' && (
                                                     <div style={{ fontSize: '11px', color: 'var(--color-secondary)', marginTop: '4px', fontWeight: 500 }}>

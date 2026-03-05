@@ -15,7 +15,7 @@ export class MembershipsController {
     @Post()
     @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
     assign(
-        @Body() data: { clientId: string; planId: string; amountPaid: number; paymentMethod?: 'CASH' | 'CARD' | 'TRANSFER' | 'YAPE_PLIN'; receiptUrl?: string; startDate?: string; mode?: 'replace' | 'queue' },
+        @Body() data: { clientId: string; planId: string; amountPaid: number; paymentMethod?: 'CASH' | 'CARD' | 'TRANSFER' | 'YAPE_PLIN'; receiptUrl?: string; startDate?: string; endDate?: string; mode?: 'replace' | 'queue' },
         @CurrentUser() user: { id: string },
     ) {
         return this.service.assign({ ...data, createdBy: user.id });

@@ -14,6 +14,7 @@ export class MembershipsService {
         paymentMethod?: 'CASH' | 'CARD' | 'TRANSFER' | 'YAPE_PLIN';
         receiptUrl?: string;
         startDate?: string;
+        endDate?: string;
         mode?: 'replace' | 'queue';
     }) {
         const plan = await this.prisma.membershipPlan.findUnique({ where: { id: data.planId } });
@@ -43,9 +44,22 @@ export class MembershipsService {
             }
         }
 
-        const rawEndDate = new Date(startDate);
-        rawEndDate.setDate(rawEndDate.getDate() + plan.durationDays);
-        const endDate = dayEndPeru(rawEndDate);
+        let endDate: Date;
+        if (data.endDate) {
+            endDate = dayEndPeru(data.endDate);
+            // Validar maximo 35 dias
+            const diffDays = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+            if (diffDays > 35) {
+                throw new BadRequestException('La duración máxima permitida de una membresía es de 35 días.');
+            }
+            if (diffDays < 1) {
+                throw new BadRequestException('La fecha de fin debe ser posterior a la fecha de inicio.');
+            }
+        } else {
+            const rawEndDate = new Date(startDate);
+            rawEndDate.setDate(rawEndDate.getDate() + plan.durationDays);
+            endDate = dayEndPeru(rawEndDate);
+        }
 
         // Create membership
         const membership = await this.prisma.membership.create({
