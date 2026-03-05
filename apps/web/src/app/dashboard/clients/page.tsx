@@ -314,14 +314,17 @@ export default function ClientsPage() {
                 <div style={{ display: 'flex', gap: '8px' }}>
                     <button className="btn-secondary" onClick={() => {
                         if (!clients.length) return;
-                        const csvData = clients.map((c: any) => ({
-                            Nombre: c.name || '',
-                            Email: c.email || '',
-                            Teléfono: c.phone || '',
-                            Membresía: c.activeMembership?.plan?.name || 'Sin membresía',
-                            Vence: c.activeMembership?.endDate ? new Date(c.activeMembership.endDate).toLocaleDateString('es-ES') : '',
-                            Estado: c.activeMembership?.status === 'ACTIVE' ? 'Activo' : 'Inactivo',
-                        }));
+                        const csvData = clients.map((c: any) => {
+                            const mem = c.activeMembership || c.upcomingMembership;
+                            return {
+                                Nombre: c.name || '',
+                                Email: c.email || '',
+                                Teléfono: c.phone || '',
+                                Membresía: mem?.plan?.name || 'Sin membresía',
+                                Vence: mem?.endDate ? (mem.endDate.split('T')[0]) : '',
+                                Estado: mem ? (c.activeMembership ? 'Activo' : 'En Cola') : 'Inactivo',
+                            };
+                        });
                         exportToCSV(csvData, 'clientes');
                     }} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
                         <Download size={14} /> Exportar CSV
@@ -406,55 +409,62 @@ export default function ClientsPage() {
                                 if (memberFilter === 'expired') return c.activeMembership && c.activeMembership.status !== 'ACTIVE';
                                 if (memberFilter === 'none') return !c.activeMembership;
                                 return true;
-                            }).map((c) => (
-                                <tr key={c.id}>
-                                    <td style={{ fontWeight: 500, color: 'var(--color-text)' }}>{c.name}</td>
-                                    <td style={{ fontSize: '12px', fontFamily: 'monospace' }}>{c.dni || '—'}</td>
-                                    <td>{c.email || '—'}</td>
-                                    <td>{c.phone || '—'}</td>
-                                    <td>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                            <span>{c.activeMembership?.plan?.name || <span style={{ color: 'var(--color-text-muted)' }}>—</span>}</span>
-                                            {c.activeMembership && c.activeMembership.plan && (
-                                                (() => {
-                                                    const m = c.activeMembership;
-                                                    const paid = m.payments?.length > 0
-                                                        ? m.payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0)
-                                                        : Number(m.amountPaid || 0);
-                                                    const price = Number(m.plan.price);
-                                                    if (paid < price) return <span className="badge badge-error" style={{ fontSize: '9px', alignSelf: 'flex-start' }}>Deuda S/ {(price - paid).toFixed(2)}</span>;
-                                                    return null;
-                                                })()
+                            }).map((c) => {
+                                const mem = c.activeMembership || c.upcomingMembership;
+                                return (
+                                    <tr key={c.id}>
+                                        <td style={{ fontWeight: 500, color: 'var(--color-text)' }}>{c.name}</td>
+                                        <td style={{ fontSize: '12px', fontFamily: 'monospace' }}>{c.dni || '—'}</td>
+                                        <td>{c.email || '—'}</td>
+                                        <td>{c.phone || '—'}</td>
+                                        <td>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                <span>{mem?.plan?.name || <span style={{ color: 'var(--color-text-muted)' }}>—</span>}</span>
+                                                {mem && mem.plan && (
+                                                    (() => {
+                                                        const paid = mem.payments?.length > 0
+                                                            ? mem.payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0)
+                                                            : Number(mem.amountPaid || 0);
+                                                        const price = Number(mem.plan.price);
+                                                        if (paid < price) return <span className="badge badge-error" style={{ fontSize: '9px', alignSelf: 'flex-start' }}>Deuda S/ {(price - paid).toFixed(2)}</span>;
+                                                        return null;
+                                                    })()
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {mem?.endDate ? (
+                                                <span style={{ fontSize: '12px', color: (!c.activeMembership && c.upcomingMembership) ? 'var(--color-secondary)' : (new Date(mem.endDate) < new Date() ? 'var(--color-danger)' : 'var(--color-text-secondary)') }}>
+                                                    {(() => {
+                                                        const dParts = mem.endDate.split('T')[0].split('-');
+                                                        return new Date(Number(dParts[0]), Number(dParts[1]) - 1, Number(dParts[2])).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+                                                    })()}
+                                                </span>
+                                            ) : '—'}
+                                        </td>
+                                        <td>
+                                            {c.activeMembership?.status === 'ACTIVE' ? (
+                                                <span className="badge badge-active">Activo</span>
+                                            ) : c.upcomingMembership ? (
+                                                <span className="badge" style={{ background: 'rgba(6,182,212,0.15)', color: 'var(--color-secondary)' }}>En Cola</span>
+                                            ) : c.activeMembership?.status === 'FROZEN' ? (
+                                                <span className="badge badge-frozen">Congelado</span>
+                                            ) : (
+                                                <span className="badge badge-cancelled">Inactivo</span>
                                             )}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        {c.activeMembership?.endDate ? (
-                                            <span style={{ fontSize: '12px', color: new Date(c.activeMembership.endDate) < new Date() ? 'var(--color-danger)' : 'var(--color-text-secondary)' }}>
-                                                {new Date(c.activeMembership.endDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: '2-digit' })}
-                                            </span>
-                                        ) : '—'}
-                                    </td>
-                                    <td>
-                                        {c.activeMembership?.status === 'ACTIVE' ? (
-                                            <span className="badge badge-active">Activo</span>
-                                        ) : c.activeMembership?.status === 'FROZEN' ? (
-                                            <span className="badge badge-frozen">Congelado</span>
-                                        ) : (
-                                            <span className="badge badge-cancelled">Inactivo</span>
-                                        )}
-                                    </td>
-                                    <td>
-                                        <div style={{ display: 'flex', gap: '4px' }}>
-                                            <button className="btn-icon info" onClick={() => router.push(`/dashboard/clients/${c.id}`)} title="Ver perfil"><Eye size={14} /></button>
-                                            <button className="btn-icon" onClick={() => openQr(c)} title="Ver QR" style={{ color: 'var(--color-primary)' }}><QrCode size={14} /></button>
-                                            <button className="btn-icon success" onClick={() => openAssign(c)} title="Asignar membresía"><CreditCard size={14} /></button>
-                                            <button className="btn-icon" onClick={() => openEdit(c)} title="Editar"><Edit size={14} /></button>
-                                            <button className="btn-icon danger" onClick={() => handleDelete(c.id, c.name)} title="Eliminar"><Trash2 size={14} /></button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                        </td>
+                                        <td>
+                                            <div style={{ display: 'flex', gap: '4px' }}>
+                                                <button className="btn-icon info" onClick={() => router.push(`/dashboard/clients/${c.id}`)} title="Ver perfil"><Eye size={14} /></button>
+                                                <button className="btn-icon" onClick={() => openQr(c)} title="Ver QR" style={{ color: 'var(--color-primary)' }}><QrCode size={14} /></button>
+                                                <button className="btn-icon success" onClick={() => openAssign(c)} title="Asignar membresía"><CreditCard size={14} /></button>
+                                                <button className="btn-icon" onClick={() => openEdit(c)} title="Editar"><Edit size={14} /></button>
+                                                <button className="btn-icon danger" onClick={() => handleDelete(c.id, c.name)} title="Eliminar"><Trash2 size={14} /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                             {clients.length === 0 && (
                                 <tr><td colSpan={8} className="empty-state">No se encontraron clientes</td></tr>
                             )}
@@ -579,7 +589,13 @@ export default function ClientsPage() {
                                         <div>
                                             <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--color-primary)' }}>{currentMem.plan?.name}</div>
                                             <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                                                {new Date(currentMem.startDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })} → {currentEndDate!.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                {(() => {
+                                                    const sParts = currentMem.startDate.split('T')[0].split('-');
+                                                    const eParts = currentMem.endDate.split('T')[0].split('-');
+                                                    const s = new Date(Number(sParts[0]), Number(sParts[1]) - 1, Number(sParts[2])).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+                                                    const e = new Date(Number(eParts[0]), Number(eParts[1]) - 1, Number(eParts[2])).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+                                                    return `${s} → ${e}`;
+                                                })()}
                                             </div>
                                         </div>
                                         <div style={{ textAlign: 'right' }}>
@@ -911,7 +927,10 @@ export default function ClientsPage() {
                                 <div style={{ marginTop: '8px' }}>
                                     <span className="badge badge-active">Membresía Activa</span>
                                     <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-                                        {qrClient.activeMembership.plan?.name} — vence {new Date(qrClient.activeMembership.endDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                        {qrClient.activeMembership.plan?.name} — vence {(() => {
+                                            const eParts = qrClient.activeMembership.endDate.split('T')[0].split('-');
+                                            return new Date(Number(eParts[0]), Number(eParts[1]) - 1, Number(eParts[2])).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+                                        })()}
                                     </div>
                                 </div>
                             ) : (
