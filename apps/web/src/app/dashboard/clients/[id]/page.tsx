@@ -114,7 +114,10 @@ export default function ClientProfilePage() {
         }
     };
 
-    const formatDate = (d: string) => new Date(d).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+    const formatDate = (d: string) => {
+        const parts = d.split('T')[0].split('-');
+        return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
     const formatTime = (d: string) => new Date(d).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
     const formatDuration = (minutes: number) => {
         if (minutes < 60) return `${minutes} min`;

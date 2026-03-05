@@ -872,7 +872,13 @@ export default function ClientsPage() {
                                             <div>
                                                 <div style={{ fontWeight: 500, fontSize: '13px' }}>{m.plan?.name}</div>
                                                 <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                                                    {new Date(m.startDate).toLocaleDateString('es-ES')} → {new Date(m.endDate).toLocaleDateString('es-ES')}
+                                                    {(() => {
+                                                        const sParts = m.startDate.split('T')[0].split('-');
+                                                        const eParts = m.endDate.split('T')[0].split('-');
+                                                        const s = new Date(Number(sParts[0]), Number(sParts[1]) - 1, Number(sParts[2])).toLocaleDateString('es-ES');
+                                                        const e = new Date(Number(eParts[0]), Number(eParts[1]) - 1, Number(eParts[2])).toLocaleDateString('es-ES');
+                                                        return `${s} → ${e}`;
+                                                    })()}
                                                 </div>
                                             </div>
                                             <div style={{ textAlign: 'right' }}>
