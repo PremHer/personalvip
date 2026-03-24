@@ -26,19 +26,18 @@ export default function MembershipCalendar({
 }: MembershipCalendarProps) {
     const today = startOfDay(new Date());
 
-    // Safely parse Date or String by strictly enforcing local midnight for the calendar day
+    // Safely parse Date or String to local midnight for the calendar day.
+    // Backend stores dates as UTC with the calendar day preserved (e.g. "2026-06-24T23:59:59.999Z").
+    // We simply split on 'T' to extract the YYYY-MM-DD portion, then parse as local midnight.
     const parseSafeDate = (d: Date | string | undefined): Date => {
         if (!d) return today;
         if (typeof d === 'string') {
-            // A pure UTC strings like "2026-03-09T04:59:59.999Z" is Peru's Mar 8th at 11:59PM.
-            // Slicing "T" yields Mar 9th (WRONG). We must let Date parse it, subtract the local offset, then get the literal day.
-            if (!d.includes('T')) return startOfDay(new Date(`${d}T00:00:00`)); // Local date input "YYYY-MM-DD"
-
-            const interpreted = new Date(d);
-            // shift it so `startOfDay` grabs the correct midnight in local timezone
-            return startOfDay(new Date(interpreted.getTime() - interpreted.getTimezoneOffset() * 60000));
+            const dateStr = d.split('T')[0]; // "2026-06-24"
+            return startOfDay(new Date(`${dateStr}T00:00:00`)); // Local midnight
         }
-        return startOfDay(d);
+        // For Date objects, extract UTC components to avoid timezone shifting
+        const iso = d.toISOString().split('T')[0];
+        return startOfDay(new Date(`${iso}T00:00:00`));
     };
 
     // Fallback to today if no date provided, otherwise use provided start date
