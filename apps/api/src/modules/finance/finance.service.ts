@@ -251,6 +251,108 @@ export class FinanceService {
         return Array.from(grouped.entries()).map(([date, total]) => ({ date, total }));
     }
 
+    /**
+     * Get income grouped by receptionist (cashier).
+     * Calculates totals by type (Membership, Daily Pass, Other POS Sales) and by Payment Method.
+     */
+    async getReceptionistIncome(params: { cashierId?: string; from?: string; to?: string; period?: 'today' | 'week' | 'month' | 'year' | 'all' }) {
+        const { cashierId, from, to, period = 'today' } = params;
+        const where: any = {};
+
+        if (cashierId) {
+            where.cashierId = cashierId;
+        }
+
+        // Apply date filters
+        if (from || to) {
+            where.createdAt = {};
+            if (from) where.createdAt.gte = dayStartPeru(from);
+            if (to) where.createdAt.lte = dayEndPeru(to);
+        } else {
+            const now = new Date();
+            let startDate: Date | undefined;
+            if (period === 'today') startDate = todayStartPeru();
+            else if (period === 'week') { startDate = new Date(now); startDate.setDate(now.getDate() - 7); }
+            else if (period === 'month') { startDate = new Date(now.getFullYear(), now.getMonth(), 1); }
+            else if (period === 'year') { startDate = new Date(now.getFullYear(), 0, 1); }
+
+            if (startDate) {
+                where.createdAt = { gte: startDate };
+            }
+        }
+
+        // Fetch all matching payments
+        const payments = await this.prisma.payment.findMany({
+            where,
+            include: {
+                cashier: { select: { id: true, name: true, role: true } },
+                membership: { include: { plan: true, client: { select: { name: true } } } },
+                sale: { include: { items: { include: { product: true } }, client: { select: { name: true } } } },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+
+        const usersMap = new Map<string, any>();
+
+        for (const p of payments) {
+            const cid = p.cashier.id;
+            if (!usersMap.has(cid)) {
+                usersMap.set(cid, {
+                    id: cid,
+                    name: p.cashier.name,
+                    role: p.cashier.role,
+                    totalIncome: 0,
+                    membershipIncome: 0,
+                    posIncome: 0,
+                    dailyPassIncome: 0,
+                    byMethod: { CASH: 0, CARD: 0, TRANSFER: 0, YAPE_PLIN: 0 },
+                    transactions: [],
+                });
+            }
+
+            const c = usersMap.get(cid);
+            const amt = Number(p.amount);
+
+            c.totalIncome += amt;
+            c.byMethod[p.paymentMethod] = (c.byMethod[p.paymentMethod] || 0) + amt;
+
+            let type = 'OTRO';
+            let description = '';
+            let clientName = '';
+
+            if (p.membership) {
+                type = 'MEMBRESÍA';
+                description = p.membership.plan.name;
+                clientName = p.membership.client.name;
+                c.membershipIncome += amt;
+            } else if (p.sale) {
+                // Determine if it's a daily pass or a regular product sale
+                const isDailyPass = p.sale.items.some(i => i.product.name.toLowerCase().includes('pase diario') || i.product.name.toLowerCase().includes('diario') || i.product.name.toLowerCase().includes('visita'));
+                if (isDailyPass) {
+                    type = 'PASE DIARIO';
+                    c.dailyPassIncome += amt;
+                } else {
+                    type = 'VENTAS POS';
+                    c.posIncome += amt;
+                }
+                description = p.sale.items.map(i => `${i.quantity}x ${i.product.name}`).join(', ');
+                clientName = p.sale.client ? p.sale.client.name : 'Venta Directa';
+            }
+
+            c.transactions.push({
+                id: p.id,
+                date: p.createdAt,
+                amount: amt,
+                method: p.paymentMethod,
+                type,
+                description,
+                clientName,
+            });
+        }
+
+        return Array.from(usersMap.values());
+    }
+
     // ===== Cash Register =====
     async openCashRegister(userId: string, openingAmount: number) {
         return this.prisma.cashRegister.create({

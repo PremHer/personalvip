@@ -36,6 +36,25 @@ export class FinanceController {
         return this.service.getSalesReport(from, to);
     }
 
+    @Get('receptionist-income')
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
+    getReceptionistIncome(
+        @Query('cashierId') cashierId?: string,
+        @Query('from') from?: string,
+        @Query('to') to?: string,
+        @Query('period') period?: 'today' | 'week' | 'month' | 'year' | 'all',
+        @CurrentUser() user?: { id: string; role: string },
+    ) {
+        // If current user is just a RECEPTIONIST, they can only see their own income
+        const targetCashierId = user?.role === 'RECEPTIONIST' ? user.id : cashierId;
+        return this.service.getReceptionistIncome({
+            cashierId: targetCashierId,
+            from,
+            to,
+            period,
+        });
+    }
+
     @Post('cash-register/open')
     @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
     openCashRegister(

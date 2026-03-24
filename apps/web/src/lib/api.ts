@@ -168,6 +168,7 @@ export const attendanceApi = {
         return api<{ data: any[]; total: number; page: number; totalPages: number }>(`/attendance/history?${q.toString()}`);
     },
     autoCheckout: () => api<{ closed: number; message: string }>('/attendance/auto-checkout', { method: 'POST' }),
+    bulkCheckoutToday: () => api<{ closed: number; message: string }>('/attendance/bulk-checkout-today', { method: 'POST' }),
     clientStats: (clientId: string) => api<any>(`/attendance/client-stats/${clientId}`),
 };
 
@@ -213,6 +214,14 @@ export const financeApi = {
     },
     openCashRegister: (openingAmount: number) => api<any>('/finance/cash-register/open', { method: 'POST', body: { openingAmount } }),
     closeCashRegister: (id: string, closingAmount: number, notes?: string) => api<any>(`/finance/cash-register/${id}/close`, { method: 'PATCH', body: { closingAmount, notes } }),
+    receptionistIncome: (params?: { cashierId?: string; from?: string; to?: string; period?: string }) => {
+        const q = new URLSearchParams();
+        if (params?.cashierId) q.set('cashierId', params.cashierId);
+        if (params?.from) q.set('from', params.from);
+        if (params?.to) q.set('to', params.to);
+        if (params?.period) q.set('period', params.period);
+        return api<any[]>(`/finance/receptionist-income?${q.toString()}`);
+    },
 };
 
 // ===== Users =====

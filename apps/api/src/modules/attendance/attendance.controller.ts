@@ -111,6 +111,17 @@ export class AttendanceController {
     }
 
     /**
+     * Bulk checkout: Close all open attendance records from today.
+     */
+    @Post('bulk-checkout-today')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
+    @ApiBearerAuth()
+    bulkCheckOutToday() {
+        return this.service.bulkCheckOutToday();
+    }
+
+    /**
      * Get client attendance stats (total, month, week, avg duration, recent).
      */
     @Get('client-stats/:clientId')

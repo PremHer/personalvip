@@ -9,7 +9,7 @@ import Link from 'next/link';
 import {
     LayoutDashboard, Users, CreditCard, ClipboardList, ShoppingCart,
     Package, Wrench, BarChart3, Shield, LogOut, Menu, X,
-    Dumbbell, ChevronRight, Bell, Settings, Search, Sun, Moon, Key, Eye, EyeOff, Zap,
+    Dumbbell, ChevronRight, Bell, Settings, Search, Sun, Moon, Key, Eye, EyeOff, Zap, Receipt,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -20,6 +20,7 @@ const navItems = [
     { href: '/dashboard/memberships', icon: CreditCard, label: 'Membresías', roles: ['SUPERADMIN', 'ADMIN', 'OWNER', 'RECEPTIONIST'] },
     { href: '/dashboard/attendance', icon: ClipboardList, label: 'Asistencia', roles: ['SUPERADMIN', 'ADMIN', 'OWNER', 'RECEPTIONIST'] },
     { href: '/dashboard/sales', icon: ShoppingCart, label: 'Ventas', roles: ['SUPERADMIN', 'ADMIN', 'OWNER', 'RECEPTIONIST'] },
+    { href: '/dashboard/receptionist-income', icon: Receipt, label: 'Ingresos', roles: ['SUPERADMIN', 'ADMIN', 'OWNER', 'RECEPTIONIST'] },
     { href: '/dashboard/products', icon: Package, label: 'Productos', roles: ['SUPERADMIN', 'ADMIN', 'OWNER'] },
     { href: '/dashboard/assets', icon: Wrench, label: 'Activos', roles: ['SUPERADMIN', 'ADMIN', 'OWNER'] },
     { href: '/dashboard/finance', icon: BarChart3, label: 'Finanzas', roles: ['SUPERADMIN', 'ADMIN', 'OWNER'] },

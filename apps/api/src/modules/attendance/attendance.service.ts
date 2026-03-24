@@ -326,6 +326,39 @@ export class AttendanceService {
     }
 
     /**
+     * Bulk checkout: Close ALL open attendance records from today.
+     * Sets checkOut to the current time.
+     */
+    async bulkCheckOutToday() {
+        const todayStart = todayStartPeru();
+
+        const openRecords = await this.prisma.attendance.findMany({
+            where: {
+                checkOut: null,
+                checkIn: { gte: todayStart },
+            },
+            include: { client: { select: { name: true } } },
+        });
+
+        if (openRecords.length === 0) {
+            return { closed: 0, message: 'No hay personas en el gimnasio actualmente' };
+        }
+
+        const now = new Date();
+        await this.prisma.attendance.updateMany({
+            where: {
+                id: { in: openRecords.map(r => r.id) },
+            },
+            data: { checkOut: now },
+        });
+
+        return {
+            closed: openRecords.length,
+            message: `Se dio salida a ${openRecords.length} persona(s) del gimnasio`,
+        };
+    }
+
+    /**
      * Get client attendance history with stats.
      */
     async getClientAttendanceStats(clientId: string) {

@@ -116,6 +116,16 @@ export default function AttendancePage() {
         setTimeout(() => setMessage(null), 5000);
     };
 
+    const handleBulkCheckout = async () => {
+        if (!confirm(`¿Dar salida a ${inGym.length} persona(s) que están en el gimnasio?`)) return;
+        try {
+            const res = await attendanceApi.bulkCheckoutToday();
+            setMessage({ type: 'success', text: res.message });
+            loadToday();
+        } catch (e: any) { setMessage({ type: 'error', text: e.message }); }
+        setTimeout(() => setMessage(null), 5000);
+    };
+
     const formatTime = (dateStr: string | null | undefined) => {
         if (!dateStr) return '—';
         const d = new Date(dateStr);
@@ -185,14 +195,26 @@ export default function AttendancePage() {
                         <History size={14} /> Historial
                     </button>
                 </div>
-                <button
-                    className="btn-secondary"
-                    onClick={handleAutoCheckout}
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}
-                    title="Cerrar entradas abiertas de días anteriores"
-                >
-                    <LogOut size={14} /> Auto Check-out
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    {viewMode === 'today' && inGym.length > 0 && (
+                        <button
+                            className="btn-secondary"
+                            onClick={handleBulkCheckout}
+                            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--color-warning)' }}
+                            title="Dar salida a todas las personas en el gimnasio actualmente"
+                        >
+                            <LogOut size={14} /> Salida Masiva ({inGym.length})
+                        </button>
+                    )}
+                    <button
+                        className="btn-secondary"
+                        onClick={handleAutoCheckout}
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}
+                        title="Cerrar entradas abiertas de días anteriores"
+                    >
+                        <LogOut size={14} /> Auto Check-out
+                    </button>
+                </div>
             </div>
 
             {viewMode === 'today' && (
