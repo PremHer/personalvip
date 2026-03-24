@@ -108,6 +108,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const searchTimeout = useRef<NodeJS.Timeout | null>(null);
     const searchRef = useRef<HTMLDivElement>(null);
 
+    // Page route animation state
+    const [isAnimating, setIsAnimating] = useState(true);
+    useEffect(() => {
+        setIsAnimating(true);
+        const t = setTimeout(() => setIsAnimating(false), 300);
+        return () => clearTimeout(t);
+    }, [pathname]);
+
     useEffect(() => {
         if (!loading && !user) {
             router.replace('/login');
@@ -496,7 +504,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
                     {/* Page content */}
                     <div className="page-content" style={{ flex: 1, padding: '24px', overflowY: 'auto', background: 'var(--color-bg)' }}>
-                        <div className="animate-in">
+                        <div className={isAnimating ? "animate-in" : ""}>
                             {children}
                         </div>
                     </div>
