@@ -211,10 +211,10 @@ export default function MembershipCalendar({
             </div>
 
             {/* Summary Legend below calendar */}
-            {durationDays > 0 && (
+            {(durationDays > 0 || endDate) && (
                 <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                        <strong style={{ color: 'var(--color-text)' }}>{durationDays} días</strong> plan de entrenamiento
+                        <strong style={{ color: 'var(--color-text)' }}>{endDate ? Math.round((endDate.getTime() - activeStart.getTime()) / 86400000) : durationDays} días</strong> plan de entrenamiento
                     </div>
                     {endDate && (
                         <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>

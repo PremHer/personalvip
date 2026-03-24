@@ -61,7 +61,7 @@ export default function ClientsPage() {
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [assignClient, setAssignClient] = useState<any>(null);
     const [plans, setPlans] = useState<any[]>([]);
-    const [assignForm, setAssignForm] = useState({ planId: '', amountPaid: 0, mode: 'replace' as 'replace' | 'queue', paymentMethod: 'CASH', receiptUrl: '', startDate: '', endDate: undefined as string | undefined });
+    const [assignForm, setAssignForm] = useState({ planId: '', amountPaid: 0, mode: 'replace' as 'replace' | 'queue', paymentMethod: 'CASH', receiptUrl: '', startDate: format(new Date(), 'yyyy-MM-dd'), endDate: undefined as string | undefined });
     const [assigning, setAssigning] = useState(false);
 
     // Detail modal
