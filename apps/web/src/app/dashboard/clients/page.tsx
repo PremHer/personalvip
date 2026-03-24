@@ -882,12 +882,8 @@ export default function ClientsPage() {
                                 </h3>
                                 <MembershipCalendar
                                     startDate={new Date(detailClient.activeMembership.startDate)}
-                                    durationDays={
-                                        differenceInDays(
-                                            new Date(detailClient.activeMembership.endDate),
-                                            new Date(detailClient.activeMembership.startDate)
-                                        ) + 1
-                                    }
+                                    endDate={detailClient.activeMembership.endDate}
+                                    durationDays={detailClient.activeMembership.plan?.durationDays || 30}
                                     readOnly={true}
                                 />
                             </div>

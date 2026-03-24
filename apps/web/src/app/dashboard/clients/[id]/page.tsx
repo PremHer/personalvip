@@ -273,7 +273,8 @@ export default function ClientProfilePage() {
                             <div style={{ pointerEvents: 'none', zoom: 0.9 }}>
                                 <MembershipCalendar
                                     startDate={activeMembership.startDate}
-                                    durationDays={Math.round((new Date(activeMembership.endDate).getTime() - new Date(activeMembership.startDate).getTime()) / 86400000)}
+                                    endDate={activeMembership.endDate}
+                                    durationDays={activeMembership.plan?.durationDays || 30}
                                     readOnly={true}
                                     memberships={client.memberships || []}
                                 />
