@@ -11,6 +11,34 @@ import { exportToCSV } from '@/lib/export';
 import { Search, Plus, Edit, Trash2, X, UserPlus, Users, CreditCard, Eye, QrCode, Download, Printer, Zap } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
+const calculateExpiryDate = (startStr: string, durationDays: number): string | undefined => {
+    if (!startStr) return undefined;
+    const parts = startStr.split('T')[0].split('-');
+    const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+
+    // Use literal day addition for non-monthly granular plans (e.g., 15 days fortnight or weekly)
+    if (durationDays === 15 || durationDays < 28) {
+        d.setDate(d.getDate() + durationDays);
+    } else {
+        // Enforce month-to-month calendar expiration format for 1M, 2M, 3M, 6M, 12M plans.
+        let months = Math.round(durationDays / 30);
+        if (durationDays >= 360) months = 12;
+
+        const expectedMonth = d.getMonth() + months;
+        d.setMonth(expectedMonth);
+
+        // Correct for Month overflows (e.g., matching Feb 31st down to Feb 28th max)
+        if (d.getMonth() !== expectedMonth % 12) {
+            d.setDate(0); 
+        }
+    }
+
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+};
+
 export default function ClientsPage() {
     const router = useRouter();
     const { toast, confirm } = useUI();
@@ -611,10 +639,15 @@ export default function ClientsPage() {
                                     <label className="form-label">Nuevo Plan *</label>
                                     <select className="input-field" value={assignForm.planId} onChange={(e) => {
                                         const plan = plans.find(p => p.id === e.target.value);
+                                        let endStr = assignForm.endDate;
+                                        if (plan && assignForm.startDate) {
+                                            endStr = calculateExpiryDate(assignForm.startDate, plan.durationDays) || endStr;
+                                        }
                                         setAssignForm({
                                             ...assignForm,
                                             planId: e.target.value,
                                             amountPaid: plan ? Number(plan.price) : 0,
+                                            endDate: endStr
                                         });
                                     }} required>
                                         <option value="">Seleccionar plan...</option>
@@ -675,22 +708,22 @@ export default function ClientsPage() {
                                                     const plan = plans.find(p => p.id === assignForm.planId);
                                                     let endStr = assignForm.endDate;
                                                     if (plan && newStart) {
-                                                        const d = new Date(newStart);
-                                                        d.setUTCDate(d.getUTCDate() + plan.durationDays);
-                                                        endStr = d.toISOString().split('T')[0];
+                                                        endStr = calculateExpiryDate(newStart, plan.durationDays) || endStr;
                                                     }
                                                     setAssignForm({ ...assignForm, startDate: newStart, endDate: endStr });
                                                 }}
                                             />
                                         </div>
                                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                            <label style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 700, color: 'var(--color-secondary)' }}>Fin (Máx 35d)</label>
+                                            <label style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 700, color: 'var(--color-secondary)' }}>Fin (Límite dinámico)</label>
                                             <input type="date" className="input-field" style={{ padding: '8px 12px', fontSize: '13px' }}
                                                 value={assignForm.endDate || ''}
                                                 min={assignForm.startDate}
                                                 max={assignForm.startDate ? (() => {
-                                                    const maxD = new Date(assignForm.startDate);
-                                                    maxD.setUTCDate(maxD.getUTCDate() + 35);
+                                                    const plan = plans.find(p => p.id === assignForm.planId);
+                                                    const duration = plan ? plan.durationDays : 30;
+                                                    const maxD = new Date(`${assignForm.startDate}T00:00:00Z`);
+                                                    maxD.setUTCDate(maxD.getUTCDate() + duration + 5);
                                                     return maxD.toISOString().split('T')[0];
                                                 })() : undefined}
                                                 onChange={(e) => setAssignForm({ ...assignForm, endDate: e.target.value })}
@@ -704,11 +737,12 @@ export default function ClientsPage() {
                                         durationDays={plans.find(p => p.id === assignForm.planId)?.durationDays || 0}
                                         onChange={(date) => {
                                             const plan = plans.find(p => p.id === assignForm.planId);
-                                            const end = plan ? new Date(date.getTime() + plan.durationDays * 24 * 60 * 60 * 1000) : null;
+                                            const startStr = format(date, 'yyyy-MM-dd');
+                                            const endStr = plan ? calculateExpiryDate(startStr, plan.durationDays) : undefined;
                                             setAssignForm({
                                                 ...assignForm,
-                                                startDate: format(date, 'yyyy-MM-dd'),
-                                                endDate: end ? format(end, 'yyyy-MM-dd') : undefined
+                                                startDate: startStr,
+                                                endDate: endStr
                                             });
                                         }}
                                     />

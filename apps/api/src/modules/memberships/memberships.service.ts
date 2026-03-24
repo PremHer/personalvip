@@ -47,10 +47,11 @@ export class MembershipsService {
         let endDate: Date;
         if (data.endDate) {
             endDate = dayEndPeru(data.endDate);
-            // Validar maximo 35 dias
+            // Validar maximo (duración del plan + 5 días de gracia)
             const diffDays = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-            if (diffDays > 35) {
-                throw new BadRequestException('La duración máxima permitida de una membresía es de 35 días.');
+            const maxDays = plan.durationDays + 5;
+            if (diffDays > maxDays) {
+                throw new BadRequestException(`La duración máxima permitida para este plan es de ${maxDays} días.`);
             }
             if (diffDays < 1) {
                 throw new BadRequestException('La fecha de fin debe ser posterior a la fecha de inicio.');
