@@ -64,20 +64,20 @@ export class AttendanceService {
             };
         }
 
-        // Check if already checked in today without checkout
+        // Check if already checked in today (regardless of checkout status)
         const today = todayStartPeru();
         const existingCheckIn = await this.prisma.attendance.findFirst({
             where: {
                 clientId: client.id,
                 checkIn: { gte: today },
-                checkOut: null,
             },
         });
 
         if (existingCheckIn) {
+            const checkInTime = new Date(existingCheckIn.checkIn).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
             return {
                 success: false,
-                message: `⚠️ ${client.name} ya tiene una entrada registrada hoy sin salida.`,
+                message: `⚠️ ${client.name} ya registró entrada hoy a las ${checkInTime}. Solo se permite una entrada por día.`,
                 client: { id: client.id, name: client.name },
             };
         }
@@ -145,13 +145,12 @@ export class AttendanceService {
         // If registerCheckIn requested and client can enter, create attendance
         let checkInStatus: any = null;
         if (registerCheckIn && canEnter) {
-            // Check if already checked in today
+            // Check if already checked in today (regardless of checkout status)
             const today = todayStartPeru();
             const existingCheckIn = await this.prisma.attendance.findFirst({
                 where: {
                     clientId: client.id,
                     checkIn: { gte: today },
-                    checkOut: null,
                 },
             });
 
