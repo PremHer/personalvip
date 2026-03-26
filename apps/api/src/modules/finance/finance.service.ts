@@ -337,6 +337,11 @@ export class FinanceService {
                 }
                 description = p.sale.items.map(i => `${i.quantity}x ${i.product.name}`).join(', ');
                 clientName = p.sale.client ? p.sale.client.name : 'Venta Directa';
+            } else if (p.notes && p.notes.toLowerCase().includes('pase diario')) {
+                // Daily pass registered directly as a Payment (without Sale)
+                type = 'PASE DIARIO';
+                description = 'Pase Diario';
+                c.dailyPassIncome += amt;
             }
 
             c.transactions.push({
