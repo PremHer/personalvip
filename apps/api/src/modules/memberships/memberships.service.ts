@@ -69,7 +69,7 @@ export class MembershipsService {
                 planId: data.planId,
                 startDate,
                 endDate,
-                amountPaid: plan.price, // Records the Total Debt Value of the plan for future calculation
+                amountPaid: data.amountPaid, // Store the actual amount paid (not plan.price)
                 createdBy: data.createdBy,
                 status: 'ACTIVE',
             },

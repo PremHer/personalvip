@@ -51,6 +51,7 @@ export default function MembershipsPage() {
     const [assignMode, setAssignMode] = useState<'replace' | 'queue'>('queue');
     const [activeClientMembership, setActiveClientMembership] = useState<any>(null);
     const [extraClients, setExtraClients] = useState<string[]>([]);
+    const [extraAmounts, setExtraAmounts] = useState<number[]>([]);
     const [clients, setClients] = useState<any[]>([]);
 
     useEffect(() => { loadData(); }, []);
@@ -121,13 +122,16 @@ export default function MembershipsPage() {
             const baseData = { ...assignForm, amountPaid: Number(assignForm.amountPaid), mode: activeClientMembership ? assignMode : 'replace' };
             // Assign to primary client
             await membershipsApi.assign(baseData);
-            // Assign to extra clients (duo/trio)
-            for (const cId of extraClients.filter(c => c)) {
-                await membershipsApi.assign({ ...baseData, clientId: cId, amountPaid: 0 });
+            // Assign to extra clients (duo/trio) with their individual amounts
+            for (let i = 0; i < extraClients.length; i++) {
+                const cId = extraClients[i];
+                if (!cId) continue;
+                const extraAmt = extraAmounts[i] || 0;
+                await membershipsApi.assign({ ...baseData, clientId: cId, amountPaid: extraAmt });
             }
             setShowAssignModal(false);
             setAssignForm({ clientId: '', planId: '', amountPaid: 0, paymentMethod: 'CASH', receiptUrl: '', startDate: format(new Date(), 'yyyy-MM-dd'), endDate: undefined });
-            setActiveClientMembership(null); setExtraClients([]); loadData();
+            setActiveClientMembership(null); setExtraClients([]); setExtraAmounts([]); loadData();
             toast('Membresía asignada correctamente');
         } catch (e: any) { toast(e.message || 'Error al asignar', 'error'); }
     };
@@ -280,11 +284,11 @@ export default function MembershipsPage() {
                                     const plan = plans.find(p => p.id === e.target.value);
                                     const pName = (plan?.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
                                     const slots = pName.includes('trio') ? 2 : pName.includes('duo') ? 1 : 0;
-                                    const multiplier = slots + 1;
                                     let endStr = assignForm.endDate;
                                     if (plan && assignForm.startDate) endStr = calculateExpiryDate(assignForm.startDate, plan.durationDays) || endStr;
-                                    setAssignForm({ ...assignForm, planId: e.target.value, amountPaid: plan ? Number(plan.price) * multiplier : 0, endDate: endStr });
+                                    setAssignForm({ ...assignForm, planId: e.target.value, amountPaid: plan ? Number(plan.price) : 0, endDate: endStr });
                                     setExtraClients(Array(slots).fill(''));
+                                    setExtraAmounts(Array(slots).fill(plan ? Number(plan.price) : 0));
                                 }} required>
                                     <option value="">Seleccionar plan...</option>
                                     {plans.filter(p => p.isActive).map((p) => <option key={p.id} value={p.id}>{p.name} - S/{Number(p.price).toFixed(2)}</option>)}
@@ -339,36 +343,69 @@ export default function MembershipsPage() {
                                 </div>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
-                                <div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                        <label className="form-label" style={{ marginBottom: 0 }}>Monto Pagado Hoy (S/)</label>
-                                        {assignForm.planId && (() => {
-                                            const plan = plans.find(p => p.id === assignForm.planId);
-                                            const pName = (plan?.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-                                            const slots = pName.includes('trio') ? 2 : pName.includes('duo') ? 1 : 0;
-                                            const multiplier = slots + 1;
-                                            const totalPrice = plan ? Number(plan.price) * multiplier : 0;
-
-                                            if (assignForm.amountPaid < totalPrice) {
-                                                return (
-                                                    <span className="badge badge-warning" style={{ fontSize: '10px' }}>
-                                                        Deuda: S/ {(totalPrice - assignForm.amountPaid).toFixed(2)}
-                                                    </span>
-                                                );
-                                            }
-                                            return null;
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {/* Resumen de precio total para Duo/Trio */}
+                                {extraSlotsNeeded > 0 && selectedPlan && (
+                                    <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'rgba(6,182,212,0.06)', border: '1px solid rgba(6,182,212,0.15)', fontSize: '12px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <span style={{ color: 'var(--color-text-muted)' }}>Precio por persona: <strong style={{ color: 'var(--color-text)' }}>S/{Number(selectedPlan.price).toFixed(2)}</strong></span>
+                                            <span style={{ fontWeight: 700, color: 'var(--color-secondary)' }}>Total: S/{(Number(selectedPlan.price) * (extraSlotsNeeded + 1)).toFixed(2)}</span>
+                                        </div>
+                                        {(() => {
+                                            const totalAllPaid = Number(assignForm.amountPaid) + extraAmounts.reduce((s, a) => s + (a || 0), 0);
+                                            const totalAllPrice = Number(selectedPlan.price) * (extraSlotsNeeded + 1);
+                                            const totalDebt = totalAllPrice - totalAllPaid;
+                                            return totalDebt > 0 ? (
+                                                <div style={{ marginTop: '4px', color: '#F59E0B', fontWeight: 600 }}>Deuda total: S/ {totalDebt.toFixed(2)}</div>
+                                            ) : null;
                                         })()}
                                     </div>
-                                    <input className="input-field" type="number" step="0.10" value={assignForm.amountPaid} onChange={(e) => setAssignForm({ ...assignForm, amountPaid: Number(e.target.value) })} min={0}
-                                        max={assignForm.planId ? (() => {
-                                            const p = plans.find(pl => pl.id === assignForm.planId);
-                                            const pN = (p?.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-                                            const m = (pN.includes('trio') ? 2 : pN.includes('duo') ? 1 : 0) + 1;
-                                            return p ? Number(p.price) * m : undefined;
-                                        })() : undefined} required
+                                )}
+
+                                {/* Monto cliente principal */}
+                                <div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                        <label className="form-label" style={{ marginBottom: 0 }}>
+                                            {extraSlotsNeeded > 0 ? `💰 Pago Cliente 1 (${clients.find(c => c.id === assignForm.clientId)?.name || 'Principal'})` : 'Monto Pagado Hoy (S/)'}
+                                        </label>
+                                        {selectedPlan && assignForm.amountPaid < Number(selectedPlan.price) && (
+                                            <span className="badge badge-warning" style={{ fontSize: '10px' }}>
+                                                Deuda: S/ {(Number(selectedPlan.price) - assignForm.amountPaid).toFixed(2)}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <input className="input-field" type="number" step="0.10" value={assignForm.amountPaid}
+                                        onChange={(e) => setAssignForm({ ...assignForm, amountPaid: Number(e.target.value) })}
+                                        min={0} max={selectedPlan ? Number(selectedPlan.price) : undefined} required
                                     />
                                 </div>
+
+                                {/* Montos por cada cliente extra (Duo/Trio) */}
+                                {extraSlotsNeeded > 0 && extraClients.map((cId, i) => {
+                                    const clientName = clients.find(c => c.id === cId)?.name || `Cliente ${i + 2}`;
+                                    const extraAmt = extraAmounts[i] || 0;
+                                    const planPrice = selectedPlan ? Number(selectedPlan.price) : 0;
+                                    return (
+                                        <div key={i}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                                <label className="form-label" style={{ marginBottom: 0 }}>💰 Pago Cliente {i + 2} ({clientName})</label>
+                                                {planPrice > 0 && extraAmt < planPrice && (
+                                                    <span className="badge badge-warning" style={{ fontSize: '10px' }}>
+                                                        Deuda: S/ {(planPrice - extraAmt).toFixed(2)}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <input className="input-field" type="number" step="0.10" value={extraAmt}
+                                                onChange={(e) => {
+                                                    const updated = [...extraAmounts];
+                                                    updated[i] = Number(e.target.value);
+                                                    setExtraAmounts(updated);
+                                                }}
+                                                min={0} max={planPrice || undefined}
+                                            />
+                                        </div>
+                                    );
+                                })}
                             </div>
                             <div><label className="form-label">Método de Pago *</label>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
