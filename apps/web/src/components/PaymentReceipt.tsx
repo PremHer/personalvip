@@ -263,8 +263,7 @@ export default function PaymentReceipt({ data, onClose }: PaymentReceiptProps) {
                         <div style={{ textAlign: 'center', marginTop: '16px', paddingTop: '12px', borderTop: '1px dashed #e5e7eb' }}>
                             <p style={{ fontSize: '10px', color: '#999', lineHeight: 1.6 }}>
                                 ¡Gracias por tu preferencia!<br />
-                                Este comprobante es tu respaldo de pago.<br />
-                                www.personalvip.com
+                                Este comprobante es tu respaldo de pago.
                             </p>
                         </div>
                     </div>
