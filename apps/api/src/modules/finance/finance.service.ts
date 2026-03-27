@@ -85,7 +85,12 @@ export class FinanceService {
         });
         const peakHours: { hour: string; count: number }[] = [];
         for (let h = 5; h <= 22; h++) {
-            const count = todayCheckins.filter(a => new Date(a.checkIn).getHours() === h).length;
+            const count = todayCheckins.filter(a => {
+                const date = new Date(a.checkIn);
+                let peruHour = date.getUTCHours() - 5;
+                if (peruHour < 0) peruHour += 24;
+                return peruHour === h;
+            }).length;
             if (count > 0 || (h >= 6 && h <= 21)) {
                 peakHours.push({ hour: `${h}:00`, count });
             }
