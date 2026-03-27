@@ -119,8 +119,8 @@ model Membership {
   startDate  DateTime         @map("start_date") @db.Date
   endDate    DateTime         @map("end_date") @db.Date
   status     MembershipStatus @default(ACTIVE)
-  // amountPaid will now represent the PLAN's total assigned price (so we know what the debt is against)
   amountPaid Decimal          @map("amount_paid") @db.Decimal(10, 2)
+  discount   Decimal          @default(0) @db.Decimal(10, 2)
   createdBy  String           @map("created_by")
   createdAt  DateTime         @default(now()) @map("created_at")
   updatedAt  DateTime         @updatedAt @map("updated_at")

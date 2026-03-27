@@ -17,6 +17,9 @@ interface ReceiptData {
     cashierName?: string;
     // For duo/trio
     extraClients?: { name: string; amount: number }[];
+    // Descuento
+    discountAmount?: number;
+    discountDescription?: string;
 }
 
 interface PaymentReceiptProps {
@@ -42,7 +45,8 @@ export default function PaymentReceipt({ data, onClose }: PaymentReceiptProps) {
     const receiptNo = data.receiptNumber || `R-${Date.now().toString(36).toUpperCase()}`;
 
     const totalPaid = data.amount + (data.extraClients?.reduce((s, c) => s + c.amount, 0) || 0);
-    const totalPlanPrice = data.pendingAmount !== undefined ? totalPaid + data.pendingAmount : totalPaid;
+    const totalDiscount = data.discountAmount || 0;
+    const totalPlanPrice = data.pendingAmount !== undefined ? totalPaid + data.pendingAmount + totalDiscount : totalPaid + totalDiscount;
 
     const handlePrint = () => {
         if (!receiptRef.current) return;
@@ -71,6 +75,7 @@ export default function PaymentReceipt({ data, onClose }: PaymentReceiptProps) {
                 .receipt-total { text-align: center; padding: 10px 0; border-top: 2px dashed #333; border-bottom: 2px dashed #333; margin: 10px 0; }
                 .receipt-total .amount { font-size: 24px; font-weight: 800; color: #111; }
                 .receipt-total .label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+                .receipt-discount { padding: 4px; background: #fee2e2; border-radius: 4px; font-size: 10px; color: #b91c1c; margin: 4px 0; text-align: center; font-weight: 600; }
                 .receipt-pending { text-align: center; padding: 6px; background: #fff3cd; border-radius: 4px; font-size: 10px; color: #856404; margin: 6px 0; }
                 .receipt-footer { text-align: center; margin-top: 12px; padding-top: 10px; border-top: 1px dashed #ccc; }
                 .receipt-footer p { font-size: 9px; color: #999; line-height: 1.5; }
@@ -104,11 +109,12 @@ export default function PaymentReceipt({ data, onClose }: PaymentReceiptProps) {
                 .receipt-section { margin: 10px 0; }
                 .receipt-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; }
                 .receipt-row .label { color: #666; }
-                .receipt-row .value { font-weight: 600; text-align: right; max-width: 55%; }
+                .receipt-row .value { font-weight: 600; text-align: right; max-width: 55%; color: #111; }
                 .receipt-divider { border: none; border-top: 1px dashed #e5e7eb; margin: 10px 0; }
                 .receipt-total { text-align: center; padding: 12px 0; border-top: 2px dashed #e5e7eb; border-bottom: 2px dashed #e5e7eb; margin: 12px 0; }
                 .receipt-total .amount { font-size: 28px; font-weight: 800; color: #111; }
                 .receipt-total .label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+                .receipt-discount { text-align: center; padding: 6px; background: #fee2e2; border-radius: 6px; font-size: 11px; color: #b91c1c; margin: 6px 0; font-weight: 600; }
                 .receipt-pending { text-align: center; padding: 8px; background: #fff3cd; border-radius: 6px; font-size: 11px; color: #856404; margin: 8px 0; font-weight: 600; }
                 .receipt-footer { text-align: center; margin-top: 16px; padding-top: 12px; border-top: 1px dashed #e5e7eb; }
                 .receipt-footer p { font-size: 10px; color: #999; line-height: 1.6; }
@@ -143,7 +149,7 @@ export default function PaymentReceipt({ data, onClose }: PaymentReceiptProps) {
 
                 {/* Receipt preview */}
                 <div style={{ padding: '20px', background: '#ffffff', maxHeight: '75vh', overflowY: 'auto' }}>
-                    <div ref={receiptRef}>
+                    <div ref={receiptRef} style={{ color: '#111', fontFamily: "'Segoe UI', Arial, sans-serif" }}>
                         {/* Header */}
                         <div className="receipt-header" style={{ textAlign: 'center', paddingBottom: '14px', borderBottom: '2px dashed #e5e7eb', marginBottom: '14px' }}>
                             <div style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '1px', color: '#7c3aed' }}>
@@ -178,12 +184,12 @@ export default function PaymentReceipt({ data, onClose }: PaymentReceiptProps) {
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '4px 0' }}>
                                 <span style={{ color: '#666' }}>Cliente</span>
-                                <span style={{ fontWeight: 600, textAlign: 'right', maxWidth: '55%' }}>{data.clientName}</span>
+                                <span style={{ fontWeight: 600, textAlign: 'right', maxWidth: '55%', color: '#111' }}>{data.clientName}</span>
                             </div>
                             {data.cashierName && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '4px 0' }}>
                                     <span style={{ color: '#666' }}>Atendido por</span>
-                                    <span style={{ fontWeight: 600 }}>{data.cashierName}</span>
+                                    <span style={{ fontWeight: 600, color: '#111' }}>{data.cashierName}</span>
                                 </div>
                             )}
                         </div>
@@ -207,12 +213,12 @@ export default function PaymentReceipt({ data, onClose }: PaymentReceiptProps) {
                             {data.endDate && (
                                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '4px 0' }}>
                                     <span style={{ color: '#666' }}>Vencimiento</span>
-                                    <span style={{ fontWeight: 600 }}>{data.endDate}</span>
+                                    <span style={{ fontWeight: 600, color: '#111' }}>{data.endDate}</span>
                                 </div>
                             )}
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '4px 0' }}>
                                 <span style={{ color: '#666' }}>Método de Pago</span>
-                                <span style={{ fontWeight: 600 }}>{methodLabel(data.paymentMethod)}</span>
+                                <span style={{ fontWeight: 600, color: '#111' }}>{methodLabel(data.paymentMethod)}</span>
                             </div>
                         </div>
 
@@ -248,6 +254,17 @@ export default function PaymentReceipt({ data, onClose }: PaymentReceiptProps) {
                             <div style={{ fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Pagado</div>
                             <div style={{ fontSize: '28px', fontWeight: 800, color: '#111' }}>S/{totalPaid.toFixed(2)}</div>
                         </div>
+
+                        {/* Discount */}
+                        {data.discountAmount !== undefined && data.discountAmount > 0 && (
+                            <div style={{
+                                textAlign: 'center', padding: '6px',
+                                background: '#fee2e2', borderRadius: '6px', fontSize: '11px', color: '#b91c1c', margin: '6px 0', fontWeight: 600
+                            }}>
+                                ⬇️ Descuento aplicado: S/{data.discountAmount.toFixed(2)}
+                                {data.discountDescription && ` (${data.discountDescription})`}
+                            </div>
+                        )}
 
                         {/* Pending balance */}
                         {data.pendingAmount !== undefined && data.pendingAmount > 0 && (

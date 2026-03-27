@@ -62,7 +62,7 @@ export default function ClientsPage() {
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [assignClient, setAssignClient] = useState<any>(null);
     const [plans, setPlans] = useState<any[]>([]);
-    const [assignForm, setAssignForm] = useState({ planId: '', amountPaid: 0, mode: 'replace' as 'replace' | 'queue', paymentMethod: 'CASH', receiptUrl: '', startDate: format(new Date(), 'yyyy-MM-dd'), endDate: undefined as string | undefined });
+    const [assignForm, setAssignForm] = useState({ planId: '', amountPaid: 0, mode: 'replace' as 'replace' | 'queue', paymentMethod: 'CASH', receiptUrl: '', startDate: format(new Date(), 'yyyy-MM-dd'), endDate: undefined as string | undefined, discountAmount: '' as string | number, discountDescription: '' });
     const [assigning, setAssigning] = useState(false);
     const [extraClients, setExtraClients] = useState<string[]>([]);
     const [extraAmounts, setExtraAmounts] = useState<number[]>([]);
@@ -242,7 +242,7 @@ export default function ClientsPage() {
         const d = new Date();
         const y = d.getFullYear(); const m = String(d.getMonth() + 1).padStart(2, '0'); const dy = String(d.getDate()).padStart(2, '0');
         const todayStr = `${y}-${m}-${dy}`;
-        setAssignForm({ planId: '', amountPaid: 0, mode: 'replace', paymentMethod: 'CASH', receiptUrl: '', startDate: todayStr, endDate: undefined });
+        setAssignForm({ planId: '', amountPaid: 0, mode: 'replace', paymentMethod: 'CASH', receiptUrl: '', startDate: todayStr, endDate: undefined, discountAmount: '', discountDescription: '' });
         setExtraClients([]); setExtraAmounts([]);
         try {
             const [p, cl] = await Promise.all([plansApi.list(), clientsApi.list(1, 500)]);
@@ -265,7 +265,9 @@ export default function ClientsPage() {
                 receiptUrl: assignForm.receiptUrl,
                 mode: assignClient.activeMembership?.status === 'ACTIVE' ? assignForm.mode : 'replace',
                 startDate: assignForm.startDate,
-                endDate: assignForm.endDate
+                endDate: assignForm.endDate,
+                discountAmount: Number(assignForm.discountAmount) || 0,
+                discountDescription: assignForm.discountDescription || ''
             };
             await membershipsApi.assign(baseData);
             // Assign to extra clients (duo/trio)
@@ -285,6 +287,7 @@ export default function ClientsPage() {
             }));
             const totalPaid = Number(assignForm.amountPaid) + extraClientList.reduce((s, c) => s + c.amount, 0);
             const totalPrice = totalPerPerson * (extraClientList.length + 1);
+            const totalDiscount = Number(assignForm.discountAmount) || 0;
 
             setReceiptData({
                 type: 'MEMBRESÍA',
@@ -295,8 +298,10 @@ export default function ClientsPage() {
                 date: new Date(),
                 startDate: assignForm.startDate,
                 endDate: assignForm.endDate,
-                pendingAmount: Math.max(0, totalPrice - totalPaid),
+                pendingAmount: Math.max(0, totalPrice - totalPaid - totalDiscount),
                 extraClients: extraClientList.length > 0 ? extraClientList : undefined,
+                discountAmount: totalDiscount > 0 ? totalDiscount : undefined,
+                discountDescription: assignForm.discountDescription || undefined,
             });
 
             setShowAssignModal(false);
@@ -838,13 +843,15 @@ export default function ClientsPage() {
                                         if (extraSlotsNeeded === 0 || !selectedPlan) return null;
                                         const totalAllPaid = Number(assignForm.amountPaid) + extraAmounts.reduce((s, a) => s + (a || 0), 0);
                                         const totalAllPrice = Number(selectedPlan.price) * (extraSlotsNeeded + 1);
-                                        const totalDebt = totalAllPrice - totalAllPaid;
+                                        const totalDiscount = Number(assignForm.discountAmount) || 0;
+                                        const totalDebt = totalAllPrice - totalAllPaid - totalDiscount;
                                         return (
                                             <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'rgba(6,182,212,0.06)', border: '1px solid rgba(6,182,212,0.15)', fontSize: '12px' }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                     <span style={{ color: 'var(--color-text-muted)' }}>Precio por persona: <strong style={{ color: 'var(--color-text)' }}>S/{Number(selectedPlan.price).toFixed(2)}</strong></span>
                                                     <span style={{ fontWeight: 700, color: 'var(--color-secondary)' }}>Total: S/{totalAllPrice.toFixed(2)}</span>
                                                 </div>
+                                                {totalDiscount > 0 && <div style={{ marginTop: '4px', color: '#b91c1c', fontWeight: 600 }}>Descuento grupo: -S/ {totalDiscount.toFixed(2)}</div>}
                                                 {totalDebt > 0 && <div style={{ marginTop: '4px', color: '#F59E0B', fontWeight: 600 }}>Deuda total: S/ {totalDebt.toFixed(2)}</div>}
                                             </div>
                                         );
@@ -858,9 +865,9 @@ export default function ClientsPage() {
                                                     ? `💰 Pago Cliente 1 (${assignClient?.name || 'Principal'})`
                                                     : 'Monto Pagado Hoy (S/)'}
                                             </label>
-                                            {selectedPlan && assignForm.amountPaid < Number(selectedPlan.price) && (
+                                            {selectedPlan && (assignForm.amountPaid + (Number(assignForm.discountAmount) || 0)) < Number(selectedPlan.price) && (
                                                 <span className="badge badge-warning" style={{ fontSize: '10px' }}>
-                                                    Deuda: S/ {(Number(selectedPlan.price) - assignForm.amountPaid).toFixed(2)}
+                                                    Deuda: S/ {(Number(selectedPlan.price) - assignForm.amountPaid - (Number(assignForm.discountAmount) || 0)).toFixed(2)}
                                                 </span>
                                             )}
                                         </div>
@@ -901,8 +908,25 @@ export default function ClientsPage() {
                                             );
                                         });
                                     })()}
+
+                                    {/* Descuento Especial */}
+                                    <div style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--color-border)', background: 'var(--color-surface-2)', marginTop: '8px' }}>
+                                        <div style={{ marginBottom: '8px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>Opciones avanzadas</div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '8px' }}>
+                                            <div>
+                                                <label className="form-label" style={{ marginBottom: '4px' }}>Descuento (S/)</label>
+                                                <input className="input-field" type="number" step="0.10" min="0" value={assignForm.discountAmount || ''} placeholder="0.00"
+                                                    onChange={(e) => setAssignForm({ ...assignForm, discountAmount: e.target.value })} />
+                                            </div>
+                                            <div>
+                                                <label className="form-label" style={{ marginBottom: '4px' }}>Razón del descuento</label>
+                                                <input className="input-field" type="text" value={assignForm.discountDescription || ''} placeholder="Ej: Cliente especial" maxLength={50}
+                                                    onChange={(e) => setAssignForm({ ...assignForm, discountDescription: e.target.value })} />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div><label className="form-label">Método de Pago *</label>
+                                <div style={{ marginTop: '8px' }}><label className="form-label">Método de Pago *</label>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
                                         {[{ v: 'CASH', l: '💵 Efectivo' }, { v: 'CARD', l: '💳 Tarjeta' }, { v: 'TRANSFER', l: '🏦 Transfer.' }, { v: 'YAPE_PLIN', l: '📱 Yape/Plin' }].map(m => (
                                             <button key={m.v} type="button" onClick={() => setAssignForm({ ...assignForm, paymentMethod: m.v })}

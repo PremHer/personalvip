@@ -48,7 +48,7 @@ export default function MembershipsPage() {
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
     const [planForm, setPlanForm] = useState({ name: '', durationDays: 30, price: 0, description: '' });
-    const [assignForm, setAssignForm] = useState({ clientId: '', planId: '', amountPaid: 0, paymentMethod: 'CASH', receiptUrl: '', startDate: format(new Date(), 'yyyy-MM-dd'), endDate: undefined as string | undefined });
+    const [assignForm, setAssignForm] = useState({ clientId: '', planId: '', amountPaid: 0, paymentMethod: 'CASH', receiptUrl: '', startDate: format(new Date(), 'yyyy-MM-dd'), endDate: undefined as string | undefined, discountAmount: '' as string | number, discountDescription: '' });
     const [assignMode, setAssignMode] = useState<'replace' | 'queue'>('queue');
     const [activeClientMembership, setActiveClientMembership] = useState<any>(null);
     const [extraClients, setExtraClients] = useState<string[]>([]);
@@ -121,7 +121,7 @@ export default function MembershipsPage() {
     const handleAssign = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const baseData = { ...assignForm, amountPaid: Number(assignForm.amountPaid), mode: activeClientMembership ? assignMode : 'replace' };
+            const baseData = { ...assignForm, amountPaid: Number(assignForm.amountPaid), mode: activeClientMembership ? assignMode : 'replace', discountAmount: Number(assignForm.discountAmount) || 0, discountDescription: assignForm.discountDescription || '' };
             // Assign to primary client
             await membershipsApi.assign(baseData);
             // Assign to extra clients (duo/trio) with their individual amounts
@@ -142,6 +142,7 @@ export default function MembershipsPage() {
             }));
             const totalPaid = Number(assignForm.amountPaid) + extraClientList.reduce((s, c) => s + c.amount, 0);
             const totalPrice = totalPerPerson * (extraClientList.length + 1);
+            const totalDiscount = Number(assignForm.discountAmount) || 0;
 
             setReceiptData({
                 type: 'MEMBRESÍA',
@@ -152,13 +153,15 @@ export default function MembershipsPage() {
                 date: new Date(),
                 startDate: assignForm.startDate,
                 endDate: assignForm.endDate,
-                pendingAmount: Math.max(0, totalPrice - totalPaid),
+                pendingAmount: Math.max(0, totalPrice - totalPaid - totalDiscount),
                 cashierName: user?.name || '',
                 extraClients: extraClientList.length > 0 ? extraClientList : undefined,
+                discountAmount: totalDiscount > 0 ? totalDiscount : undefined,
+                discountDescription: assignForm.discountDescription || undefined,
             });
 
             setShowAssignModal(false);
-            setAssignForm({ clientId: '', planId: '', amountPaid: 0, paymentMethod: 'CASH', receiptUrl: '', startDate: format(new Date(), 'yyyy-MM-dd'), endDate: undefined });
+            setAssignForm({ clientId: '', planId: '', amountPaid: 0, paymentMethod: 'CASH', receiptUrl: '', startDate: format(new Date(), 'yyyy-MM-dd'), endDate: undefined, discountAmount: '', discountDescription: '' });
             setActiveClientMembership(null); setExtraClients([]); setExtraAmounts([]); loadData();
             toast('Membresía asignada correctamente');
         } catch (e: any) { toast(e.message || 'Error al asignar', 'error'); }
@@ -435,7 +438,25 @@ export default function MembershipsPage() {
                                     );
                                 })}
                             </div>
-                            <div><label className="form-label">Método de Pago *</label>
+
+                            {/* Descuento Especial */}
+                            <div style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--color-border)', background: 'var(--color-surface-2)', marginTop: '8px' }}>
+                                <div style={{ marginBottom: '8px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>Opciones avanzadas</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '8px' }}>
+                                    <div>
+                                        <label className="form-label" style={{ marginBottom: '4px' }}>Descuento (S/)</label>
+                                        <input className="input-field" type="number" step="0.10" min="0" value={assignForm.discountAmount || ''} placeholder="0.00"
+                                            onChange={(e) => setAssignForm({ ...assignForm, discountAmount: e.target.value })} />
+                                    </div>
+                                    <div>
+                                        <label className="form-label" style={{ marginBottom: '4px' }}>Razón del descuento</label>
+                                        <input className="input-field" type="text" value={assignForm.discountDescription || ''} placeholder="Ej: Cliente especial" maxLength={50}
+                                            onChange={(e) => setAssignForm({ ...assignForm, discountDescription: e.target.value })} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style={{ marginTop: '8px' }}><label className="form-label">Método de Pago *</label>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
                                     {[{ v: 'CASH', l: '💵 Efectivo' }, { v: 'CARD', l: '💳 Tarjeta' }, { v: 'TRANSFER', l: '🏦 Transfer.' }, { v: 'YAPE_PLIN', l: '📱 Yape/Plin' }].map(m => (
                                         <button key={m.v} type="button" onClick={() => setAssignForm({ ...assignForm, paymentMethod: m.v })}

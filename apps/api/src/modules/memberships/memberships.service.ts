@@ -16,6 +16,8 @@ export class MembershipsService {
         startDate?: string;
         endDate?: string;
         mode?: 'replace' | 'queue';
+        discountAmount?: number;
+        discountDescription?: string;
     }) {
         const plan = await this.prisma.membershipPlan.findUnique({ where: { id: data.planId } });
         if (!plan) throw new NotFoundException('Plan no encontrado');
@@ -70,6 +72,7 @@ export class MembershipsService {
                 startDate,
                 endDate,
                 amountPaid: data.amountPaid, // Store the actual amount paid (not plan.price)
+                discount: data.discountAmount || 0,
                 createdBy: data.createdBy,
                 status: 'ACTIVE',
             },
@@ -78,6 +81,11 @@ export class MembershipsService {
 
         // Record the initial payment for this membership
         if (data.amountPaid > 0) {
+            let notes: string | undefined = undefined;
+            if (data.discountAmount && data.discountAmount > 0) {
+                notes = `Descuento: S/ ${data.discountAmount}${data.discountDescription ? ` - ${data.discountDescription}` : ''}`;
+            }
+
             await this.prisma.payment.create({
                 data: {
                     membershipId: membership.id,
@@ -85,6 +93,7 @@ export class MembershipsService {
                     paymentMethod: (data.paymentMethod || 'CASH') as any,
                     cashierId: data.createdBy,
                     receiptUrl: data.receiptUrl || null,
+                    notes: notes,
                 },
             });
         }
