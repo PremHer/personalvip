@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/auth-context';
 import { plansApi, membershipsApi, clientsApi } from '@/lib/api';
 import { useUI } from '@/lib/ui-context';
 import MembershipCalendar from '@/components/MembershipCalendar';
+import PaymentReceipt from '@/components/PaymentReceipt';
 import { format } from 'date-fns';
 import { CreditCard, Plus, X, Snowflake, Play, Ban, AlertTriangle, DollarSign, Tag, Pencil } from 'lucide-react';
 
@@ -53,6 +54,7 @@ export default function MembershipsPage() {
     const [extraClients, setExtraClients] = useState<string[]>([]);
     const [extraAmounts, setExtraAmounts] = useState<number[]>([]);
     const [clients, setClients] = useState<any[]>([]);
+    const [receiptData, setReceiptData] = useState<any>(null);
 
     useEffect(() => { loadData(); }, []);
 
@@ -129,6 +131,32 @@ export default function MembershipsPage() {
                 const extraAmt = extraAmounts[i] || 0;
                 await membershipsApi.assign({ ...baseData, clientId: cId, amountPaid: extraAmt });
             }
+
+            // Build receipt data
+            const plan = plans.find(p => p.id === assignForm.planId);
+            const primaryClient = clients.find(c => c.id === assignForm.clientId);
+            const totalPerPerson = plan ? Number(plan.price) : 0;
+            const extraClientList = extraClients.filter(c => c).map((cId, i) => ({
+                name: clients.find(c => c.id === cId)?.name || `Cliente ${i + 2}`,
+                amount: extraAmounts[i] || 0,
+            }));
+            const totalPaid = Number(assignForm.amountPaid) + extraClientList.reduce((s, c) => s + c.amount, 0);
+            const totalPrice = totalPerPerson * (extraClientList.length + 1);
+
+            setReceiptData({
+                type: 'MEMBRESÍA',
+                clientName: primaryClient?.name || 'Cliente',
+                planName: plan?.name || '',
+                amount: Number(assignForm.amountPaid),
+                paymentMethod: assignForm.paymentMethod,
+                date: new Date(),
+                startDate: assignForm.startDate,
+                endDate: assignForm.endDate,
+                pendingAmount: Math.max(0, totalPrice - totalPaid),
+                cashierName: user?.name || '',
+                extraClients: extraClientList.length > 0 ? extraClientList : undefined,
+            });
+
             setShowAssignModal(false);
             setAssignForm({ clientId: '', planId: '', amountPaid: 0, paymentMethod: 'CASH', receiptUrl: '', startDate: format(new Date(), 'yyyy-MM-dd'), endDate: undefined });
             setActiveClientMembership(null); setExtraClients([]); setExtraAmounts([]); loadData();
@@ -445,6 +473,11 @@ export default function MembershipsPage() {
                         </form>
                     </div>
                 </div>
+            )}
+
+            {/* Payment Receipt Modal */}
+            {receiptData && (
+                <PaymentReceipt data={receiptData} onClose={() => setReceiptData(null)} />
             )}
         </div>
     );

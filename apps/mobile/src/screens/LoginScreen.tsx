@@ -47,8 +47,13 @@ export default function LoginScreen() {
     };
 
     const handleSaveServer = async () => {
-        const url = serverUrl.trim();
+        let url = serverUrl.trim();
         if (!url) return;
+
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = `https://${url}`;
+            setServerUrl(url);
+        }
 
         Alert.prompt(
             '🔐 Autenticación Requerida',

@@ -341,6 +341,11 @@ export class FinanceService {
                 // Daily pass registered directly as a Payment (without Sale)
                 type = 'PASE DIARIO';
                 description = 'Pase Diario';
+                // Extract client name from notes: "Pase Diario - ClientName"
+                const dashIdx = p.notes.indexOf(' - ');
+                if (dashIdx !== -1) {
+                    clientName = p.notes.substring(dashIdx + 3);
+                }
                 c.dailyPassIncome += amt;
             }
 

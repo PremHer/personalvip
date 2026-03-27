@@ -6,6 +6,7 @@ import { clientsApi, plansApi, membershipsApi, attendanceApi } from '@/lib/api';
 import { useUI } from '@/lib/ui-context';
 import { SkeletonTable } from '@/lib/skeleton';
 import MembershipCalendar from '@/components/MembershipCalendar';
+import PaymentReceipt from '@/components/PaymentReceipt';
 import { format, differenceInDays } from 'date-fns';
 import { exportToCSV } from '@/lib/export';
 import { Search, Plus, Edit, Trash2, X, UserPlus, Users, CreditCard, Eye, QrCode, Download, Printer, Zap } from 'lucide-react';
@@ -81,6 +82,7 @@ export default function ClientsPage() {
     const [dpForm, setDpForm] = useState({ name: '', phone: '', amountPaid: 10, paymentMethod: 'CASH', receiptUrl: '' });
     const [dpSaving, setDpSaving] = useState(false);
     const [dpResult, setDpResult] = useState<any>(null);
+    const [receiptData, setReceiptData] = useState<any>(null);
 
     const openQr = (client: any) => {
         setQrClient(client);
@@ -260,6 +262,21 @@ export default function ClientsPage() {
                 startDate: assignForm.startDate,
                 endDate: assignForm.endDate
             });
+
+            // Show receipt
+            const plan = plans.find(p => p.id === assignForm.planId);
+            setReceiptData({
+                type: 'MEMBRESÍA',
+                clientName: assignClient.name,
+                planName: plan?.name || '',
+                amount: Number(assignForm.amountPaid),
+                paymentMethod: assignForm.paymentMethod,
+                date: new Date(),
+                startDate: assignForm.startDate,
+                endDate: assignForm.endDate,
+                pendingAmount: plan ? Math.max(0, Number(plan.price) - Number(assignForm.amountPaid)) : 0,
+            });
+
             setShowAssignModal(false);
             setAssignClient(null);
             loadClients();
@@ -314,16 +331,29 @@ export default function ClientsPage() {
                 }
             } else {
                 let clientId: string;
+                let clientName: string;
                 if (dpFound) {
                     clientId = dpFound.id;
+                    clientName = dpFound.name;
                 } else {
                     const newClient = await clientsApi.create({ name: dpForm.name.trim(), phone: dpForm.phone.trim() || undefined, dni: dpDni.trim() || undefined });
                     clientId = newClient.id;
+                    clientName = dpForm.name.trim();
                 }
                 await membershipsApi.dailyPass({ clientId, amountPaid: Number(dpForm.amountPaid), paymentMethod: dpForm.paymentMethod, receiptUrl: dpForm.receiptUrl });
                 const fullClient = await clientsApi.get(clientId);
                 setDpResult(fullClient);
                 setDpStep('result');
+
+                // Show receipt for daily pass
+                setReceiptData({
+                    type: 'PASE DIARIO',
+                    clientName: clientName,
+                    amount: Number(dpForm.amountPaid),
+                    paymentMethod: dpForm.paymentMethod,
+                    date: new Date(),
+                });
+
                 toast('✅ Pase Diario asignado correctamente');
                 loadClients();
             }
@@ -1091,6 +1121,11 @@ export default function ClientsPage() {
                         )}
                     </div>
                 </div>
+            )}
+
+            {/* Payment Receipt Modal */}
+            {receiptData && (
+                <PaymentReceipt data={receiptData} onClose={() => setReceiptData(null)} />
             )}
         </div>
     );

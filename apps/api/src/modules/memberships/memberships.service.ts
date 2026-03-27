@@ -217,13 +217,15 @@ export class MembershipsService {
 
         // 1. Record the one-off payment
         if (data.amountPaid > 0) {
+            // Fetch client name to include in payment notes for income report
+            const client = await this.prisma.client.findUnique({ where: { id: data.clientId }, select: { name: true } });
             await this.prisma.payment.create({
                 data: {
                     amount: data.amountPaid,
                     paymentMethod: (data.paymentMethod || 'CASH') as any,
                     cashierId: data.createdBy,
                     receiptUrl: data.receiptUrl || null,
-                    notes: 'Pase Diario',
+                    notes: `Pase Diario - ${client?.name || 'Cliente'}`,
                 },
             });
         }

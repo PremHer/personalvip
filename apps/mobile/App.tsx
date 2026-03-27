@@ -1,7 +1,7 @@
 import React from 'react';
 import { StatusBar, Platform, View, ActivityIndicator, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import LoginScreen from './src/screens/LoginScreen';
@@ -11,7 +11,7 @@ import HistoryScreen from './src/screens/HistoryScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import DailyPassScreen from './src/screens/DailyPassScreen';
 
-const Tab = createBottomTabNavigator();
+const Tab = createMaterialTopTabNavigator();
 
 function TabIcon({ label, focused }: { label: string; focused: boolean }) {
   const icons: Record<string, string> = {
@@ -21,7 +21,7 @@ function TabIcon({ label, focused }: { label: string; focused: boolean }) {
     'Historial': '📋',
     'Perfil': '👤',
   };
-  return <Text style={{ fontSize: focused ? 22 : 20, opacity: focused ? 1 : 0.5 }}>{icons[label] || '📱'}</Text>;
+  return <Text style={{ fontSize: focused ? 18 : 16, opacity: focused ? 1 : 0.5 }}>{icons[label] || '📱'}</Text>;
 }
 
 /** Roles that can access scanner / check-in */
@@ -54,60 +54,58 @@ function AppContent() {
   const canHistory = HISTORY_ROLES.includes(role);
 
   return (
-    <NavigationContainer>
-      <Tab.Navigator
-        screenOptions={({ route }) => ({
-          headerShown: true,
-          headerStyle: { backgroundColor: '#0f0a1a', elevation: 0, shadowOpacity: 0 },
-          headerTitleStyle: { color: '#e2e8f0', fontWeight: '700', fontSize: 16 },
-          headerTitleAlign: 'center',
-          tabBarStyle: {
-            backgroundColor: '#0f0a1a',
-            borderTopColor: 'rgba(124,58,237,0.15)',
-            borderTopWidth: 1,
-            height: Platform.OS === 'ios' ? 85 : 60 + Math.max(insets.bottom, 10),
-            paddingBottom: Platform.OS === 'ios' ? 25 : 8 + Math.max(insets.bottom, 10),
-            paddingTop: 6,
-          },
-          tabBarActiveTintColor: '#7c3aed',
-          tabBarInactiveTintColor: '#64748b',
-          tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
-          tabBarIcon: ({ focused }) => <TabIcon label={route.name} focused={focused} />,
-        })}
-      >
-        {canScan && (
+    <View style={{ flex: 1, paddingTop: Math.max(insets.top, 20), backgroundColor: '#0f0a1a' }}>
+      <NavigationContainer>
+        <Tab.Navigator
+          screenOptions={({ route }) => ({
+            tabBarStyle: {
+              backgroundColor: '#0f0a1a',
+              borderBottomColor: 'rgba(124,58,237,0.15)',
+              borderBottomWidth: 1,
+              elevation: 0,
+              shadowOpacity: 0,
+            },
+            tabBarIndicatorStyle: {
+              backgroundColor: '#7c3aed',
+              height: 3,
+            },
+            tabBarActiveTintColor: '#7c3aed',
+            tabBarInactiveTintColor: '#64748b',
+            tabBarLabelStyle: { fontSize: 10, fontWeight: '700', textTransform: 'capitalize' },
+            tabBarItemStyle: { padding: 4 },
+            tabBarIcon: ({ focused }) => <TabIcon label={route.name} focused={focused} />,
+            tabBarIconStyle: { width: 24, height: 24 },
+          })}
+        >
+          {canScan && (
+            <Tab.Screen
+              name="Escáner"
+              component={ScannerScreen}
+            />
+          )}
+          {canScan && (
+            <Tab.Screen
+              name="Pase Diario"
+              component={DailyPassScreen}
+            />
+          )}
           <Tab.Screen
-            name="Escáner"
-            component={ScannerScreen}
-            options={{ headerTitle: '📷 Escáner QR' }}
+            name="En Gym"
+            component={GymFloorScreen}
           />
-        )}
-        {canScan && (
+          {canHistory && (
+            <Tab.Screen
+              name="Historial"
+              component={HistoryScreen}
+            />
+          )}
           <Tab.Screen
-            name="Pase Diario"
-            component={DailyPassScreen}
-            options={{ headerTitle: '⚡ Pase Diario' }}
+            name="Perfil"
+            component={ProfileScreen}
           />
-        )}
-        <Tab.Screen
-          name="En Gym"
-          component={GymFloorScreen}
-          options={{ headerTitle: '🏠 En el Gimnasio' }}
-        />
-        {canHistory && (
-          <Tab.Screen
-            name="Historial"
-            component={HistoryScreen}
-            options={{ headerTitle: '📋 Historial de Hoy' }}
-          />
-        )}
-        <Tab.Screen
-          name="Perfil"
-          component={ProfileScreen}
-          options={{ headerTitle: '👤 Mi Perfil' }}
-        />
-      </Tab.Navigator>
-    </NavigationContainer>
+        </Tab.Navigator>
+      </NavigationContainer>
+    </View>
   );
 }
 
