@@ -916,7 +916,16 @@ export default function ClientsPage() {
                                             <div>
                                                 <label className="form-label" style={{ marginBottom: '4px' }}>Descuento (S/)</label>
                                                 <input className="input-field" type="number" step="0.10" min="0" value={assignForm.discountAmount || ''} placeholder="0.00"
-                                                    onChange={(e) => setAssignForm({ ...assignForm, discountAmount: e.target.value })} />
+                                                    onChange={(e) => {
+                                                        const newDiscount = Number(e.target.value) || 0;
+                                                        const oldDiscount = Number(assignForm.discountAmount) || 0;
+                                                        const diff = newDiscount - oldDiscount;
+                                                        setAssignForm({ 
+                                                            ...assignForm, 
+                                                            discountAmount: e.target.value,
+                                                            amountPaid: Math.max(0, assignForm.amountPaid - diff)
+                                                        });
+                                                    }} />
                                             </div>
                                             <div>
                                                 <label className="form-label" style={{ marginBottom: '4px' }}>Razón del descuento</label>
@@ -1229,27 +1238,7 @@ export default function ClientsPage() {
                             </form>
                         )}
 
-                        {/* Step 3: Result */}
-                        {dpStep === 'result' && dpResult && (
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: '48px', marginBottom: '8px' }}>✅</div>
-                                <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px' }}>{dpResult.name}</h3>
-                                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>DNI: {dpResult.dni || dpDni}</p>
-                                <span className="badge badge-active" style={{ marginBottom: '16px', display: 'inline-block' }}>Pase Diario Activo</span>
-                                {dpResult.qrCode && (
-                                    <div style={{ padding: '16px', background: '#fff', borderRadius: '12px', display: 'inline-block', marginBottom: '16px' }}>
-                                        <QRCodeSVG value={dpResult.qrCode} size={160} fgColor="#7c3aed" level="H" />
-                                    </div>
-                                )}
-                                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
-                                    QR: <code style={{ background: 'var(--color-surface-2)', padding: '2px 6px', borderRadius: '4px' }}>{dpResult.qrCode}</code>
-                                </p>
-                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                                    <button className="btn-secondary" onClick={() => { setShowDailyPassModal(false); openQr(dpResult); }}>🖨️ Imprimir QR</button>
-                                    <button className="btn-primary" onClick={() => setShowDailyPassModal(false)}>Listo</button>
-                                </div>
-                            </div>
-                        )}
+                        {/* Removed Step 3 Result as per the new automatic receipt flow */}
                     </div>
                 </div>
             )}

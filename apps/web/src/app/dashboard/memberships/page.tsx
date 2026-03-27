@@ -446,7 +446,16 @@ export default function MembershipsPage() {
                                     <div>
                                         <label className="form-label" style={{ marginBottom: '4px' }}>Descuento (S/)</label>
                                         <input className="input-field" type="number" step="0.10" min="0" value={assignForm.discountAmount || ''} placeholder="0.00"
-                                            onChange={(e) => setAssignForm({ ...assignForm, discountAmount: e.target.value })} />
+                                            onChange={(e) => {
+                                                const newDiscount = Number(e.target.value) || 0;
+                                                const oldDiscount = Number(assignForm.discountAmount) || 0;
+                                                const diff = newDiscount - oldDiscount;
+                                                setAssignForm({ 
+                                                    ...assignForm, 
+                                                    discountAmount: e.target.value,
+                                                    amountPaid: Math.max(0, assignForm.amountPaid - diff)
+                                                });
+                                            }} />
                                     </div>
                                     <div>
                                         <label className="form-label" style={{ marginBottom: '4px' }}>Razón del descuento</label>
