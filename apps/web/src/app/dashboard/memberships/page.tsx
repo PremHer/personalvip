@@ -7,7 +7,58 @@ import { useUI } from '@/lib/ui-context';
 import MembershipCalendar from '@/components/MembershipCalendar';
 import PaymentReceipt from '@/components/PaymentReceipt';
 import { format } from 'date-fns';
-import { CreditCard, Plus, X, Snowflake, Play, Ban, AlertTriangle, DollarSign, Tag, Pencil } from 'lucide-react';
+import { CreditCard, Plus, X, Snowflake, Play, Ban, AlertTriangle, DollarSign, Tag, Pencil, Search } from 'lucide-react';
+
+const SearchableSelect = ({ value, onChange, options, placeholder }: { value: string, onChange: (v: string) => void, options: {label: string, value: string}[], placeholder: string }) => {
+    const [search, setSearch] = useState('');
+    const [open, setOpen] = useState(false);
+    
+    const selectedLabel = options.find(o => o.value === value)?.label || '';
+    const filtered = options.filter(o => o.label.toLowerCase().includes(search.toLowerCase()));
+    
+    return (
+        <div style={{ position: 'relative' }}>
+            <div 
+                className="input-field" 
+                style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--color-bg-tertiary)' }}
+                onClick={() => setOpen(!open)}
+            >
+                <span style={{ opacity: selectedLabel ? 1 : 0.5 }}>{selectedLabel || placeholder}</span>
+                <span style={{ fontSize: '10px' }}>▼</span>
+            </div>
+            {open && (
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100, background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '8px', marginTop: '4px', maxHeight: '220px', display: 'flex', flexDirection: 'column', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', overflow: 'hidden' }}>
+                    <div style={{ padding: '8px', background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '0 8px', background: 'var(--color-bg-tertiary)', borderRadius: '6px' }}>
+                            <Search size={14} color="var(--color-text-muted)" />
+                            <input 
+                                autoFocus
+                                style={{ flex: 1, padding: '8px 0', border: 'none', background: 'transparent', color: 'var(--color-text)', fontSize: '13px', outline: 'none' }}
+                                placeholder="Buscar cliente..." 
+                                value={search} 
+                                onChange={e => setSearch(e.target.value)} 
+                            />
+                        </div>
+                    </div>
+                    <div style={{ overflowY: 'auto', flex: 1 }}>
+                        {filtered.map((o, idx) => (
+                            <div 
+                                key={o.value} 
+                                style={{ padding: '10px 12px', cursor: 'pointer', fontSize: '13px', borderBottom: idx < filtered.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}
+                                onClick={() => { onChange(o.value); setSearch(''); setOpen(false); }}
+                                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-surface-2)'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                                {o.label}
+                            </div>
+                        ))}
+                        {filtered.length === 0 && <div style={{ padding: '16px', fontSize: '12px', color: 'var(--color-text-muted)', textAlign: 'center' }}>No se encontraron clientes</div>}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
 
 const calculateExpiryDate = (startStr: string, durationDays: number): string | undefined => {
     if (!startStr) return undefined;
@@ -280,10 +331,12 @@ export default function MembershipsPage() {
                         </div>
                         <form onSubmit={handleAssign} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                             <div><label className="form-label">Cliente Principal *</label>
-                                <select className="input-field" value={assignForm.clientId} onChange={(e) => handleClientSelect(e.target.value)} required>
-                                    <option value="">Seleccionar cliente...</option>
-                                    {clients.map((c) => <option key={c.id} value={c.id}>{c.name} {c.dni ? `(${c.dni})` : ''}</option>)}
-                                </select>
+                                <SearchableSelect 
+                                    value={assignForm.clientId} 
+                                    onChange={(val) => handleClientSelect(val)} 
+                                    placeholder="Seleccionar cliente principal..." 
+                                    options={clients.map((c) => ({ label: `${c.name} ${c.dni ? `(${c.dni})` : ''}`, value: c.id }))} 
+                                />
                             </div>
 
                             {/* Active membership warning */}
@@ -335,14 +388,14 @@ export default function MembershipsPage() {
                                     {Array.from({ length: extraSlotsNeeded }).map((_, i) => (
                                         <div key={i} style={{ marginBottom: i < extraSlotsNeeded - 1 ? '8px' : 0 }}>
                                             <label className="form-label" style={{ marginTop: 0 }}>Cliente {i + 2} *</label>
-                                            <select className="input-field" value={extraClients[i] || ''} onChange={(e) => {
-                                                const updated = [...extraClients]; updated[i] = e.target.value; setExtraClients(updated);
-                                            }} required>
-                                                <option value="">Seleccionar cliente...</option>
-                                                {clients.filter(c => c.id !== assignForm.clientId && (c.id === extraClients[i] || !extraClients.includes(c.id))).map(c =>
-                                                    <option key={c.id} value={c.id}>{c.name} {c.dni ? `(${c.dni})` : ''}</option>
-                                                )}
-                                            </select>
+                                            <SearchableSelect 
+                                                value={extraClients[i] || ''} 
+                                                onChange={(val) => {
+                                                    const updated = [...extraClients]; updated[i] = val; setExtraClients(updated);
+                                                }} 
+                                                placeholder="Seleccionar cliente extra..." 
+                                                options={clients.filter(c => c.id !== assignForm.clientId && (c.id === extraClients[i] || !extraClients.includes(c.id))).map(c => ({ label: `${c.name} ${c.dni ? `(${c.dni})` : ''}`, value: c.id }))} 
+                                            />
                                         </div>
                                     ))}
                                 </div>
@@ -385,7 +438,8 @@ export default function MembershipsPage() {
                                         {(() => {
                                             const totalAllPaid = Number(assignForm.amountPaid) + extraAmounts.reduce((s, a) => s + (a || 0), 0);
                                             const totalAllPrice = Number(selectedPlan.price) * (extraSlotsNeeded + 1);
-                                            const totalDebt = totalAllPrice - totalAllPaid;
+                                            const totalAllDiscount = Number(assignForm.discountAmount) || 0;
+                                            const totalDebt = totalAllPrice - totalAllPaid - totalAllDiscount;
                                             return totalDebt > 0 ? (
                                                 <div style={{ marginTop: '4px', color: '#F59E0B', fontWeight: 600 }}>Deuda total: S/ {totalDebt.toFixed(2)}</div>
                                             ) : null;
@@ -399,11 +453,16 @@ export default function MembershipsPage() {
                                         <label className="form-label" style={{ marginBottom: 0 }}>
                                             {extraSlotsNeeded > 0 ? `💰 Pago Cliente 1 (${clients.find(c => c.id === assignForm.clientId)?.name || 'Principal'})` : 'Monto Pagado Hoy (S/)'}
                                         </label>
-                                        {selectedPlan && assignForm.amountPaid < Number(selectedPlan.price) && (
-                                            <span className="badge badge-warning" style={{ fontSize: '10px' }}>
-                                                Deuda: S/ {(Number(selectedPlan.price) - assignForm.amountPaid).toFixed(2)}
-                                            </span>
-                                        )}
+                                        {(() => {
+                                            const planPrice = selectedPlan ? Number(selectedPlan.price) : 0;
+                                            const discount = Number(assignForm.discountAmount) || 0;
+                                            const debt = planPrice - assignForm.amountPaid - discount;
+                                            return debt > 0 ? (
+                                                <span className="badge badge-warning" style={{ fontSize: '10px' }}>
+                                                    Deuda: S/ {debt.toFixed(2)}
+                                                </span>
+                                            ) : null;
+                                        })()}
                                     </div>
                                     <input className="input-field" type="number" step="0.10" value={assignForm.amountPaid}
                                         onChange={(e) => setAssignForm({ ...assignForm, amountPaid: Number(e.target.value) })}

@@ -6,9 +6,10 @@ import { clientsApi, attendanceApi, membershipsApi } from '@/lib/api';
 import {
     ArrowLeft, User, Mail, Phone, Calendar, Activity,
     Clock, Shield, AlertTriangle, Heart, UserCheck,
-    TrendingUp, Star, DollarSign, X, Trash2
+    TrendingUp, Star, DollarSign, X, Trash2, Download
 } from 'lucide-react';
 import MembershipCalendar from '@/components/MembershipCalendar';
+import PaymentReceipt from '@/components/PaymentReceipt';
 
 export default function ClientProfilePage() {
     const params = useParams();
@@ -23,6 +24,7 @@ export default function ClientProfilePage() {
     const [paymentAmount, setPaymentAmount] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('CASH');
     const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
+    const [receiptData, setReceiptData] = useState<any>(null);
 
     useEffect(() => {
         if (!clientId) return;
@@ -79,9 +81,12 @@ export default function ClientProfilePage() {
         ? payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0)
         : targetMembership ? Number(targetMembership.amountPaid || 0) : 0;
 
-    const pendingAmount = Math.max(0, totalPlanPrice - totalPaidAmount);
+    const totalDiscount = targetMembership ? Number(targetMembership.discount || 0) : 0;
+    const effectiveTotal = Math.max(0, totalPlanPrice - totalDiscount);
+
+    const pendingAmount = Math.max(0, effectiveTotal - totalPaidAmount);
     const isPaidInFull = pendingAmount <= 0;
-    const progressPercent = totalPlanPrice > 0 ? Math.min(100, Math.round((totalPaidAmount / totalPlanPrice) * 100)) : 100;
+    const progressPercent = effectiveTotal > 0 ? Math.min(100, Math.round((totalPaidAmount / effectiveTotal) * 100)) : 100;
 
     const handleAddPayment = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -322,7 +327,7 @@ export default function ClientProfilePage() {
                                 </div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '11px', color: 'var(--color-text-muted)' }}>
                                     <span>{progressPercent}% Pagado</span>
-                                    <span>Total: S/ {totalPlanPrice.toFixed(2)}</span>
+                                    <span>Total (c/desc): S/ {effectiveTotal.toFixed(2)}</span>
                                 </div>
                             </div>
 
@@ -336,7 +341,22 @@ export default function ClientProfilePage() {
                                                 <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)' }}>
                                                     {p.paymentMethod}
                                                 </span>
-                                                <span style={{ fontSize: '13px', fontWeight: 600, color: '#10B981' }}>+ S/ {Number(p.amount).toFixed(2)}</span>
+                                                <span style={{ fontSize: '13px', fontWeight: 600, color: '#10B981', marginRight: '8px' }}>+ S/ {Number(p.amount).toFixed(2)}</span>
+                                                <button
+                                                    onClick={() => setReceiptData({
+                                                        type: 'MEMBRESÍA',
+                                                        clientName: client.name,
+                                                        planName: targetMembership.plan?.name || '',
+                                                        amount: Number(p.amount),
+                                                        paymentMethod: p.paymentMethod,
+                                                        date: p.createdAt,
+                                                        cashierName: p.cashier?.name || 'Caja'
+                                                    })}
+                                                    style={{ background: 'var(--color-primary-light)', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: '4px', display: 'flex', color: '#fff', opacity: 0.9 }}
+                                                    title="Ver Comprobante"
+                                                >
+                                                    <Download size={13} />
+                                                </button>
                                             </div>
                                         </div>
                                     ))}
@@ -522,6 +542,11 @@ export default function ClientProfilePage() {
                         </form>
                     </div>
                 </div>
+            )}
+
+            {/* Payment Receipt Modal */}
+            {receiptData && (
+                <PaymentReceipt data={receiptData} onClose={() => setReceiptData(null)} />
             )}
         </div>
     );
