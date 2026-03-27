@@ -512,7 +512,9 @@ export default function ClientsPage() {
                                                             ? mem.payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0)
                                                             : Number(mem.amountPaid || 0);
                                                         const price = Number(mem.plan.price);
-                                                        if (paid < price) return <span className="badge badge-error" style={{ fontSize: '9px', alignSelf: 'flex-start' }}>Deuda S/ {(price - paid).toFixed(2)}</span>;
+                                                        const discount = Number(mem.discount || 0);
+                                                        const debt = price - paid - discount;
+                                                        if (debt > 0) return <span className="badge badge-error" style={{ fontSize: '9px', alignSelf: 'flex-start' }}>Deuda S/ {debt.toFixed(2)}</span>;
                                                         return null;
                                                     })()
                                                 )}

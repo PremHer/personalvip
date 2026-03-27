@@ -315,6 +315,12 @@ export default function ClientProfilePage() {
                                     <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>Monto Pendiente</span>
                                     <span style={{ fontSize: '14px', fontWeight: 600, color: pendingAmount > 0 ? '#F43F5E' : 'var(--color-text)' }}>S/ {pendingAmount.toFixed(2)}</span>
                                 </div>
+                                {totalDiscount > 0 && (
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', padding: '6px 10px', background: 'rgba(244, 63, 94, 0.08)', borderRadius: '6px', border: '1px dashed rgba(244, 63, 94, 0.2)' }}>
+                                        <span style={{ fontSize: '12px', color: '#F43F5E', fontWeight: 600 }}>Descuento Aplicado</span>
+                                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#F43F5E' }}>S/ {totalDiscount.toFixed(2)}</span>
+                                    </div>
+                                )}
 
                                 <div style={{ height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
                                     <div style={{
@@ -336,7 +342,10 @@ export default function ClientProfilePage() {
                                     <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '4px' }}>Abonos Realizados</span>
                                     {payments.map((p: any) => (
                                         <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--color-surface)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '6px' }}>
-                                            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{formatDate(p.createdAt)}</div>
+                                            <div>
+                                                <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{formatDate(p.createdAt)}</div>
+                                                {p.notes && <div style={{ fontSize: '10px', color: '#F59E0B', marginTop: '2px', maxWidth: '160px', fontStyle: 'italic', lineHeight: 1.2 }}>{p.notes}</div>}
+                                            </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <span style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)' }}>
                                                     {p.paymentMethod}
@@ -349,7 +358,7 @@ export default function ClientProfilePage() {
                                                         planName: targetMembership.plan?.name || '',
                                                         amount: Number(p.amount),
                                                         paymentMethod: p.paymentMethod,
-                                                        date: p.createdAt,
+                                                        date: new Date(p.createdAt),
                                                         cashierName: p.cashier?.name || 'Caja'
                                                     })}
                                                     style={{ background: 'var(--color-primary-light)', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: '4px', display: 'flex', color: '#fff', opacity: 0.9 }}
