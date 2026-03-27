@@ -440,9 +440,26 @@ export default function ClientProfilePage() {
                                                 {formatDate(s.createdAt)} · {s.cashier?.name || '—'}
                                             </div>
                                         </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <div style={{ fontSize: '14px', fontWeight: 700, color: '#10B981' }}>
-                                                S/{Number(s.total).toFixed(2)}
+                                        <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <div style={{ fontSize: '14px', fontWeight: 700, color: '#10B981' }}>
+                                                    S/{Number(s.total).toFixed(2)}
+                                                </div>
+                                                <button
+                                                    onClick={() => setReceiptData({
+                                                        type: s.items?.some((i: any) => i.product?.name?.toLowerCase().includes('pase')) ? 'PASE DIARIO' : 'VENTA',
+                                                        clientName: client.name,
+                                                        planName: s.items?.map((i: any) => i.product?.name || 'Producto').join(', ') || 'Venta',
+                                                        amount: Number(s.total),
+                                                        paymentMethod: s.paymentMethod,
+                                                        date: new Date(s.createdAt),
+                                                        cashierName: s.cashier?.name || 'Caja'
+                                                    })}
+                                                    style={{ background: 'var(--color-primary-light)', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: '4px', display: 'flex', color: '#fff', opacity: 0.9 }}
+                                                    title="Ver Comprobante"
+                                                >
+                                                    <Download size={13} />
+                                                </button>
                                             </div>
                                             <span style={{
                                                 fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '4px',

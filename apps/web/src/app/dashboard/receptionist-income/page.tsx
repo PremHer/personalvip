@@ -5,6 +5,7 @@ import { financeApi, usersApi } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { Search, Calendar, User as UserIcon, Receipt, CreditCard, Banknote, History, Download } from 'lucide-react';
 import { exportToCSV } from '@/lib/export';
+import PaymentReceipt from '@/components/PaymentReceipt';
 
 export default function ReceptionistIncomePage() {
     const { user } = useAuth();
@@ -13,6 +14,7 @@ export default function ReceptionistIncomePage() {
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
+    const [receiptData, setReceiptData] = useState<any>(null);
     
     const [filters, setFilters] = useState({
         cashierId: isAdmin ? '' : user?.id,
@@ -229,6 +231,7 @@ export default function ReceptionistIncomePage() {
                                             <th>Descripción</th>
                                             <th>Método</th>
                                             <th style={{ textAlign: 'right' }}>Monto</th>
+                                            <th style={{ textAlign: 'center', width: '50px' }}>Recibo</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -265,6 +268,24 @@ export default function ReceptionistIncomePage() {
                                                     <td style={{ textAlign: 'right', fontWeight: 700, fontSize: '14px' }}>
                                                         S/{Number(t.amount).toFixed(2)}
                                                     </td>
+                                                    <td style={{ textAlign: 'center' }}>
+                                                        <button 
+                                                            className="btn-icon" 
+                                                            style={{ color: 'var(--color-primary-light)', margin: '0 auto' }} 
+                                                            onClick={() => setReceiptData({
+                                                                type: t.type,
+                                                                clientName: t.clientName,
+                                                                planName: t.description,
+                                                                amount: Number(t.amount),
+                                                                paymentMethod: t.method,
+                                                                date: new Date(t.date),
+                                                                cashierName: cashier.name
+                                                            })}
+                                                            title="Ver Comprobante"
+                                                        >
+                                                            <Receipt size={16} />
+                                                        </button>
+                                                    </td>
                                                 </tr>
                                             ))
                                         )}
@@ -274,6 +295,11 @@ export default function ReceptionistIncomePage() {
                         </div>
                     ))}
                 </div>
+            )}
+            
+            {/* Receipt Modal */}
+            {receiptData && (
+                <PaymentReceipt data={receiptData} onClose={() => setReceiptData(null)} />
             )}
         </div>
     );
