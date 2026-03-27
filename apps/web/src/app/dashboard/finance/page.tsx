@@ -6,7 +6,7 @@ import { exportToCSV } from '@/lib/export';
 import { generatePDFReport } from '@/lib/pdf-report';
 import { useUI } from '@/lib/ui-context';
 import { DollarSign, TrendingUp, Calendar, Wallet, Download, FileText, Filter } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell } from 'recharts';
 
 export default function FinancePage() {
     const { toast } = useUI();
@@ -22,8 +22,23 @@ export default function FinancePage() {
     const [salesReport, setSalesReport] = useState<any>(null);
     const [loadingReport, setLoadingReport] = useState(false);
 
+    // Advanced metrics
+    const [metricsPeriod, setMetricsPeriod] = useState<'today' | 'week' | 'month' | 'year' | 'all'>('month');
+    const [metricsData, setMetricsData] = useState<any>(null);
+    const [loadingMetrics, setLoadingMetrics] = useState(false);
+    const COLORS = ['#7C3AED', '#06B6D4', '#F59E0B', '#10B981', '#F43F5E', '#3B82F6'];
+
     useEffect(() => { loadData(); }, []);
     useEffect(() => { financeApi.dailyReport(selectedDate).then(setDailyReport).catch(console.error); }, [selectedDate]);
+    useEffect(() => { loadMetrics(); }, [metricsPeriod]);
+
+    const loadMetrics = async () => {
+        setLoadingMetrics(true);
+        try {
+            const res = await financeApi.metrics({ period: metricsPeriod });
+            setMetricsData(res);
+        } catch (e) { console.error(e); } finally { setLoadingMetrics(false); }
+    };
 
     const loadData = async () => {
         try {
@@ -193,6 +208,95 @@ export default function FinancePage() {
                         <Bar dataKey="sales" name="Ventas" fill="#06B6D4" radius={[4, 4, 0, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
+            </div>
+
+            {/* Advanced Metrics */}
+            <div className="glass-card" style={{ padding: '20px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <div>
+                        <h3 style={{ fontSize: '14px', fontWeight: 600 }}>Métricas Analíticas de Ventas</h3>
+                        <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px' }}>Distribución de pagos, popularidad y origen de ingresos</p>
+                    </div>
+                    <div>
+                        <select className="input-field" value={metricsPeriod} onChange={(e) => setMetricsPeriod(e.target.value as any)} style={{ width: '140px', fontSize: '12px' }}>
+                            <option value="today">Hoy</option>
+                            <option value="week">Últimos 7 días</option>
+                            <option value="month">Este Mes</option>
+                            <option value="year">Este Año</option>
+                            <option value="all">Histórico</option>
+                        </select>
+                    </div>
+                </div>
+
+                {loadingMetrics ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><div className="spinner" /></div>
+                ) : metricsData ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(1, 1fr)', gap: '20px' }}>
+                        
+                        {/* 1. Pagos por Monto & Popularidad de Planes */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+                            {/* Distribución por precio (personas que pagan X monto) */}
+                            <div style={{ background: 'var(--color-surface-2)', padding: '16px', borderRadius: '12px' }}>
+                                <h4 style={{ fontSize: '12px', fontWeight: 600, marginBottom: '16px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Frecuencia de Pagos por Monto</h4>
+                                <ResponsiveContainer width="100%" height={220}>
+                                    <BarChart data={metricsData.byPrice} layout="vertical" margin={{ top: 0, right: 10, left: -20, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(148,163,184,0.08)" />
+                                        <XAxis type="number" stroke="#64748B" fontSize={10} tickLine={false} axisLine={false} />
+                                        <YAxis dataKey="amount" type="category" width={50} stroke="#64748B" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `S/${v}`} />
+                                        <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ background: '#1F2937', border: '1px solid rgba(148,163,184,0.12)', borderRadius: '10px', fontSize: '12px' }} formatter={(v) => [`${v} pago(s)`, 'Cantidad']} />
+                                        <Bar dataKey="count" fill="#F59E0B" radius={[0, 4, 4, 0]}>
+                                            {metricsData.byPrice.map((entry: any, index: number) => (
+                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+
+                            {/* Popularidad de Planes (De determinada membresía cuántas personas) */}
+                            <div style={{ background: 'var(--color-surface-2)', padding: '16px', borderRadius: '12px' }}>
+                                <h4 style={{ fontSize: '12px', fontWeight: 600, marginBottom: '16px', color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>Top Membresías Vendidas</h4>
+                                <ResponsiveContainer width="100%" height={220}>
+                                    <BarChart data={metricsData.byPlan} margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.08)" />
+                                        <XAxis dataKey="plan" stroke="#64748B" fontSize={10} tickLine={false} axisLine={false} />
+                                        <YAxis stroke="#64748B" fontSize={10} tickLine={false} axisLine={false} allowDecimals={false} />
+                                        <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ background: '#1F2937', border: '1px solid rgba(148,163,184,0.12)', borderRadius: '10px', fontSize: '12px' }} formatter={(v) => [`${v} venta(s)`, 'Cantidad']} />
+                                        <Bar dataKey="count" fill="#3B82F6" radius={[4, 4, 0, 0]}>
+                                            {metricsData.byPlan.map((entry: any, index: number) => (
+                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        {/* 2. Distribución de Ingresos (Membresías vs Pases Diarios) */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                            {[
+                                { label: 'De Membresías', value: metricsData.incomeDistribution.membership, color: '#7C3AED' },
+                                { label: 'De Pases Diarios', value: metricsData.incomeDistribution.dailyPass, color: '#10B981' },
+                                { label: 'Otros (POS)', value: metricsData.incomeDistribution.other, color: '#06B6D4' },
+                            ].map((item, i) => (
+                                <div key={i} style={{ padding: '16px', borderRadius: '12px', background: 'var(--color-surface-2)', borderLeft: `4px solid ${item.color}` }}>
+                                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>{item.label}</div>
+                                    <div style={{ fontSize: '24px', fontWeight: 800, color: item.color }}>
+                                        S/{Number(item.value || 0).toFixed(2)}
+                                    </div>
+                                    <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+                                        {metricsData.incomeDistribution.total > 0 
+                                            ? `${((item.value / metricsData.incomeDistribution.total) * 100).toFixed(1)}% del total`
+                                            : '0% del total'}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                    </div>
+                ) : (
+                    <div className="empty-state">No hay métricas disponibles</div>
+                )}
             </div>
 
             {/* Daily Report */}

@@ -222,6 +222,13 @@ export const financeApi = {
         if (params?.period) q.set('period', params.period);
         return api<any[]>(`/finance/receptionist-income?${q.toString()}`);
     },
+    metrics: (params?: { from?: string; to?: string; period?: string }) => {
+        const q = new URLSearchParams();
+        if (params?.from) q.set('from', params.from);
+        if (params?.to) q.set('to', params.to);
+        if (params?.period) q.set('period', params.period);
+        return api<any>(`/finance/metrics?${q.toString()}`);
+    },
 };
 
 // ===== Users =====

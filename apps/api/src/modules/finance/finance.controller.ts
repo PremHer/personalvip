@@ -55,6 +55,16 @@ export class FinanceController {
         });
     }
 
+    @Get('metrics')
+    @Roles('ADMIN', 'OWNER')
+    getMetrics(
+        @Query('from') from?: string,
+        @Query('to') to?: string,
+        @Query('period') period?: 'today' | 'week' | 'month' | 'year' | 'all'
+    ) {
+        return this.service.getMetrics({ from, to, period });
+    }
+
     @Post('cash-register/open')
     @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
     openCashRegister(

@@ -363,6 +363,85 @@ export class FinanceService {
         return Array.from(usersMap.values());
     }
 
+    /**
+     * Get advanced metrics: Payment distributions (by amount paid, by plan) and income by origin
+     */
+    async getMetrics(params: { from?: string; to?: string; period?: 'today' | 'week' | 'month' | 'year' | 'all' }) {
+        const { from, to, period = 'month' } = params;
+        const where: any = {};
+
+        if (from || to) {
+            where.createdAt = {};
+            if (from) where.createdAt.gte = dayStartPeru(from);
+            if (to) where.createdAt.lte = dayEndPeru(to);
+        } else {
+            const now = new Date();
+            let startDate: Date | undefined;
+            if (period === 'today') startDate = todayStartPeru();
+            else if (period === 'week') { startDate = new Date(now); startDate.setDate(now.getDate() - 7); }
+            else if (period === 'month') { startDate = new Date(now.getFullYear(), now.getMonth(), 1); }
+            else if (period === 'year') { startDate = new Date(now.getFullYear(), 0, 1); }
+
+            if (startDate) {
+                where.createdAt = { gte: startDate };
+            }
+        }
+
+        const payments = await this.prisma.payment.findMany({
+            where,
+            include: {
+                membership: { include: { plan: true } },
+                sale: { include: { items: { include: { product: true } } } },
+            },
+        });
+
+        const byPriceMap = new Map<number, number>();
+        const byPlanMap = new Map<string, number>();
+        let incomeMembership = 0;
+        let incomeDailyPass = 0;
+        let incomeOther = 0;
+
+        for (const p of payments) {
+            const amt = Number(p.amount);
+            
+            // By Price Paid 
+            byPriceMap.set(amt, (byPriceMap.get(amt) || 0) + 1);
+
+            if (p.membership) {
+                const planName = p.membership.plan.name;
+                byPlanMap.set(planName, (byPlanMap.get(planName) || 0) + 1);
+                incomeMembership += amt;
+            } else if (p.sale) {
+                const isDailyPass = p.sale.items.some(i => i.product.name.toLowerCase().includes('pase diario') || i.product.name.toLowerCase().includes('diario') || i.product.name.toLowerCase().includes('visita'));
+                if (isDailyPass) incomeDailyPass += amt;
+                else incomeOther += amt;
+            } else if (p.notes && p.notes.toLowerCase().includes('pase diario')) {
+                incomeDailyPass += amt;
+            } else {
+                incomeOther += amt;
+            }
+        }
+
+        const byPrice = Array.from(byPriceMap.entries())
+            .map(([amount, count]) => ({ amount, count }))
+            .sort((a, b) => b.amount - a.amount);
+
+        const byPlan = Array.from(byPlanMap.entries())
+            .map(([plan, count]) => ({ plan, count }))
+            .sort((a, b) => b.count - a.count);
+
+        return {
+            byPrice,
+            byPlan,
+            incomeDistribution: {
+                membership: incomeMembership,
+                dailyPass: incomeDailyPass,
+                other: incomeOther,
+                total: incomeMembership + incomeDailyPass + incomeOther
+            }
+        };
+    }
+
     // ===== Cash Register =====
     async openCashRegister(userId: string, openingAmount: number) {
         return this.prisma.cashRegister.create({
