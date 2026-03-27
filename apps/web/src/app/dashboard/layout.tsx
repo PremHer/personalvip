@@ -6,6 +6,7 @@ import { useUI } from '@/lib/ui-context';
 import { useRouter, usePathname } from 'next/navigation';
 import { useEffect, ReactNode, useState, useRef } from 'react';
 import Link from 'next/link';
+import PaymentReceipt from '@/components/PaymentReceipt';
 import {
     LayoutDashboard, Users, CreditCard, ClipboardList, ShoppingCart,
     Package, Wrench, BarChart3, Shield, LogOut, Menu, X,
@@ -68,6 +69,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     const [dpForm, setDpForm] = useState({ name: '', phone: '', amountPaid: 8, paymentMethod: 'CASH', receiptUrl: '' });
     const [dpSaving, setDpSaving] = useState(false);
     const [dpResult, setDpResult] = useState<any>(null);
+
+    // Receipt context
+    const [receiptData, setReceiptData] = useState<any>(null);
 
     // Theme toggle
     const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -725,12 +729,32 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                     QR: <code style={{ background: 'var(--color-surface-2)', padding: '2px 6px', borderRadius: '4px' }}>{dpResult.qrCode}</code>
                                 </p>
                                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                                    <button className="btn-primary" onClick={() => setShowDailyPassModal(false)}>Listo</button>
+                                    <button type="button" className="btn-secondary" onClick={() => {
+                                        setReceiptData({
+                                            type: 'PASE DIARIO',
+                                            clientName: dpResult.name,
+                                            amount: Number(dpForm.amountPaid),
+                                            paymentMethod: dpForm.paymentMethod,
+                                            date: new Date(),
+                                            cashierName: user?.name || 'Caja'
+                                        });
+                                    }}>
+                                        <Receipt size={14} style={{ marginRight: '4px' }} /> Ver Comprobante
+                                    </button>
+                                    <button className="btn-primary" onClick={() => {
+                                        setShowDailyPassModal(false);
+                                        setReceiptData(null);
+                                    }}>Listo</button>
                                 </div>
                             </div>
                         )}
                     </div>
                 </div>
+            )}
+
+            {/* Receipt Modal */}
+            {receiptData && (
+                <PaymentReceipt data={receiptData} onClose={() => setReceiptData(null)} />
             )}
         </>
     );
