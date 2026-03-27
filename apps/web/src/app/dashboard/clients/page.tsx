@@ -364,11 +364,11 @@ export default function ClientsPage() {
                     clientName = dpForm.name.trim();
                 }
                 await membershipsApi.dailyPass({ clientId, amountPaid: Number(dpForm.amountPaid), paymentMethod: dpForm.paymentMethod, receiptUrl: dpForm.receiptUrl });
-                const fullClient = await clientsApi.get(clientId);
-                setDpResult(fullClient);
-                setDpStep('result');
 
-                // Show receipt for daily pass
+                // Close daily pass modal and show receipt
+                setShowDailyPassModal(false);
+                setDpStep('search'); setDpDni(''); setDpFound(null); setDpResult(null);
+
                 setReceiptData({
                     type: 'PASE DIARIO',
                     clientName: clientName,
@@ -377,8 +377,6 @@ export default function ClientsPage() {
                     date: new Date(),
                 });
 
-                setShowDailyPassModal(false);
-                setDpStep('search'); setDpDni(''); setDpFound(null);
                 toast('✅ Pase Diario asignado correctamente');
                 loadClients();
             }
