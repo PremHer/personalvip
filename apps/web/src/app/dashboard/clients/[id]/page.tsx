@@ -6,7 +6,7 @@ import { clientsApi, attendanceApi, membershipsApi } from '@/lib/api';
 import {
     ArrowLeft, User, Mail, Phone, Calendar, Activity,
     Clock, Shield, AlertTriangle, Heart, UserCheck,
-    TrendingUp, Star, DollarSign, X, Trash2, Download
+    TrendingUp, Star, DollarSign, X, Trash2, Download, Snowflake, Play
 } from 'lucide-react';
 import MembershipCalendar from '@/components/MembershipCalendar';
 import PaymentReceipt from '@/components/PaymentReceipt';
@@ -25,6 +25,11 @@ export default function ClientProfilePage() {
     const [paymentMethod, setPaymentMethod] = useState('CASH');
     const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
     const [receiptData, setReceiptData] = useState<any>(null);
+
+    // Freeze membership
+    const [showFreezeModal, setShowFreezeModal] = useState(false);
+    const [freezeMembershipId, setFreezeMembershipId] = useState('');
+    const [freezeAutoDate, setFreezeAutoDate] = useState('');
 
     useEffect(() => {
         if (!clientId) return;
@@ -116,6 +121,34 @@ export default function ClientProfilePage() {
             setClient(c);
         } catch (error: any) {
             alert(error.message || 'Error eliminando membresía');
+        }
+    };
+
+    const openFreezeModal = (id: string) => {
+        setFreezeMembershipId(id);
+        setFreezeAutoDate('');
+        setShowFreezeModal(true);
+    };
+
+    const handleFreezeSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            await membershipsApi.freeze(freezeMembershipId, freezeAutoDate ? { autoUnfreezeDate: freezeAutoDate } : undefined);
+            setShowFreezeModal(false);
+            const c = await clientsApi.get(clientId);
+            setClient(c);
+        } catch (err: any) {
+            alert(err.message || 'Error al congelar membresía');
+        }
+    };
+
+    const handleUnfreeze = async (id: string) => {
+        try {
+            await membershipsApi.unfreeze(id);
+            const c = await clientsApi.get(clientId);
+            setClient(c);
+        } catch (err: any) {
+            alert(err.message || 'Error al descongelar membresía');
         }
     };
 
@@ -396,9 +429,29 @@ export default function ClientProfilePage() {
                                                 </div>
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <span className={`badge ${isActive ? 'badge-active' : m.status === 'EXPIRED' ? 'badge-expired' : 'badge-warning'}`} style={{ fontSize: '10px' }}>
+                                                <span className={`badge ${isActive ? 'badge-active' : m.status === 'EXPIRED' ? 'badge-expired' : m.status === 'FROZEN' ? 'badge-frozen' : 'badge-warning'}`} style={{ fontSize: '10px' }}>
                                                     {isActive ? 'Activa' : m.status === 'EXPIRED' ? 'Expirada' : m.status === 'FROZEN' ? 'Congelada' : m.status}
                                                 </span>
+                                                {m.status === 'ACTIVE' && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); openFreezeModal(m.id); }}
+                                                        className="btn-icon info"
+                                                        title="Congelar Membresía"
+                                                        style={{ padding: '4px', background: 'rgba(6,182,212,0.1)', color: '#06B6D4', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
+                                                    >
+                                                        <Snowflake size={13} />
+                                                    </button>
+                                                )}
+                                                {m.status === 'FROZEN' && (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleUnfreeze(m.id); }}
+                                                        className="btn-icon success"
+                                                        title="Descongelar Membresía"
+                                                        style={{ padding: '4px', background: 'rgba(16,185,129,0.1)', color: '#10B981', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
+                                                    >
+                                                        <Play size={13} />
+                                                    </button>
+                                                )}
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); handleDeleteMembership(m.id); }}
                                                     className="btn-icon danger"
@@ -573,6 +626,42 @@ export default function ClientProfilePage() {
             {/* Payment Receipt Modal */}
             {receiptData && (
                 <PaymentReceipt data={receiptData} onClose={() => setReceiptData(null)} />
+            )}
+
+            {/* Freeze Membership Modal */}
+            {showFreezeModal && (
+                <div className="modal-overlay" onClick={() => setShowFreezeModal(false)}>
+                    <div className="modal-card slide-up" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h2 style={{ fontSize: '16px', fontWeight: 700 }}>❄️ Congelar Membresía</h2>
+                            <button className="btn-icon" onClick={() => setShowFreezeModal(false)}><X size={20} /></button>
+                        </div>
+                        <div style={{ padding: '12px', background: 'rgba(6,182,212,0.06)', border: '1px solid rgba(6,182,212,0.2)', borderRadius: '10px', marginBottom: '16px' }}>
+                            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                                Al congelar, la membresía se pausa. Los días congelados se suman al vencimiento al descongelar.
+                            </p>
+                        </div>
+                        <form onSubmit={handleFreezeSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <div>
+                                <label className="form-label">Fecha de Auto-Reactivación (Opcional)</label>
+                                <input type="date" className="input-field" 
+                                    value={freezeAutoDate} 
+                                    onChange={e => setFreezeAutoDate(e.target.value)} 
+                                    min={new Date().toISOString().slice(0, 10)}
+                                />
+                                <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+                                    Si la dejas vacía, deberás descongelar manualmente.
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                <button type="button" className="btn-secondary" onClick={() => setShowFreezeModal(false)}>Cancelar</button>
+                                <button type="submit" className="btn-primary" style={{ background: '#06B6D4' }}>
+                                    <Snowflake size={14} style={{ marginRight: '4px' }} /> Congelar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             )}
         </div>
     );

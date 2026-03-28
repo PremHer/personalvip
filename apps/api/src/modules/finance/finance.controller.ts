@@ -56,7 +56,7 @@ export class FinanceController {
     }
 
     @Get('metrics')
-    @Roles('ADMIN', 'OWNER')
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
     getMetrics(
         @Query('from') from?: string,
         @Query('to') to?: string,
