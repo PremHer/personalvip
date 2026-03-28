@@ -23,8 +23,8 @@ export class MembershipsController {
 
     @Patch(':id/freeze')
     @Roles('ADMIN', 'OWNER')
-    freeze(@Param('id') id: string) {
-        return this.service.freeze(id);
+    freeze(@Param('id') id: string, @Body() data?: { autoUnfreezeDate?: string }) {
+        return this.service.freeze(id, data?.autoUnfreezeDate);
     }
 
     @Patch(':id/unfreeze')

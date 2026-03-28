@@ -121,6 +121,8 @@ model Membership {
   status     MembershipStatus @default(ACTIVE)
   amountPaid Decimal          @map("amount_paid") @db.Decimal(10, 2)
   discount   Decimal          @default(0) @db.Decimal(10, 2)
+  frozenAt   DateTime?        @map("frozen_at")
+  autoUnfreezeDate DateTime?  @map("auto_unfreeze_date") @db.Date
   createdBy  String           @map("created_by")
   createdAt  DateTime         @default(now()) @map("created_at")
   updatedAt  DateTime         @updatedAt @map("updated_at")

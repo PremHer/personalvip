@@ -146,7 +146,7 @@ export const membershipsApi = {
     addPayment: (id: string, data: { amountPaid: number; paymentMethod: string; receiptUrl?: string }) =>
         api<any>(`/memberships/${id}/payments`, { method: 'POST', body: data }),
     getPayments: (id: string) => api<any[]>(`/memberships/${id}/payments`),
-    freeze: (id: string) => api<any>(`/memberships/${id}/freeze`, { method: 'PATCH' }),
+    freeze: (id: string, data?: { autoUnfreezeDate?: string }) => api<any>(`/memberships/${id}/freeze`, { method: 'PATCH', body: data }),
     unfreeze: (id: string) => api<any>(`/memberships/${id}/unfreeze`, { method: 'PATCH' }),
     cancel: (id: string) => api<any>(`/memberships/${id}/cancel`, { method: 'PATCH' }),
     delete: (id: string) => api(`/memberships/${id}`, { method: 'DELETE' }),

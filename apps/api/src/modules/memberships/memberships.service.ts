@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../prisma/prisma.service';
 import { todayStartPeru, dayStartPeru, dayEndPeru } from '../../common/timezone';
 
@@ -126,14 +127,18 @@ export class MembershipsService {
         });
     }
 
-    async freeze(id: string) {
+    async freeze(id: string, autoUnfreezeDate?: string) {
         const membership = await this.prisma.membership.findUnique({ where: { id } });
         if (!membership) throw new NotFoundException('Membresía no encontrada');
         if (membership.status !== 'ACTIVE') throw new BadRequestException('Solo se puede congelar una membresía activa');
 
         return this.prisma.membership.update({
             where: { id },
-            data: { status: 'FROZEN' },
+            data: { 
+                status: 'FROZEN',
+                frozenAt: new Date(),
+                autoUnfreezeDate: autoUnfreezeDate ? dayStartPeru(autoUnfreezeDate) : null
+            },
         });
     }
 
@@ -142,10 +147,53 @@ export class MembershipsService {
         if (!membership) throw new NotFoundException('Membresía no encontrada');
         if (membership.status !== 'FROZEN') throw new BadRequestException('Solo se puede descongelar una membresía congelada');
 
+        let endDate = membership.endDate;
+        if (membership.frozenAt) {
+            const now = new Date();
+            const freezeTime = now.getTime() - new Date(membership.frozenAt).getTime();
+            // Calcular diferencia en días exactos matemáticos. (Si congeló por horas, no cuenta mínimo de 1 día, pero asumo mínimo 1 si freezeTime > 0)
+            const daysFrozen = Math.max(1, Math.floor(freezeTime / (1000 * 60 * 60 * 24)));
+            
+            // Añadir los días pausados al endDate
+            endDate = new Date(membership.endDate);
+            endDate.setDate(endDate.getDate() + daysFrozen);
+        }
+
         return this.prisma.membership.update({
             where: { id },
-            data: { status: 'ACTIVE' },
+            data: { 
+                status: 'ACTIVE',
+                endDate,
+                frozenAt: null,
+                autoUnfreezeDate: null
+            },
         });
+    }
+
+    @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+    async handleAutoUnfreeze() {
+        // Ejecución diaria a media noche para encontrar membresías programadas a reactivarse
+        const today = dayStartPeru(new Date());
+        
+        const toUnfreeze = await this.prisma.membership.findMany({
+            where: {
+                status: 'FROZEN',
+                autoUnfreezeDate: { not: null, lte: today },
+            },
+            select: { id: true },
+        });
+
+        for (const m of toUnfreeze) {
+            try {
+                await this.unfreeze(m.id);
+            } catch (error) {
+                console.error(`[AutoUnfreeze] Error descongelando membresía ${m.id}:`, error);
+            }
+        }
+        
+        if (toUnfreeze.length > 0) {
+            console.log(`[AutoUnfreeze] Completado. ${toUnfreeze.length} membresías reactivadas.`);
+        }
     }
 
     async cancel(id: string) {

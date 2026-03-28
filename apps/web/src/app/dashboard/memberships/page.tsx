@@ -98,6 +98,9 @@ export default function MembershipsPage() {
     const [showPlanModal, setShowPlanModal] = useState(false);
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
+    const [showFreezeModal, setShowFreezeModal] = useState(false);
+    const [freezeMembershipId, setFreezeMembershipId] = useState('');
+    const [freezeAutoDate, setFreezeAutoDate] = useState('');
     const [planForm, setPlanForm] = useState({ name: '', durationDays: 30, price: 0, description: '' });
     const [assignForm, setAssignForm] = useState({ clientId: '', planId: '', amountPaid: 0, paymentMethod: 'CASH', receiptUrl: '', startDate: format(new Date(), 'yyyy-MM-dd'), endDate: undefined as string | undefined, discountAmount: '' as string | number, discountDescription: '' });
     const [assignMode, setAssignMode] = useState<'replace' | 'queue'>('queue');
@@ -218,7 +221,8 @@ export default function MembershipsPage() {
         } catch (e: any) { toast(e.message || 'Error al asignar', 'error'); }
     };
 
-    const handleFreeze = async (id: string) => { const ok = await confirm({ title: '¿Congelar membresía?', message: 'La membresía se pausará temporalmente.', confirmText: 'Congelar' }); if (ok) { await membershipsApi.freeze(id); toast('Membresía congelada'); loadData(); } };
+    const openFreezeModal = (id: string) => { setFreezeMembershipId(id); setFreezeAutoDate(''); setShowFreezeModal(true); };
+    const handleFreezeSubmit = async (e: React.FormEvent) => { e.preventDefault(); try { await membershipsApi.freeze(freezeMembershipId, freezeAutoDate ? { autoUnfreezeDate: freezeAutoDate } : undefined); toast('Membresía congelada'); setShowFreezeModal(false); loadData(); } catch (err: any) { toast(err.message || 'Error', 'error'); } };
     const handleUnfreeze = async (id: string) => { await membershipsApi.unfreeze(id); toast('Membresía reactivada'); loadData(); };
     const handleCancel = async (id: string) => { const ok = await confirm({ title: '¿Cancelar membresía?', message: 'Esta acción no se puede deshacer.', confirmText: 'Cancelar Membresía', danger: true }); if (ok) { await membershipsApi.cancel(id); toast('Membresía cancelada'); loadData(); } };
 
@@ -283,7 +287,7 @@ export default function MembershipsPage() {
                                     <td><span className={`badge badge-${m.status === 'ACTIVE' ? 'active' : m.status === 'FROZEN' ? 'frozen' : 'cancelled'}`}>{m.status}</span></td>
                                     <td>
                                         <div style={{ display: 'flex', gap: '4px' }}>
-                                            {m.status === 'ACTIVE' && <button className="btn-icon info" onClick={() => handleFreeze(m.id)} title="Congelar"><Snowflake size={14} /></button>}
+                                            {m.status === 'ACTIVE' && <button className="btn-icon info" onClick={() => openFreezeModal(m.id)} title="Congelar"><Snowflake size={14} /></button>}
                                             {m.status === 'FROZEN' && <button className="btn-icon success" onClick={() => handleUnfreeze(m.id)} title="Descongelar"><Play size={14} /></button>}
                                             <button className="btn-icon danger" onClick={() => handleCancel(m.id)} title="Cancelar"><Ban size={14} /></button>
                                         </div>
@@ -560,6 +564,42 @@ export default function MembershipsPage() {
                                 <button type="submit" className="btn-primary"><DollarSign size={14} /> Asignar{extraSlotsNeeded > 0 ? ` (${extraSlotsNeeded + 1} clientes)` : ''}</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal de Congelamiento */}
+            {showFreezeModal && (
+                <div className="modal-overlay" onClick={() => setShowFreezeModal(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', width: '90%' }}>
+                        <div className="modal-header">
+                            <h2 style={{ fontSize: '18px', fontWeight: 600 }}>Congelar Membresía</h2>
+                            <button className="btn-icon" onClick={() => setShowFreezeModal(false)}><X size={20} /></button>
+                        </div>
+                        <div className="modal-body" style={{ padding: '24px' }}>
+                            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '20px', lineHeight: 1.5 }}>
+                                La membresía se pausará temporalmente y los días no consumidos se reservarán para sumarse al final automáticamente.
+                            </p>
+                            <form onSubmit={handleFreezeSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <div className="form-group">
+                                    <label className="form-label" style={{ marginBottom: '4px' }}>Fecha de retorno automático (Opcional)</label>
+                                    <input 
+                                        type="date" 
+                                        className="input-field" 
+                                        value={freezeAutoDate} 
+                                        onChange={e => setFreezeAutoDate(e.target.value)} 
+                                        min={new Date().toISOString().split('T')[0]} 
+                                    />
+                                    <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '6px', display: 'block', lineHeight: 1.4 }}>
+                                        Si la dejas en blanco, tendrás que descongelarla manualmente haciendo click en el botón Play cuando el cliente regrese.
+                                    </span>
+                                </div>
+                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '12px' }}>
+                                    <button type="button" className="btn-secondary" onClick={() => setShowFreezeModal(false)}>Cancelar</button>
+                                    <button type="submit" className="btn-primary" style={{ background: '#06B6D4' }}><Snowflake size={14} /> Congelar ahora</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             )}
