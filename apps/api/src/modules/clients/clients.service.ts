@@ -20,6 +20,8 @@ export class ClientsService {
             }
             : {};
 
+        const todayStart = dayStartPeru(new Date());
+
         const [data, total] = await Promise.all([
             this.prisma.client.findMany({
                 where,
@@ -30,6 +32,11 @@ export class ClientsService {
                         where: { status: 'ACTIVE' },
                         include: { plan: true, payments: true },
                         orderBy: { endDate: 'desc' },
+                    },
+                    attendances: {
+                        where: { checkIn: { gte: todayStart } },
+                        take: 1,
+                        orderBy: { checkIn: 'desc' },
                     },
                 },
                 orderBy: { createdAt: 'desc' },
@@ -50,11 +57,16 @@ export class ClientsService {
                 // Find upcoming (queued) membership
                 const upcomingMembership = client.memberships.find(m => new Date(m.startDate) > now) || null;
 
+                // Detect daily pass: client checked in today but has NO active membership
+                const hasDailyPassToday = !activeMembership && (client as any).attendances?.length > 0;
+
                 return {
                     ...client,
                     activeMembership,
                     upcomingMembership,
+                    hasDailyPassToday,
                     memberships: undefined,
+                    attendances: undefined,
                 };
             }),
             total,

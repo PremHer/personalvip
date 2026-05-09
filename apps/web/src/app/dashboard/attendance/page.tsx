@@ -370,7 +370,7 @@ export default function AttendancePage() {
                     <table className="data-table">
                         <thead><tr>
                             {viewMode === 'history' && <th>Fecha</th>}
-                            <th>Cliente</th><th>Entrada</th><th>Salida</th><th>Método</th><th>Estado</th>
+                            <th>Cliente</th><th>Tipo</th><th>Entrada</th><th>Salida</th><th>Método</th><th>Estado</th>
                             {viewMode === 'today' && <th style={{ width: '80px' }}>Acciones</th>}
                         </tr></thead>
                         <tbody>
@@ -378,6 +378,13 @@ export default function AttendancePage() {
                                 <tr key={r.id}>
                                     {viewMode === 'history' && <td>{formatDate(r.checkIn)}</td>}
                                     <td style={{ fontWeight: 500, color: 'var(--color-text)' }}>{r.client?.name}</td>
+                                    <td>
+                                        {r.client?.activeMembership ? (
+                                            <span className="badge badge-active" style={{ fontSize: '10px' }}>Membresía</span>
+                                        ) : (
+                                            <span className="badge" style={{ background: 'rgba(245,158,11,0.15)', color: '#F59E0B', fontSize: '10px', fontWeight: 700 }}>⚡ Pase Diario</span>
+                                        )}
+                                    </td>
                                     <td>{formatTime(r.checkIn)}</td>
                                     <td>{formatTime(r.checkOut)}</td>
                                     <td><span className="badge badge-primary">{r.method}</span></td>
@@ -394,7 +401,7 @@ export default function AttendancePage() {
                                 </tr>
                             ))}
                             {records.length === 0 && (
-                                <tr><td colSpan={viewMode === 'history' ? 6 : 6} className="empty-state">
+                                <tr><td colSpan={viewMode === 'history' ? 7 : 7} className="empty-state">
                                     {viewMode === 'today' ? 'No hay registros de asistencia hoy' : 'No hay registros para el período seleccionado'}
                                 </td></tr>
                             )}

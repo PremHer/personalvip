@@ -245,13 +245,41 @@ export class AttendanceService {
 
     async getTodayAttendance() {
         const today = todayStartPeru();
+        const now = new Date();
 
-        return this.prisma.attendance.findMany({
+        const records = await this.prisma.attendance.findMany({
             where: { checkIn: { gte: today } },
             include: {
-                client: { select: { id: true, name: true, photoUrl: true } },
+                client: {
+                    select: {
+                        id: true, name: true, photoUrl: true,
+                        memberships: {
+                            where: { status: 'ACTIVE' },
+                            include: { plan: true },
+                            orderBy: { endDate: 'desc' },
+                        },
+                    },
+                },
             },
             orderBy: { checkIn: 'desc' },
+        });
+
+        // Attach activeMembership to each client
+        return records.map(r => {
+            const activeMembership = (r.client as any).memberships?.find((m: any) => {
+                const start = new Date(m.startDate);
+                const end = new Date(m.endDate);
+                return start <= now && end >= now;
+            }) || null;
+            return {
+                ...r,
+                client: {
+                    id: r.client.id,
+                    name: r.client.name,
+                    photoUrl: r.client.photoUrl,
+                    activeMembership,
+                },
+            };
         });
     }
 
@@ -278,11 +306,21 @@ export class AttendanceService {
             }
         }
 
+        const now = new Date();
         const [records, total] = await Promise.all([
             this.prisma.attendance.findMany({
                 where,
                 include: {
-                    client: { select: { id: true, name: true, photoUrl: true } },
+                    client: {
+                        select: {
+                            id: true, name: true, photoUrl: true,
+                            memberships: {
+                                where: { status: 'ACTIVE' },
+                                include: { plan: true },
+                                orderBy: { endDate: 'desc' },
+                            },
+                        },
+                    },
                 },
                 orderBy: { checkIn: 'desc' },
                 skip: (page - 1) * limit,
@@ -291,7 +329,25 @@ export class AttendanceService {
             this.prisma.attendance.count({ where }),
         ]);
 
-        return { data: records, total, page, totalPages: Math.ceil(total / limit) };
+        // Attach activeMembership to each client
+        const data = records.map(r => {
+            const activeMembership = (r.client as any).memberships?.find((m: any) => {
+                const start = new Date(m.startDate);
+                const end = new Date(m.endDate);
+                return start <= now && end >= now;
+            }) || null;
+            return {
+                ...r,
+                client: {
+                    id: r.client.id,
+                    name: r.client.name,
+                    photoUrl: r.client.photoUrl,
+                    activeMembership,
+                },
+            };
+        });
+
+        return { data, total, page, totalPages: Math.ceil(total / limit) };
     }
 
     /**

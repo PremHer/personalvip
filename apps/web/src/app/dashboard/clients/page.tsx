@@ -448,11 +448,11 @@ export default function ClientsPage() {
                 <div className="stat-card orange">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(245,158,11,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Users size={18} color="var(--color-warning)" />
+                            <Zap size={18} color="var(--color-warning)" />
                         </div>
                         <div>
-                            <div style={{ fontSize: '20px', fontWeight: 700 }}>{clients.filter(c => !c.activeMembership || c.activeMembership.status !== 'ACTIVE').length}</div>
-                            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Sin Membresía</div>
+                            <div style={{ fontSize: '20px', fontWeight: 700 }}>{clients.filter(c => c.hasDailyPassToday).length}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Pases Diarios Hoy</div>
                         </div>
                     </div>
                 </div>
@@ -468,10 +468,10 @@ export default function ClientsPage() {
             {/* Filters */}
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', gap: '4px', background: 'var(--color-surface)', borderRadius: '10px', padding: '3px', border: '1px solid var(--color-border)' }}>
-                    {[{ val: '', label: 'Todos' }, { val: 'active', label: 'Con Membresía' }, { val: 'expired', label: 'Vencida' }, { val: 'none', label: 'Sin Membresía' }].map(f => (
+                    {[{ val: '', label: 'Todos' }, { val: 'active', label: 'Con Membresía' }, { val: 'expired', label: 'Vencida' }, { val: 'none', label: 'Sin Membresía' }, { val: 'daily', label: '⚡ Pase Diario' }].map(f => (
                         <button key={f.val} onClick={() => setMemberFilter(f.val)} style={{
                             padding: '5px 12px', borderRadius: '8px', border: 'none', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
-                            background: memberFilter === f.val ? 'var(--color-primary)' : 'transparent',
+                            background: memberFilter === f.val ? (f.val === 'daily' ? '#F59E0B' : 'var(--color-primary)') : 'transparent',
                             color: memberFilter === f.val ? 'white' : 'var(--color-text-muted)',
                             transition: 'all 0.15s',
                         }}>{f.label}</button>
@@ -482,84 +482,132 @@ export default function ClientsPage() {
             {/* Table */}
             {loading ? (
                 <SkeletonTable rows={8} cols={5} />
-            ) : (
-                <div className="table-container">
-                    <table className="data-table">
-                        <thead>
-                            <tr><th>Nombre</th><th>DNI</th><th>Email</th><th>Teléfono</th><th>Membresía</th><th>Vence</th><th>Estado</th><th style={{ width: '120px' }}>Acciones</th></tr>
-                        </thead>
-                        <tbody>
-                            {clients.filter(c => {
-                                if (!memberFilter) return true;
-                                if (memberFilter === 'active') return c.activeMembership?.status === 'ACTIVE';
-                                if (memberFilter === 'expired') return c.activeMembership && c.activeMembership.status !== 'ACTIVE';
-                                if (memberFilter === 'none') return !c.activeMembership;
-                                return true;
-                            }).map((c) => {
-                                const mem = c.activeMembership || c.upcomingMembership;
-                                return (
-                                    <tr key={c.id}>
-                                        <td style={{ fontWeight: 500, color: 'var(--color-text)' }}>{c.name}</td>
-                                        <td style={{ fontSize: '12px', fontFamily: 'monospace' }}>{c.dni || '—'}</td>
-                                        <td>{c.email || '—'}</td>
-                                        <td>{c.phone || '—'}</td>
-                                        <td>
-                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                                <span>{mem?.plan?.name || <span style={{ color: 'var(--color-text-muted)' }}>—</span>}</span>
-                                                {mem && mem.plan && (
-                                                    (() => {
-                                                        const paid = mem.payments?.length > 0
-                                                            ? mem.payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0)
-                                                            : Number(mem.amountPaid || 0);
-                                                        const price = Number(mem.plan.price);
-                                                        const discount = Number(mem.discount || 0);
-                                                        const debt = price - paid - discount;
-                                                        if (debt > 0) return <span className="badge badge-error" style={{ fontSize: '9px', alignSelf: 'flex-start' }}>Deuda S/ {debt.toFixed(2)}</span>;
-                                                        return null;
-                                                    })()
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            {mem?.endDate ? (
-                                                <span style={{ fontSize: '12px', color: (!c.activeMembership && c.upcomingMembership) ? 'var(--color-secondary)' : (new Date(mem.endDate) < new Date() ? 'var(--color-danger)' : 'var(--color-text-secondary)') }}>
-                                                    {(() => {
-                                                        const dParts = mem.endDate.split('T')[0].split('-');
-                                                        return new Date(Number(dParts[0]), Number(dParts[1]) - 1, Number(dParts[2])).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
-                                                    })()}
-                                                </span>
-                                            ) : '—'}
-                                        </td>
-                                        <td>
-                                            {c.activeMembership?.status === 'ACTIVE' ? (
-                                                <span className="badge badge-active">Activo</span>
-                                            ) : c.upcomingMembership ? (
-                                                <span className="badge" style={{ background: 'rgba(6,182,212,0.15)', color: 'var(--color-secondary)' }}>En Cola</span>
-                                            ) : c.activeMembership?.status === 'FROZEN' ? (
-                                                <span className="badge badge-frozen">Congelado</span>
-                                            ) : (
-                                                <span className="badge badge-cancelled">Inactivo</span>
-                                            )}
-                                        </td>
-                                        <td>
-                                            <div style={{ display: 'flex', gap: '4px' }}>
-                                                <button className="btn-icon info" onClick={() => router.push(`/dashboard/clients/${c.id}`)} title="Ver perfil"><Eye size={14} /></button>
-                                                <button className="btn-icon" onClick={() => openQr(c)} title="Ver QR" style={{ color: 'var(--color-primary)' }}><QrCode size={14} /></button>
-                                                <button className="btn-icon success" onClick={() => openAssign(c)} title="Asignar membresía"><CreditCard size={14} /></button>
-                                                <button className="btn-icon" onClick={() => openEdit(c)} title="Editar"><Edit size={14} /></button>
-                                                <button className="btn-icon danger" onClick={() => handleDelete(c.id, c.name)} title="Eliminar"><Trash2 size={14} /></button>
-                                            </div>
+            ) : (() => {
+                // Separate members from daily passes
+                const filteredClients = clients.filter(c => {
+                    if (memberFilter === 'active') return c.activeMembership?.status === 'ACTIVE';
+                    if (memberFilter === 'expired') return c.activeMembership && c.activeMembership.status !== 'ACTIVE';
+                    if (memberFilter === 'none') return !c.activeMembership && !c.hasDailyPassToday;
+                    if (memberFilter === 'daily') return c.hasDailyPassToday;
+                    return true; // 'all'
+                });
+
+                const memberClients = filteredClients.filter(c => !c.hasDailyPassToday);
+                const dailyPassClients = filteredClients.filter(c => c.hasDailyPassToday);
+
+                const renderRow = (c: any) => {
+                    const mem = c.activeMembership || c.upcomingMembership;
+                    return (
+                        <tr key={c.id}>
+                            <td style={{ fontWeight: 500, color: 'var(--color-text)' }}>{c.name}</td>
+                            <td style={{ fontSize: '12px', fontFamily: 'monospace' }}>{c.dni || '—'}</td>
+                            <td>{c.email || '—'}</td>
+                            <td>{c.phone || '—'}</td>
+                            <td>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    <span>{mem?.plan?.name || <span style={{ color: 'var(--color-text-muted)' }}>—</span>}</span>
+                                    {mem && mem.plan && (
+                                        (() => {
+                                            const paid = mem.payments?.length > 0
+                                                ? mem.payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0)
+                                                : Number(mem.amountPaid || 0);
+                                            const price = Number(mem.plan.price);
+                                            const discount = Number(mem.discount || 0);
+                                            const debt = price - paid - discount;
+                                            if (debt > 0) return <span className="badge badge-error" style={{ fontSize: '9px', alignSelf: 'flex-start' }}>Deuda S/ {debt.toFixed(2)}</span>;
+                                            return null;
+                                        })()
+                                    )}
+                                </div>
+                            </td>
+                            <td>
+                                {mem?.endDate ? (
+                                    <span style={{ fontSize: '12px', color: (!c.activeMembership && c.upcomingMembership) ? 'var(--color-secondary)' : (new Date(mem.endDate) < new Date() ? 'var(--color-danger)' : 'var(--color-text-secondary)') }}>
+                                        {(() => {
+                                            const dParts = mem.endDate.split('T')[0].split('-');
+                                            return new Date(Number(dParts[0]), Number(dParts[1]) - 1, Number(dParts[2])).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+                                        })()}
+                                    </span>
+                                ) : '—'}
+                            </td>
+                            <td>
+                                {c.activeMembership?.status === 'ACTIVE' ? (
+                                    <span className="badge badge-active">Activo</span>
+                                ) : c.upcomingMembership ? (
+                                    <span className="badge" style={{ background: 'rgba(6,182,212,0.15)', color: 'var(--color-secondary)' }}>En Cola</span>
+                                ) : c.activeMembership?.status === 'FROZEN' ? (
+                                    <span className="badge badge-frozen">Congelado</span>
+                                ) : c.hasDailyPassToday ? (
+                                    <span className="badge" style={{ background: 'rgba(245,158,11,0.15)', color: '#F59E0B', fontWeight: 700 }}>⚡ Pase Diario</span>
+                                ) : (
+                                    <span className="badge badge-cancelled">Inactivo</span>
+                                )}
+                            </td>
+                            <td>
+                                <div style={{ display: 'flex', gap: '4px' }}>
+                                    <button className="btn-icon info" onClick={() => router.push(`/dashboard/clients/${c.id}`)} title="Ver perfil"><Eye size={14} /></button>
+                                    <button className="btn-icon" onClick={() => openQr(c)} title="Ver QR" style={{ color: 'var(--color-primary)' }}><QrCode size={14} /></button>
+                                    <button className="btn-icon success" onClick={() => openAssign(c)} title="Asignar membresía"><CreditCard size={14} /></button>
+                                    <button className="btn-icon" onClick={() => openEdit(c)} title="Editar"><Edit size={14} /></button>
+                                    <button className="btn-icon danger" onClick={() => handleDelete(c.id, c.name)} title="Eliminar"><Trash2 size={14} /></button>
+                                </div>
+                            </td>
+                        </tr>
+                    );
+                };
+
+                return (
+                    <div className="table-container">
+                        <table className="data-table">
+                            <thead>
+                                <tr><th>Nombre</th><th>DNI</th><th>Email</th><th>Teléfono</th><th>Membresía</th><th>Vence</th><th>Estado</th><th style={{ width: '120px' }}>Acciones</th></tr>
+                            </thead>
+                            <tbody>
+                                {/* ── SECCIÓN: MIEMBROS ── */}
+                                {memberFilter !== 'daily' && memberClients.length > 0 && (
+                                    <>
+                                        {memberFilter === '' && (
+                                            <tr>
+                                                <td colSpan={8} style={{
+                                                    padding: '8px 14px', fontSize: '10px', fontWeight: 800,
+                                                    textTransform: 'uppercase', letterSpacing: '0.8px',
+                                                    color: 'var(--color-text-muted)',
+                                                    background: 'var(--color-surface-2)',
+                                                    borderBottom: '1px solid var(--color-border)',
+                                                }}>
+                                                    👥 Clientes (Membresía / Sin Membresía) — {memberClients.length} registros
+                                                </td>
+                                            </tr>
+                                        )}
+                                        {memberClients.map(renderRow)}
+                                    </>
+                                )}
+
+                                {/* ── DIVISOR: PASES DIARIOS ── */}
+                                {memberFilter === '' && dailyPassClients.length > 0 && (
+                                    <tr>
+                                        <td colSpan={8} style={{
+                                            padding: '8px 14px', fontSize: '10px', fontWeight: 800,
+                                            textTransform: 'uppercase', letterSpacing: '0.8px',
+                                            color: '#F59E0B',
+                                            background: 'rgba(245,158,11,0.06)',
+                                            borderBottom: '1px solid rgba(245,158,11,0.2)',
+                                            borderTop: '2px solid rgba(245,158,11,0.25)',
+                                        }}>
+                                            ⚡ Pases Diarios de Hoy — {dailyPassClients.length} visita{dailyPassClients.length !== 1 ? 's' : ''} — NO son miembros
                                         </td>
                                     </tr>
-                                );
-                            })}
-                            {clients.length === 0 && (
-                                <tr><td colSpan={8} className="empty-state">No se encontraron clientes</td></tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+                                )}
+                                {(memberFilter === '' || memberFilter === 'daily') && dailyPassClients.map(renderRow)}
+
+                                {filteredClients.length === 0 && (
+                                    <tr><td colSpan={8} className="empty-state">No se encontraron clientes</td></tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                );
+            })()}
 
             {/* Pagination */}
             {total > 20 && (

@@ -271,15 +271,15 @@ export default function MembershipsPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                 <AlertTriangle size={16} color="var(--color-warning)" />
                 <h2 style={{ fontSize: '14px', fontWeight: 600 }}>Membresías por Vencer (14 días)</h2>
-                {expiring.length > 0 && <span className="badge badge-warning">{expiring.length}</span>}
+                {expiring.filter((m: any) => (m.plan?.durationDays || 0) > 1).length > 0 && <span className="badge badge-warning">{expiring.filter((m: any) => (m.plan?.durationDays || 0) > 1).length}</span>}
             </div>
 
-            {expiring.length > 0 ? (
+            {expiring.filter((m: any) => (m.plan?.durationDays || 0) > 1).length > 0 ? (
                 <div className="table-container">
                     <table className="data-table">
                         <thead><tr><th>Cliente</th><th>Plan</th><th>Vence</th><th>Estado</th><th style={{ width: '100px' }}>Acciones</th></tr></thead>
                         <tbody>
-                            {expiring.map((m) => (
+                            {expiring.filter((m: any) => (m.plan?.durationDays || 0) > 1).map((m) => (
                                 <tr key={m.id}>
                                     <td style={{ fontWeight: 500, color: 'var(--color-text)' }}>{m.client?.name}</td>
                                     <td>{m.plan?.name}</td>
