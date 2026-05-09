@@ -19,6 +19,7 @@ export class MembershipsService {
         mode?: 'replace' | 'queue';
         discountAmount?: number;
         discountDescription?: string;
+        groupMembers?: string;
     }) {
         const plan = await this.prisma.membershipPlan.findUnique({ where: { id: data.planId } });
         if (!plan) throw new NotFoundException('Plan no encontrado');
@@ -72,8 +73,9 @@ export class MembershipsService {
                 planId: data.planId,
                 startDate,
                 endDate,
-                amountPaid: data.amountPaid, // Store the actual amount paid (not plan.price)
+                amountPaid: data.amountPaid,
                 discount: data.discountAmount || 0,
+                groupMembers: data.groupMembers || null,
                 createdBy: data.createdBy,
                 status: 'ACTIVE',
             },

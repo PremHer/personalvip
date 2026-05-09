@@ -66,6 +66,7 @@ export default function ClientsPage() {
     const [assigning, setAssigning] = useState(false);
     const [extraClients, setExtraClients] = useState<string[]>([]);
     const [extraAmounts, setExtraAmounts] = useState<number[]>([]);
+    const [extraPartnerNames, setExtraPartnerNames] = useState<string[]>([]);
     const [allClients, setAllClients] = useState<any[]>([]);
 
     // Detail modal
@@ -243,7 +244,7 @@ export default function ClientsPage() {
         const y = d.getFullYear(); const m = String(d.getMonth() + 1).padStart(2, '0'); const dy = String(d.getDate()).padStart(2, '0');
         const todayStr = `${y}-${m}-${dy}`;
         setAssignForm({ planId: '', amountPaid: 0, mode: 'replace', paymentMethod: 'CASH', receiptUrl: '', startDate: todayStr, endDate: undefined, discountAmount: '', discountDescription: '' });
-        setExtraClients([]); setExtraAmounts([]);
+        setExtraClients([]); setExtraAmounts([]); setExtraPartnerNames([]);
         try {
             const [p, cl] = await Promise.all([plansApi.list(), clientsApi.list(1, 500)]);
             setPlans(p.filter((pl: any) => pl.isActive));
@@ -269,13 +270,23 @@ export default function ClientsPage() {
                 discountAmount: Number(assignForm.discountAmount) || 0,
                 discountDescription: assignForm.discountDescription || ''
             };
-            await membershipsApi.assign(baseData);
-            // Assign to extra clients (duo/trio)
+            // Build groupMembers from registered clients + free-text names
+            const partnerNamesFromSelects = extraClients.filter(c => c).map((cId, i) => allClients.find(c => c.id === cId)?.name || `Cliente ${i + 2}`);
+            const partnerNamesFromText = extraPartnerNames.filter(n => n.trim());
+            const allPartnerNames = [...new Set([...partnerNamesFromSelects, ...partnerNamesFromText])];
+            const groupMembersStr = allPartnerNames.length > 0 ? allPartnerNames.join(', ') : undefined;
+
+            // Assign membership to principal client (with groupMembers)
+            await membershipsApi.assign({ ...baseData, groupMembers: groupMembersStr });
+
+            // Assign to extra registered clients (duo/trio) with cross-reference
             for (let i = 0; i < extraClients.length; i++) {
                 const cId = extraClients[i];
                 if (!cId) continue;
                 const extraAmt = extraAmounts[i] || 0;
-                await membershipsApi.assign({ ...baseData, clientId: cId, amountPaid: extraAmt });
+                const extraClientName = allClients.find(c => c.id === cId)?.name;
+                const crossRef = [assignClient.name, ...allPartnerNames.filter(n => n !== extraClientName)].join(', ');
+                await membershipsApi.assign({ ...baseData, clientId: cId, amountPaid: extraAmt, groupMembers: crossRef });
             }
 
             // Build receipt
@@ -306,7 +317,7 @@ export default function ClientsPage() {
 
             setShowAssignModal(false);
             setAssignClient(null);
-            setExtraClients([]); setExtraAmounts([]);
+            setExtraClients([]); setExtraAmounts([]); setExtraPartnerNames([]);
             loadClients();
             toast('Membresía asignada correctamente');
         } catch (e: any) { toast(e.message || 'Error al asignar membresía', 'error'); }
@@ -506,6 +517,11 @@ export default function ClientsPage() {
                             <td>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                     <span>{mem?.plan?.name || <span style={{ color: 'var(--color-text-muted)' }}>—</span>}</span>
+                                    {mem && mem.groupMembers && (
+                                        <span style={{ fontSize: '9px', color: 'var(--color-primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                            👥 con: {mem.groupMembers}
+                                        </span>
+                                    )}
                                     {mem && mem.plan && (
                                         (() => {
                                             const paid = mem.payments?.length > 0
@@ -869,16 +885,40 @@ export default function ClientsPage() {
                                                 👥 Clientes del Grupo ({extraSlotsNeeded + 1} personas)
                                             </div>
                                             {Array.from({ length: extraSlotsNeeded }).map((_, i) => (
-                                                <div key={i} style={{ marginBottom: i < extraSlotsNeeded - 1 ? '8px' : 0 }}>
-                                                    <label className="form-label" style={{ marginTop: 0 }}>Cliente {i + 2} *</label>
-                                                    <select className="input-field" value={extraClients[i] || ''} onChange={(e) => {
-                                                        const updated = [...extraClients]; updated[i] = e.target.value; setExtraClients(updated);
-                                                    }} required>
-                                                        <option value="">Seleccionar cliente...</option>
-                                                        {allClients.filter(c => c.id !== assignClient?.id && (c.id === extraClients[i] || !extraClients.includes(c.id))).map(c =>
-                                                            <option key={c.id} value={c.id}>{c.name} {c.dni ? `(${c.dni})` : ''}</option>
-                                                        )}
-                                                    </select>
+                                                <div key={i} style={{ marginBottom: i < extraSlotsNeeded - 1 ? '12px' : 0 }}>
+                                                    <label className="form-label" style={{ marginTop: 0 }}>Cliente {i + 2}</label>
+                                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                                        <select className="input-field" style={{ flex: 1 }} value={extraClients[i] || ''} onChange={(e) => {
+                                                            const updated = [...extraClients]; updated[i] = e.target.value; setExtraClients(updated);
+                                                            // If a client is selected, clear the free-text name for this slot
+                                                            if (e.target.value) {
+                                                                const names = [...extraPartnerNames]; names[i] = ''; setExtraPartnerNames(names);
+                                                            }
+                                                        }}>
+                                                            <option value="">— Seleccionar cliente registrado (opcional) —</option>
+                                                            {allClients.filter(c => c.id !== assignClient?.id && (c.id === extraClients[i] || !extraClients.includes(c.id))).map(c =>
+                                                                <option key={c.id} value={c.id}>{c.name} {c.dni ? `(${c.dni})` : ''}</option>
+                                                            )}
+                                                        </select>
+                                                    </div>
+                                                    {/* Free-text name if not selecting from list */}
+                                                    {!extraClients[i] && (
+                                                        <div style={{ marginTop: '6px' }}>
+                                                            <input
+                                                                className="input-field"
+                                                                placeholder={`Nombre del acompañante ${i + 2} (opcional)`}
+                                                                value={extraPartnerNames[i] || ''}
+                                                                onChange={(e) => {
+                                                                    const names = [...extraPartnerNames];
+                                                                    names[i] = e.target.value;
+                                                                    setExtraPartnerNames(names);
+                                                                }}
+                                                            />
+                                                            <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '3px' }}>
+                                                                💡 Si paga en otra fecha, ingresa solo el nombre para dejarlo registrado
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>
