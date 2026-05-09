@@ -174,11 +174,13 @@ export class ClientsService {
         birthDate?: string;
         medicalNotes?: string;
         isMigration?: boolean;
+        isDailyPass?: boolean;
         migrationPlanId?: string;
         migrationEndDate?: string;
         createdBy?: string;
     }) {
-        if (!data.isMigration && !data.dni) {
+        // DNI is required for regular clients, but optional for daily passes and migrations
+        if (!data.isMigration && !data.isDailyPass && !data.dni) {
             throw new BadRequestException('El DNI es obligatorio para clientes nuevos.');
         }
 

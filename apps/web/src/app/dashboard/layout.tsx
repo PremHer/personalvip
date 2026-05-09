@@ -592,7 +592,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         {dpStep === 'search' && (
                             <form onSubmit={async (e) => {
                                 e.preventDefault();
-                                if (!dpDni.trim()) return;
+                                if (!dpDni.trim()) {
+                                    // Skip DNI search — go directly to registration form
+                                    setDpFound(null);
+                                    setDpStep('form');
+                                    return;
+                                }
                                 setDpSearching(true);
                                 try {
                                     const found = await clientsApi.searchByDni(dpDni.trim());
@@ -602,15 +607,22 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                 setDpSearching(false);
                             }} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                                 <div>
-                                    <label className="form-label">DNI del Cliente *</label>
+                                    <label className="form-label">DNI del Cliente <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>(opcional)</span></label>
                                     <input className="input-field" placeholder="Ej: 12345678" value={dpDni}
-                                        onChange={(e) => setDpDni(e.target.value)} required autoFocus
+                                        onChange={(e) => setDpDni(e.target.value)} autoFocus
                                         style={{ fontSize: '18px', textAlign: 'center', letterSpacing: '2px', fontWeight: 600 }} />
+                                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '6px', textAlign: 'center' }}>
+                                        Si el cliente no quiere dar su DNI, deja el campo vacío
+                                    </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                     <button type="button" className="btn-secondary" onClick={() => setShowDailyPassModal(false)}>Cancelar</button>
-                                    <button type="submit" className="btn-primary" disabled={dpSearching || !dpDni.trim()}>
-                                        {dpSearching ? <div className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} /> : <><Search size={14} /> Buscar</>}
+                                    <button type="submit" className="btn-primary" disabled={dpSearching}
+                                        style={{ background: dpDni.trim() ? undefined : '#F59E0B' }}>
+                                        {dpSearching
+                                            ? <div className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} />
+                                            : dpDni.trim() ? <><Search size={14} /> Buscar</> : '⚡ Sin DNI — Continuar'
+                                        }
                                     </button>
                                 </div>
                             </form>
@@ -635,7 +647,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                         if (dpFound) {
                                             clientId = dpFound.id;
                                         } else {
-                                            const nc = await clientsApi.create({ name: dpForm.name.trim(), phone: dpForm.phone.trim() || undefined, dni: dpDni.trim() || undefined });
+                                            const nc = await clientsApi.create({
+                                                name: dpForm.name.trim(),
+                                                phone: dpForm.phone.trim() || undefined,
+                                                dni: dpDni.trim() || undefined,
+                                                isDailyPass: true,
+                                            });
                                             clientId = nc.id;
                                         }
                                         await membershipsApi.dailyPass({ clientId, amountPaid: Number(dpForm.amountPaid), paymentMethod: dpForm.paymentMethod, receiptUrl: dpForm.receiptUrl || undefined });
@@ -661,10 +678,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                 ) : (
                                     <>
                                         <div style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)', fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                                            🆕 No se encontró cliente con DNI <strong style={{ color: 'var(--color-text)' }}>{dpDni}</strong>. Completa los datos:
+                                            {dpDni.trim()
+                                                ? <>🆕 No se encontró cliente con DNI <strong style={{ color: 'var(--color-text)' }}>{dpDni}</strong>. Completa los datos:</>
+                                                : <>⚡ Sin DNI. Completa los datos del visitante:</>
+                                            }
                                         </div>
                                         <div><label className="form-label">Nombre *</label><input className="input-field" placeholder="Juan Pérez" value={dpForm.name} onChange={(e) => setDpForm({ ...dpForm, name: e.target.value })} required autoFocus /></div>
-                                        <div><label className="form-label">Teléfono</label><input className="input-field" placeholder="Opcional" value={dpForm.phone} onChange={(e) => setDpForm({ ...dpForm, phone: e.target.value })} /></div>
+                                        <div><label className="form-label">Teléfono <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>(opcional)</span></label><input className="input-field" placeholder="Opcional" value={dpForm.phone} onChange={(e) => setDpForm({ ...dpForm, phone: e.target.value })} /></div>
                                     </>
                                 )}
 
@@ -718,7 +738,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             <div style={{ textAlign: 'center' }}>
                                 <div style={{ fontSize: '48px', marginBottom: '8px' }}>✅</div>
                                 <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px' }}>{dpResult.name}</h3>
-                                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>DNI: {dpResult.dni || dpDni}</p>
+                                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>
+                                    {dpResult.dni || dpDni ? `DNI: ${dpResult.dni || dpDni}` : <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Sin DNI registrado</span>}
+                                </p>
                                 <span className="badge badge-active" style={{ marginBottom: '16px', display: 'inline-block' }}>Pase Diario Activo</span>
                                 {dpResult.qrCode && (
                                     <div style={{ padding: '16px', background: '#fff', borderRadius: '12px', display: 'inline-block', marginBottom: '16px' }}>
