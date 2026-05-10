@@ -243,8 +243,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         {['SUPERADMIN', 'ADMIN', 'OWNER', 'RECEPTIONIST'].includes(user.role) && (
                             <div style={{ padding: '8px 4px 0' }}>
                                 <button onClick={() => {
-                                    setDpDni(''); setDpFound(null); setDpStep('search');
-                                    setDpForm({ name: '', phone: '', amountPaid: 8, paymentMethod: 'CASH', receiptUrl: '' }); setDpResult(null);
+                                    setDpForm({ name: '', amountPaid: 8, paymentMethod: 'CASH', receiptUrl: '' });
+                                    setDpResult(null);
                                     setShowDailyPassModal(true);
                                     setSidebarOpen(false);
                                 }} style={{
