@@ -439,12 +439,23 @@ export default function FinancePage() {
                                                 <td style={{ fontWeight: 500 }}>{s.client}</td>
                                                 <td style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{s.cashier}</td>
                                                 <td style={{ fontSize: '12px', maxWidth: '200px' }}>
-                                                    {s.items.map((i: any, idx: number) => (
-                                                        <span key={idx}>
-                                                            {i.product} <span style={{ color: 'var(--color-text-muted)' }}>x{i.quantity}</span>
-                                                            {idx < s.items.length - 1 ? ', ' : ''}
-                                                        </span>
-                                                    ))}
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                                        {s.type && (
+                                                            <span style={{
+                                                                fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', display: 'inline-block', width: 'fit-content',
+                                                                background: s.type === 'MEMBERSHIP' ? 'rgba(124,58,237,0.12)' : 'rgba(6,182,212,0.12)',
+                                                                color: s.type === 'MEMBERSHIP' ? '#7C3AED' : '#06B6D4',
+                                                            }}>
+                                                                {s.type === 'MEMBERSHIP' ? '🏋️ Membresía' : '🛒 POS'}
+                                                            </span>
+                                                        )}
+                                                        {s.items.map((i: any, idx: number) => (
+                                                            <span key={idx}>
+                                                                {i.product} <span style={{ color: 'var(--color-text-muted)' }}>x{i.quantity}</span>
+                                                                {idx < s.items.length - 1 ? ', ' : ''}
+                                                            </span>
+                                                        ))}
+                                                    </div>
                                                 </td>
                                                 <td style={{ color: s.discount > 0 ? '#F59E0B' : 'var(--color-text-muted)', fontSize: '12px' }}>
                                                     {s.discount > 0 ? `-S/${s.discount.toFixed(2)}` : '—'}

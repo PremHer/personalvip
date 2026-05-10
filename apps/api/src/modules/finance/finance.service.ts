@@ -483,4 +483,73 @@ export class FinanceService {
             },
         });
     }
+    async getSalesReport(from?: string, to?: string) {
+        const start = from ? dayStartPeru(from) : dayStartPeru(new Date());
+        const end = to ? dayEndPeru(to) : dayEndPeru(new Date());
+
+        // Fetch all payments in range with full relations
+        const payments = await this.prisma.payment.findMany({
+            where: { createdAt: { gte: start, lte: end } },
+            include: {
+                cashier: { select: { name: true } },
+                membership: {
+                    include: {
+                        client: { select: { name: true } },
+                        plan: { select: { name: true } },
+                    },
+                },
+                sale: {
+                    include: {
+                        client: { select: { name: true } },
+                        items: { include: { product: { select: { name: true } } } },
+                    },
+                },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+
+        // Summary
+        const totalAmount = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+        const byMethod: Record<string, number> = {};
+        for (const p of payments) {
+            const method = p.paymentMethod as string;
+            byMethod[method] = (byMethod[method] || 0) + Number(p.amount);
+        }
+
+        // Map payments to a unified sales row
+        const sales = payments.map((p) => {
+            const isMembership = !!p.membership;
+            const client = p.membership?.client?.name || p.sale?.client?.name || '—';
+            const cashier = p.cashier?.name || '—';
+
+            const items = isMembership
+                ? [{ product: `Membresía: ${p.membership?.plan?.name || 'Plan'}`, quantity: 1 }]
+                : (p.sale?.items || []).map((i: any) => ({
+                    product: i.product?.name || 'Producto',
+                    quantity: i.quantity,
+                }));
+
+            return {
+                id: p.id,
+                date: p.createdAt,
+                client,
+                cashier,
+                items,
+                discount: 0,
+                total: Number(p.amount),
+                paymentMethod: p.paymentMethod,
+                receiptUrl: p.receiptUrl || null,
+                type: isMembership ? 'MEMBERSHIP' : 'POS',
+            };
+        });
+
+        return {
+            summary: {
+                totalSales: sales.length,
+                totalAmount,
+                byMethod,
+            },
+            sales,
+        };
+    }
 }
