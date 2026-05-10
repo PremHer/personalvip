@@ -266,19 +266,20 @@ export class AttendanceService {
 
         // Attach activeMembership to each client
         return records.map(r => {
-            const activeMembership = (r.client as any).memberships?.find((m: any) => {
+            const activeMembership = (r.client as any)?.memberships?.find((m: any) => {
                 const start = new Date(m.startDate);
                 const end = new Date(m.endDate);
                 return start <= now && end >= now;
             }) || null;
             return {
                 ...r,
-                client: {
+                dailyPassName: r.dailyPassName || null,
+                client: r.client ? {
                     id: r.client.id,
                     name: r.client.name,
                     photoUrl: r.client.photoUrl,
                     activeMembership,
-                },
+                } : null,
             };
         });
     }
@@ -331,19 +332,20 @@ export class AttendanceService {
 
         // Attach activeMembership to each client
         const data = records.map(r => {
-            const activeMembership = (r.client as any).memberships?.find((m: any) => {
+            const activeMembership = (r.client as any)?.memberships?.find((m: any) => {
                 const start = new Date(m.startDate);
                 const end = new Date(m.endDate);
                 return start <= now && end >= now;
             }) || null;
             return {
                 ...r,
-                client: {
+                dailyPassName: r.dailyPassName || null,
+                client: r.client ? {
                     id: r.client.id,
                     name: r.client.name,
                     photoUrl: r.client.photoUrl,
                     activeMembership,
-                },
+                } : null,
             };
         });
 
