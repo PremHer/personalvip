@@ -164,65 +164,6 @@ export class FinanceService {
         };
     }
 
-    /**
-     * Get detailed sales report with date range filtering for export.
-     */
-    async getSalesReport(from?: string, to?: string) {
-        const where: any = {};
-        if (from) {
-            const f = dayStartPeru(from);
-            where.createdAt = { ...where.createdAt, gte: f };
-        }
-        if (to) {
-            const t = dayEndPeru(to);
-            where.createdAt = { ...where.createdAt, lte: t };
-        }
-        if (!from && !to) {
-            // Default to today
-            where.createdAt = { gte: todayStartPeru() };
-        }
-
-        const sales = await this.prisma.sale.findMany({
-            where,
-            orderBy: { createdAt: 'desc' },
-            include: {
-                client: { select: { name: true } },
-                cashier: { select: { name: true } },
-                items: { include: { product: { select: { name: true } } } },
-            },
-        });
-
-        // Summary
-        const totalAmount = sales.reduce((sum, s) => sum + Number(s.total), 0);
-        const byMethod: Record<string, number> = {};
-        sales.forEach(s => {
-            byMethod[s.paymentMethod] = (byMethod[s.paymentMethod] || 0) + Number(s.total);
-        });
-
-        return {
-            sales: sales.map(s => ({
-                id: s.id,
-                date: s.createdAt,
-                client: s.client?.name || 'Venta directa',
-                cashier: s.cashier?.name || '',
-                total: Number(s.total),
-                discount: Number(s.discount),
-                paymentMethod: s.paymentMethod,
-                items: s.items.map(i => ({
-                    product: i.product.name,
-                    quantity: i.quantity,
-                    unitPrice: Number(i.unitPrice),
-                    subtotal: Number(i.subtotal),
-                })),
-            })),
-            summary: {
-                totalSales: sales.length,
-                totalAmount,
-                byMethod,
-            },
-        };
-    }
-
     async getIncomeChart(period: 'week' | 'month' | 'year' = 'month') {
         const now = new Date();
         let startDate: Date;
