@@ -139,7 +139,7 @@ export const plansApi = {
 
 // ===== Memberships =====
 export const membershipsApi = {
-    assign: (data: { clientId: string; planId: string; amountPaid: number; paymentMethod?: string; receiptUrl?: string; startDate?: string; endDate?: string; mode?: 'replace' | 'queue' }) =>
+    assign: (data: { clientId: string; planId: string; amountPaid: number; paymentMethod?: string; receiptUrl?: string; startDate?: string; endDate?: string; mode?: 'replace' | 'queue'; discountAmount?: number; discountDescription?: string; groupMembers?: string }) =>
         api<any>('/memberships', { method: 'POST', body: data }),
     dailyPass: (data: { clientId: string; amountPaid: number; paymentMethod?: string; receiptUrl?: string }) =>
         api<any>('/memberships/daily-pass', { method: 'POST', body: data }),
