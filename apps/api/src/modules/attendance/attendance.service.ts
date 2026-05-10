@@ -449,4 +449,46 @@ export class AttendanceService {
             recentVisits: last20,
         };
     }
+
+    /**
+     * Register a daily pass WITHOUT creating a client record.
+     * Creates only: attendance (clientId=null) + payment record.
+     */
+    async dailyPassCheckIn(data: {
+        name?: string;
+        amountPaid: number;
+        paymentMethod?: 'CASH' | 'CARD' | 'TRANSFER' | 'YAPE_PLIN';
+        receiptUrl?: string;
+        createdBy: string;
+    }) {
+        const visitorName = data.name?.trim() || 'Visitante';
+
+        // Create anonymous attendance record
+        const attendance = await this.prisma.attendance.create({
+            data: {
+                clientId: null,
+                dailyPassName: visitorName,
+                validatedBy: data.createdBy,
+                method: 'MANUAL',
+            },
+        });
+
+        // Create payment record for income tracking
+        await this.prisma.payment.create({
+            data: {
+                amount: data.amountPaid,
+                paymentMethod: (data.paymentMethod || 'CASH') as any,
+                cashierId: data.createdBy,
+                notes: `Pase Diario - ${visitorName}`,
+                receiptUrl: data.receiptUrl || null,
+            },
+        });
+
+        return {
+            success: true,
+            message: `✅ Pase Diario registrado para ${visitorName}`,
+            visitorName,
+            attendanceId: attendance.id,
+        };
+    }
 }

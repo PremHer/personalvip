@@ -62,11 +62,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
     // Daily pass
     const [showDailyPassModal, setShowDailyPassModal] = useState(false);
-    const [dpStep, setDpStep] = useState<'search' | 'form' | 'result'>('search');
-    const [dpDni, setDpDni] = useState('');
-    const [dpFound, setDpFound] = useState<any>(null);
-    const [dpSearching, setDpSearching] = useState(false);
-    const [dpForm, setDpForm] = useState({ name: '', phone: '', amountPaid: 8, paymentMethod: 'CASH', receiptUrl: '' });
+    const [dpForm, setDpForm] = useState({ name: '', amountPaid: 8, paymentMethod: 'CASH', receiptUrl: '' });
     const [dpSaving, setDpSaving] = useState(false);
     const [dpResult, setDpResult] = useState<any>(null);
 
@@ -583,178 +579,97 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             <div>
                                 <h2 style={{ fontSize: '16px', fontWeight: 700 }}>⚡ Pase Diario</h2>
                                 <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                                    {dpStep === 'search' ? 'Buscar cliente por DNI' : dpStep === 'form' ? (dpFound ? 'Cliente encontrado' : 'Registrar nuevo cliente') : 'Pase asignado'}
+                                    {dpResult ? 'Acceso registrado' : 'Registrar acceso y cobro — sin crear cliente'}
                                 </p>
                             </div>
-                            <button className="btn-icon" onClick={() => setShowDailyPassModal(false)}><X size={16} /></button>
+                            <button className="btn-icon" onClick={() => { setShowDailyPassModal(false); setDpResult(null); setDpForm({ name: '', amountPaid: 8, paymentMethod: 'CASH', receiptUrl: '' }); }}><X size={16} /></button>
                         </div>
 
-                        {dpStep === 'search' && (
-                            <form onSubmit={async (e) => {
-                                e.preventDefault();
-                                if (!dpDni.trim()) {
-                                    // Skip DNI search — go directly to registration form
-                                    setDpFound(null);
-                                    setDpStep('form');
-                                    return;
-                                }
-                                setDpSearching(true);
-                                try {
-                                    const found = await clientsApi.searchByDni(dpDni.trim());
-                                    setDpFound(found || null);
-                                } catch { setDpFound(null); }
-                                setDpStep('form');
-                                setDpSearching(false);
-                            }} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                <div>
-                                    <label className="form-label">DNI del Cliente <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>(opcional)</span></label>
-                                    <input className="input-field" placeholder="Ej: 12345678" value={dpDni}
-                                        onChange={(e) => setDpDni(e.target.value)} autoFocus
-                                        style={{ fontSize: '18px', textAlign: 'center', letterSpacing: '2px', fontWeight: 600 }} />
-                                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '6px', textAlign: 'center' }}>
-                                        Si el cliente no quiere dar su DNI, deja el campo vacío
-                                    </div>
-                                </div>
-                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                    <button type="button" className="btn-secondary" onClick={() => setShowDailyPassModal(false)}>Cancelar</button>
-                                    <button type="submit" className="btn-primary" disabled={dpSearching}
-                                        style={{ background: dpDni.trim() ? undefined : '#F59E0B' }}>
-                                        {dpSearching
-                                            ? <div className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} />
-                                            : dpDni.trim() ? <><Search size={14} /> Buscar</> : '⚡ Sin DNI — Continuar'
-                                        }
-                                    </button>
-                                </div>
-                            </form>
-                        )}
-
-                        {dpStep === 'form' && (
+                        {!dpResult ? (
                             <form onSubmit={async (e) => {
                                 e.preventDefault();
                                 setDpSaving(true);
                                 try {
-                                    if (dpFound?.activeMembership) {
-                                        const res = await attendanceApi.checkIn(dpFound.id, 'MANUAL');
-                                        if (res.success) {
-                                            toast('✅ Asistencia registrada exitosamente');
-                                            setShowDailyPassModal(false);
-                                            setDpStep('search'); setDpDni(''); setDpFound(null);
-                                        } else {
-                                            toast(res.message || 'Error al registrar asistencia', 'error');
-                                        }
-                                    } else {
-                                        let clientId: string;
-                                        if (dpFound) {
-                                            clientId = dpFound.id;
-                                        } else {
-                                            const nc = await clientsApi.create({
-                                                name: dpForm.name.trim(),
-                                                phone: dpForm.phone.trim() || undefined,
-                                                dni: dpDni.trim() || undefined,
-                                                isDailyPass: true,
-                                            });
-                                            clientId = nc.id;
-                                        }
-                                        await membershipsApi.dailyPass({ clientId, amountPaid: Number(dpForm.amountPaid), paymentMethod: dpForm.paymentMethod, receiptUrl: dpForm.receiptUrl || undefined });
-                                        const full = await clientsApi.get(clientId);
-                                        setDpResult(full);
-                                        setDpStep('result');
-                                        toast('✅ Pase Diario asignado y acceso registrado');
-                                    }
-                                } catch (err: any) { toast(err.message || 'Error', 'error'); }
+                                    const res = await attendanceApi.dailyPassCheckIn({
+                                        name: dpForm.name.trim() || undefined,
+                                        amountPaid: Number(dpForm.amountPaid),
+                                        paymentMethod: dpForm.paymentMethod as any,
+                                        receiptUrl: dpForm.receiptUrl || undefined,
+                                    });
+                                    setDpResult(res);
+                                    toast('✅ Pase Diario registrado correctamente');
+                                } catch (err: any) { toast(err.message || 'Error al registrar pase', 'error'); }
                                 finally { setDpSaving(false); }
                             }} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                {dpFound ? (
-                                    <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)' }}>
-                                        <div style={{ fontSize: '10px', fontWeight: 700, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>✅ Cliente Registrado</div>
-                                        <div style={{ fontWeight: 600, fontSize: '15px' }}>{dpFound.name}</div>
-                                        <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>DNI: {dpFound.dni} {dpFound.phone ? `• Tel: ${dpFound.phone}` : ''}</div>
-                                        {dpFound.activeMembership && (
-                                            <div style={{ marginTop: '8px', padding: '6px 10px', borderRadius: '6px', background: 'rgba(245,158,11,0.1)', fontSize: '11px', color: '#F59E0B', fontWeight: 600 }}>
-                                                ⚠️ Ya tiene membresía activa: {dpFound.activeMembership.plan?.name}
+
+                                {/* Info banner */}
+                                <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', fontSize: '11px', color: '#F59E0B', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '16px' }}>⚡</span>
+                                    <span>El visitante <strong>no quedará registrado</strong> como cliente. Solo se registra la asistencia y el cobro.</span>
+                                </div>
+
+                                <div>
+                                    <label className="form-label">Nombre del visitante <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>(opcional)</span></label>
+                                    <input className="input-field" placeholder="Ej: Juan Pérez" value={dpForm.name}
+                                        onChange={(e) => setDpForm({ ...dpForm, name: e.target.value })} autoFocus />
+                                </div>
+
+                                <div>
+                                    <label className="form-label">Monto (S/) *</label>
+                                    <input className="input-field" type="number" step="0.01" min={0} value={dpForm.amountPaid}
+                                        onChange={(e) => setDpForm({ ...dpForm, amountPaid: Number(e.target.value) })} required />
+                                </div>
+
+                                <div>
+                                    <label className="form-label">Método de Pago *</label>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                                        {[{ v: 'CASH', l: '💵 Efectivo' }, { v: 'CARD', l: '💳 Tarjeta' }, { v: 'TRANSFER', l: '🏦 Transfer.' }, { v: 'YAPE_PLIN', l: '📱 Yape/Plin' }].map(m => (
+                                            <button key={m.v} type="button" onClick={() => setDpForm({ ...dpForm, paymentMethod: m.v })}
+                                                style={{ padding: '8px 4px', borderRadius: '8px', border: dpForm.paymentMethod === m.v ? '2px solid #F59E0B' : '1px solid var(--color-border)', backgroundColor: dpForm.paymentMethod === m.v ? 'rgba(245,158,11,0.15)' : 'var(--color-bg-tertiary)', color: dpForm.paymentMethod === m.v ? '#F59E0B' : 'var(--color-text-muted)', fontSize: '11px', fontWeight: 600, cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}>
+                                                {m.l}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="form-label">Comprobante <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>(opcional)</span></label>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <label style={{ padding: '6px 12px', borderRadius: '8px', border: '1px dashed var(--color-border)', backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                            📷 Subir imagen
+                                            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) { const r = new FileReader(); r.onload = () => setDpForm(p => ({ ...p, receiptUrl: r.result as string })); r.readAsDataURL(file); }
+                                            }} />
+                                        </label>
+                                        {dpForm.receiptUrl && (
+                                            <div style={{ position: 'relative' }}>
+                                                <img src={dpForm.receiptUrl} alt="Comprobante" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--color-border)' }} />
+                                                <button type="button" onClick={() => setDpForm(p => ({ ...p, receiptUrl: '' }))} style={{ position: 'absolute', top: '-5px', right: '-5px', width: '14px', height: '14px', borderRadius: '50%', background: '#ef4444', border: 'none', color: '#fff', fontSize: '9px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
                                             </div>
                                         )}
                                     </div>
-                                ) : (
-                                    <>
-                                        <div style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.15)', fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                                            {dpDni.trim()
-                                                ? <>🆕 No se encontró cliente con DNI <strong style={{ color: 'var(--color-text)' }}>{dpDni}</strong>. Completa los datos:</>
-                                                : <>⚡ Sin DNI. Completa los datos del visitante:</>
-                                            }
-                                        </div>
-                                        <div><label className="form-label">Nombre *</label><input className="input-field" placeholder="Juan Pérez" value={dpForm.name} onChange={(e) => setDpForm({ ...dpForm, name: e.target.value })} required autoFocus /></div>
-                                        <div><label className="form-label">Teléfono <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>(opcional)</span></label><input className="input-field" placeholder="Opcional" value={dpForm.phone} onChange={(e) => setDpForm({ ...dpForm, phone: e.target.value })} /></div>
-                                    </>
-                                )}
+                                </div>
 
-                                {!dpFound?.activeMembership && (
-                                    <>
-                                        <div><label className="form-label">Monto (S/) *</label><input className="input-field" type="number" step="0.01" min={0} value={dpForm.amountPaid} onChange={(e) => setDpForm({ ...dpForm, amountPaid: Number(e.target.value) })} required /></div>
-                                        <div><label className="form-label">Método de Pago *</label>
-                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-                                                {[{ v: 'CASH', l: '💵 Efectivo' }, { v: 'CARD', l: '💳 Tarjeta' }, { v: 'TRANSFER', l: '🏦 Transfer.' }, { v: 'YAPE_PLIN', l: '📱 Yape/Plin' }].map(m => (
-                                                    <button key={m.v} type="button" onClick={() => setDpForm({ ...dpForm, paymentMethod: m.v as any })}
-                                                        style={{ padding: '8px 4px', borderRadius: '8px', border: dpForm.paymentMethod === m.v ? '2px solid #F59E0B' : '1px solid var(--color-border)', backgroundColor: dpForm.paymentMethod === m.v ? 'rgba(245,158,11,0.15)' : 'var(--color-bg-tertiary)', color: dpForm.paymentMethod === m.v ? '#F59E0B' : 'var(--color-text-muted)', fontSize: '11px', fontWeight: 600, cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s' }}>
-                                                        {m.l}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        <div><label className="form-label">Comprobante de Pago (opcional)</label>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                <label style={{ padding: '6px 12px', borderRadius: '8px', border: '1px dashed var(--color-border)', backgroundColor: 'var(--color-bg-tertiary)', color: 'var(--color-text-muted)', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                                    📷 Subir imagen
-                                                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) {
-                                                            const reader = new FileReader();
-                                                            reader.onload = () => setDpForm(prev => ({ ...prev, receiptUrl: reader.result as string }));
-                                                            reader.readAsDataURL(file);
-                                                        }
-                                                    }} />
-                                                </label>
-                                                {dpForm.receiptUrl && (
-                                                    <div style={{ position: 'relative' }}>
-                                                        <img src={dpForm.receiptUrl} alt="Comprobante" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '6px', border: '1px solid var(--color-border)' }} />
-                                                        <button type="button" onClick={() => setDpForm(prev => ({ ...prev, receiptUrl: '' }))} style={{ position: 'absolute', top: '-5px', right: '-5px', width: '14px', height: '14px', borderRadius: '50%', background: '#ef4444', border: 'none', color: '#fff', fontSize: '9px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
-
-                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: dpFound?.activeMembership ? '16px' : '0' }}>
-                                    <button type="button" className="btn-secondary" onClick={() => setDpStep('search')}>← Cambiar DNI</button>
-                                    <button type="submit" className="btn-primary" disabled={dpSaving || (!dpFound && !dpForm.name.trim())} style={{ background: dpFound?.activeMembership ? '#22c55e' : '#F59E0B' }}>
-                                        {dpSaving ? <div className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} /> : dpFound?.activeMembership ? '✅ Registrar Asistencia' : '⚡ Asignar Pase'}
+                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                    <button type="button" className="btn-secondary" onClick={() => { setShowDailyPassModal(false); setDpForm({ name: '', amountPaid: 8, paymentMethod: 'CASH', receiptUrl: '' }); }}>Cancelar</button>
+                                    <button type="submit" className="btn-primary" disabled={dpSaving} style={{ background: '#F59E0B', color: '#000', fontWeight: 700 }}>
+                                        {dpSaving ? <div className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }} /> : '⚡ Registrar Pase'}
                                     </button>
                                 </div>
                             </form>
-                        )}
-
-                        {dpStep === 'result' && dpResult && (
-                            <div style={{ textAlign: 'center' }}>
-                                <div style={{ fontSize: '48px', marginBottom: '8px' }}>✅</div>
-                                <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px' }}>{dpResult.name}</h3>
-                                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>
-                                    {dpResult.dni || dpDni ? `DNI: ${dpResult.dni || dpDni}` : <span style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>Sin DNI registrado</span>}
-                                </p>
-                                <span className="badge badge-active" style={{ marginBottom: '16px', display: 'inline-block' }}>Pase Diario Activo</span>
-                                {dpResult.qrCode && (
-                                    <div style={{ padding: '16px', background: '#fff', borderRadius: '12px', display: 'inline-block', marginBottom: '16px' }}>
-                                        <QRCodeSVG value={dpResult.qrCode} size={160} fgColor="#7c3aed" level="H" />
-                                    </div>
-                                )}
-                                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
-                                    QR: <code style={{ background: 'var(--color-surface-2)', padding: '2px 6px', borderRadius: '4px' }}>{dpResult.qrCode}</code>
-                                </p>
-                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                        ) : (
+                            <div style={{ textAlign: 'center', padding: '10px 0' }}>
+                                <div style={{ fontSize: '52px', marginBottom: '10px' }}>✅</div>
+                                <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '4px' }}>
+                                    {dpResult.visitorName || 'Visitante'}
+                                </h3>
+                                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>Pase Diario registrado correctamente</p>
+                                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
                                     <button type="button" className="btn-secondary" onClick={() => {
                                         setReceiptData({
                                             type: 'PASE DIARIO',
-                                            clientName: dpResult.name,
+                                            clientName: dpResult.visitorName || 'Visitante',
                                             amount: Number(dpForm.amountPaid),
                                             paymentMethod: dpForm.paymentMethod,
                                             date: new Date(),
@@ -763,16 +678,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                     }}>
                                         <Receipt size={14} style={{ marginRight: '4px' }} /> Ver Comprobante
                                     </button>
-                                    <button className="btn-primary" onClick={() => {
-                                        setShowDailyPassModal(false);
-                                        setReceiptData(null);
-                                    }}>Listo</button>
+                                    <button className="btn-secondary" onClick={() => { setDpResult(null); setDpForm({ name: '', amountPaid: 8, paymentMethod: 'CASH', receiptUrl: '' }); }}>Nuevo Pase</button>
+                                    <button className="btn-primary" onClick={() => { setShowDailyPassModal(false); setDpResult(null); setDpForm({ name: '', amountPaid: 8, paymentMethod: 'CASH', receiptUrl: '' }); }}>Listo</button>
                                 </div>
                             </div>
                         )}
                     </div>
                 </div>
+
+
             )}
+
+
 
             {/* Receipt Modal */}
             {receiptData && (

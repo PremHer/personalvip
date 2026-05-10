@@ -140,17 +140,18 @@ model Membership {
 
 // ===== ATTENDANCE =====
 model Attendance {
-  id          String           @id @default(uuid())
-  clientId    String           @map("client_id")
-  checkIn     DateTime         @default(now()) @map("check_in")
-  checkOut    DateTime?        @map("check_out")
-  validatedBy String           @map("validated_by")
-  method      AttendanceMethod @default(QR)
-  createdAt   DateTime         @default(now()) @map("created_at")
+  id            String           @id @default(uuid())
+  clientId      String?          @map("client_id")
+  dailyPassName String?          @map("daily_pass_name")
+  checkIn       DateTime         @default(now()) @map("check_in")
+  checkOut      DateTime?        @map("check_out")
+  validatedBy   String           @map("validated_by")
+  method        AttendanceMethod @default(QR)
+  createdAt     DateTime         @default(now()) @map("created_at")
 
   // Relations
-  client      Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  validator   User   @relation("ValidatedBy", fields: [validatedBy], references: [id])
+  client      Client? @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  validator   User    @relation("ValidatedBy", fields: [validatedBy], references: [id])
 
   @@map("attendances")
 }

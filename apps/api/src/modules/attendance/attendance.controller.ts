@@ -131,4 +131,19 @@ export class AttendanceController {
     getClientStats(@Param('clientId') clientId: string) {
         return this.service.getClientAttendanceStats(clientId);
     }
+
+    /**
+     * Register a daily pass without creating a client record.
+     * Only records attendance + payment.
+     */
+    @Post('daily-pass')
+    @UseGuards(AuthGuard('jwt'), RolesGuard)
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
+    @ApiBearerAuth()
+    dailyPassCheckIn(
+        @Body() data: { name?: string; amountPaid: number; paymentMethod?: 'CASH' | 'CARD' | 'TRANSFER' | 'YAPE_PLIN'; receiptUrl?: string },
+        @CurrentUser() user: { id: string },
+    ) {
+        return this.service.dailyPassCheckIn({ ...data, createdBy: user.id });
+    }
 }

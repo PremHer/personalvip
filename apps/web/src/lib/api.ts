@@ -170,6 +170,8 @@ export const attendanceApi = {
     autoCheckout: () => api<{ closed: number; message: string }>('/attendance/auto-checkout', { method: 'POST' }),
     bulkCheckoutToday: () => api<{ closed: number; message: string }>('/attendance/bulk-checkout-today', { method: 'POST' }),
     clientStats: (clientId: string) => api<any>(`/attendance/client-stats/${clientId}`),
+    dailyPassCheckIn: (data: { name?: string; amountPaid: number; paymentMethod?: string; receiptUrl?: string }) =>
+        api<any>('/attendance/daily-pass', { method: 'POST', body: data }),
 };
 
 // ===== Products =====
