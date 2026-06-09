@@ -203,7 +203,7 @@ export default function ClientsPage() {
         });
         if (ok) {
             try {
-                await clientsApi.toggleActive(c.id);
+                await clientsApi.toggleActive(c.id, c.isActive === false);
                 toast(`Cliente ${action === 'reactivar' ? 'reactivado' : 'deshabilitado'} correctamente`);
                 loadClients();
             } catch (e: any) {
