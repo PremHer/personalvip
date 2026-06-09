@@ -219,11 +219,14 @@ export class MembershipsService {
     async getExpiring(days = 7) {
         const future = new Date();
         future.setDate(future.getDate() + days);
+        
+        const past = new Date();
+        past.setDate(past.getDate() - 5); // Don't show memberships that expired more than 5 days ago
 
         return this.prisma.membership.findMany({
             where: {
                 status: 'ACTIVE',
-                endDate: { lte: future },
+                endDate: { lte: future, gte: past },
                 startDate: { lte: new Date() },
             },
             include: { client: true, plan: true },
