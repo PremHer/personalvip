@@ -4,7 +4,8 @@ import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { ClientsService } from './clients.service';
 import { Roles } from '../../common/decorators';
 import { RolesGuard } from '../../common/guards';
-import { IsString, IsOptional, IsEmail, IsNotEmpty, ValidateIf, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsEmail, IsNotEmpty, ValidateIf, IsBoolean, IsIn } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 class CreateClientDto {
     @IsString() @IsNotEmpty() name!: string;
@@ -25,6 +26,10 @@ class CreateClientDto {
     @IsOptional() @IsString() migrationEndDate?: string;
 }
 
+class ToggleActiveDto {
+    @IsBoolean() isActive!: boolean;
+}
+
 @ApiTags('Clients')
 @Controller('clients')
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -38,8 +43,9 @@ export class ClientsController {
         @Query('page') page?: number,
         @Query('limit') limit?: number,
         @Query('search') search?: string,
+        @Query('showInactive') showInactive?: string,
     ) {
-        return this.clientsService.findAll(page, limit, search);
+        return this.clientsService.findAll(page, limit, search, showInactive === 'true');
     }
 
     @Get('search-dni/:dni')
@@ -70,6 +76,12 @@ export class ClientsController {
     @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
     update(@Param('id') id: string, @Body() dto: Partial<CreateClientDto>) {
         return this.clientsService.update(id, dto);
+    }
+
+    @Patch(':id/toggle-active')
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
+    toggleActive(@Param('id') id: string, @Body() dto: ToggleActiveDto) {
+        return this.clientsService.toggleActive(id, dto.isActive);
     }
 
     @Delete(':id')

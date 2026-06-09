@@ -8,9 +8,12 @@ import { dayStartPeru, dayEndPeru } from '../../common/timezone';
 export class ClientsService {
     constructor(private prisma: PrismaService) { }
 
-    async findAll(page = 1, limit = 20, search?: string) {
+    async findAll(page = 1, limit = 20, search?: string, showInactive = false) {
+        const baseWhere: any = showInactive ? {} : { isActive: true };
+
         const where = search
             ? {
+                ...baseWhere,
                 OR: [
                     { name: { contains: search, mode: 'insensitive' as const } },
                     { email: { contains: search, mode: 'insensitive' as const } },
@@ -18,7 +21,7 @@ export class ClientsService {
                     { dni: { contains: search, mode: 'insensitive' as const } },
                 ],
             }
-            : {};
+            : baseWhere;
 
         const todayStart = dayStartPeru(new Date());
 
@@ -74,6 +77,15 @@ export class ClientsService {
             limit,
             totalPages: Math.ceil(total / limit),
         };
+    }
+
+    async toggleActive(id: string, isActive: boolean) {
+        const client = await this.prisma.client.findUnique({ where: { id } });
+        if (!client) throw new NotFoundException('Cliente no encontrado');
+        return this.prisma.client.update({
+            where: { id },
+            data: { isActive },
+        });
     }
 
     async findOne(id: string) {

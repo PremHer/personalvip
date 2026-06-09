@@ -88,11 +88,14 @@ export async function api<T = unknown>(endpoint: string, options: FetchOptions =
     }
 
     if (res.status === 401) {
-        removeToken();
-        if (typeof window !== 'undefined') {
-            window.location.href = '/login';
+        const error = await res.json().catch(() => ({ message: 'No autorizado' }));
+        if (endpoint !== '/auth/login' && endpoint !== '/auth/refresh') {
+            removeToken();
+            if (typeof window !== 'undefined') {
+                window.location.href = '/login';
+            }
         }
-        throw new Error('No autorizado');
+        throw new Error(error.message || 'No autorizado');
     }
 
     if (!res.ok) {
@@ -117,9 +120,9 @@ export const authApi = {
 
 // ===== Clients =====
 export const clientsApi = {
-    list: (page = 1, limit = 20, search?: string) =>
+    list: (page = 1, limit = 20, search?: string, showInactive = false) =>
         api<{ data: any[]; total: number; page: number; totalPages: number }>(
-            `/clients?page=${page}&limit=${limit}${search ? `&search=${search}` : ''}`,
+            `/clients?page=${page}&limit=${limit}${search ? `&search=${search}` : ''}${showInactive ? '&showInactive=true' : ''}`,
         ),
     get: (id: string) => api<any>(`/clients/${id}`),
     create: (data: any) => api<any>('/clients', { method: 'POST', body: data }),
@@ -127,6 +130,7 @@ export const clientsApi = {
     delete: (id: string) => api(`/clients/${id}`, { method: 'DELETE' }),
     qr: (id: string) => api<string>(`/clients/${id}/qr`),
     searchByDni: (dni: string) => api<any>(`/clients/search-dni/${encodeURIComponent(dni)}`),
+    toggleActive: (id: string, isActive: boolean) => api<any>(`/clients/${id}/toggle-active`, { method: 'PATCH', body: { isActive } }),
 };
 
 // ===== Membership Plans =====

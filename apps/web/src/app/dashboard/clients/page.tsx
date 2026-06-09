@@ -9,7 +9,7 @@ import MembershipCalendar from '@/components/MembershipCalendar';
 import PaymentReceipt from '@/components/PaymentReceipt';
 import { format, differenceInDays } from 'date-fns';
 import { exportToCSV } from '@/lib/export';
-import { Search, Plus, Edit, Trash2, X, UserPlus, Users, CreditCard, Eye, QrCode, Download, Printer, Zap } from 'lucide-react';
+import { Search, Plus, Edit, Trash2, X, UserPlus, Users, CreditCard, Eye, QrCode, Download, Printer, Zap, UserX, UserCheck } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
 const calculateExpiryDate = (startStr: string, durationDays: number): string | undefined => {
@@ -48,6 +48,7 @@ export default function ClientsPage() {
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState('');
     const [memberFilter, setMemberFilter] = useState('');
+    const [showInactive, setShowInactive] = useState(false);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingClient, setEditingClient] = useState<any>(null);
@@ -180,16 +181,34 @@ export default function ClientsPage() {
         printWindow.document.close();
     };
 
-    useEffect(() => { loadClients(); }, [page, search]);
+    useEffect(() => { loadClients(); }, [page, search, showInactive]);
 
     const loadClients = async () => {
         setLoading(true);
         try {
-            const res = await clientsApi.list(page, 20, search || undefined);
+            const res = await clientsApi.list(page, 20, search || undefined, showInactive);
             setClients(res.data);
             setTotal(res.total);
         } catch (e) { console.error(e); }
         finally { setLoading(false); }
+    };
+
+    const handleToggleActive = async (client: any) => {
+        const disabling = client.isActive !== false;
+        const ok = await confirm({
+            title: disabling ? '¿Deshabilitar cliente?' : '¿Reactivar cliente?',
+            message: disabling
+                ? `"${client.name}" quedará oculto de la lista principal. Puedes reactivarlo en cualquier momento.`
+                : `"${client.name}" volverá a aparecer como cliente activo.`,
+            confirmText: disabling ? 'Deshabilitar' : 'Reactivar',
+            danger: disabling,
+        });
+        if (!ok) return;
+        try {
+            await clientsApi.toggleActive(client.id, !disabling);
+            toast(disabling ? `${client.name} deshabilitado` : `${client.name} reactivado`);
+            loadClients();
+        } catch (e: any) { toast(e.message || 'Error al cambiar estado', 'error'); }
     };
 
     const handleSave = async (e: React.FormEvent) => {
@@ -433,7 +452,7 @@ export default function ClientsPage() {
             </div>
 
             {/* Stats Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
                 <div className="stat-card purple">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(124,58,237,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -462,8 +481,24 @@ export default function ClientsPage() {
                             <Zap size={18} color="var(--color-warning)" />
                         </div>
                         <div>
+<<<<<<< Updated upstream
                             <div style={{ fontSize: '20px', fontWeight: 700 }}>{clients.filter(c => c.hasDailyPassToday).length}</div>
                             <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Pases Diarios Hoy</div>
+=======
+                            <div style={{ fontSize: '20px', fontWeight: 700 }}>{clients.filter(c => c.isActive !== false && (!c.activeMembership || c.activeMembership.status !== 'ACTIVE')).length}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Sin Membresía</div>
+>>>>>>> Stashed changes
+                        </div>
+                    </div>
+                </div>
+                <div className="stat-card" style={{ borderLeft: '3px solid var(--color-danger)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <UserX size={18} color="var(--color-danger)" />
+                        </div>
+                        <div>
+                            <div style={{ fontSize: '20px', fontWeight: 700 }}>{clients.filter(c => c.isActive === false).length}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Deshabilitados</div>
                         </div>
                     </div>
                 </div>
@@ -488,11 +523,27 @@ export default function ClientsPage() {
                         }}>{f.label}</button>
                     ))}
                 </div>
+                {/* Toggle Ver Inactivos */}
+                <button
+                    onClick={() => { setShowInactive(!showInactive); setPage(1); setMemberFilter(''); }}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: '6px',
+                        padding: '6px 14px', borderRadius: '8px', border: '1.5px solid',
+                        borderColor: showInactive ? 'var(--color-danger)' : 'var(--color-border)',
+                        background: showInactive ? 'rgba(239,68,68,0.08)' : 'var(--color-surface)',
+                        color: showInactive ? 'var(--color-danger)' : 'var(--color-text-muted)',
+                        fontSize: '11px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
+                    }}
+                >
+                    <UserX size={13} />
+                    {showInactive ? 'Ocultando activos' : 'Ver Inactivos'}
+                </button>
             </div>
 
             {/* Table */}
             {loading ? (
                 <SkeletonTable rows={8} cols={5} />
+<<<<<<< Updated upstream
             ) : (() => {
                 // Separate members from daily passes
                 const filteredClients = clients.filter(c => {
@@ -611,6 +662,91 @@ export default function ClientsPage() {
                                             borderTop: '2px solid rgba(245,158,11,0.25)',
                                         }}>
                                             ⚡ Pases Diarios de Hoy — {dailyPassClients.length} visita{dailyPassClients.length !== 1 ? 's' : ''} — NO son miembros
+=======
+            ) : (
+                <div className="table-container">
+                    <table className="data-table">
+                        <thead>
+                            <tr><th>Nombre</th><th>DNI</th><th>Email</th><th>Teléfono</th><th>Membresía</th><th>Vence</th><th>Estado</th><th style={{ width: '120px' }}>Acciones</th></tr>
+                        </thead>
+                        <tbody>
+                            {clients.filter(c => {
+                                if (!memberFilter) return true;
+                                if (memberFilter === 'active') return c.activeMembership?.status === 'ACTIVE';
+                                if (memberFilter === 'expired') return c.activeMembership && c.activeMembership.status !== 'ACTIVE';
+                                if (memberFilter === 'none') return !c.activeMembership;
+                                return true;
+                            }).map((c) => {
+                                const mem = c.activeMembership || c.upcomingMembership;
+                                const isDisabled = c.isActive === false;
+                                return (
+                                    <tr key={c.id} style={isDisabled ? { opacity: 0.55, background: 'rgba(239,68,68,0.04)' } : {}}>
+                                        <td style={{ fontWeight: 500, color: isDisabled ? 'var(--color-text-muted)' : 'var(--color-text)' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                {isDisabled && <UserX size={12} color="var(--color-danger)" />}
+                                                {c.name}
+                                            </div>
+                                        </td>
+                                        <td style={{ fontSize: '12px', fontFamily: 'monospace' }}>{c.dni || '—'}</td>
+                                        <td>{c.email || '—'}</td>
+                                        <td>{c.phone || '—'}</td>
+                                        <td>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                <span>{mem?.plan?.name || <span style={{ color: 'var(--color-text-muted)' }}>—</span>}</span>
+                                                {mem && mem.plan && (
+                                                    (() => {
+                                                        const paid = mem.payments?.length > 0
+                                                            ? mem.payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0)
+                                                            : Number(mem.amountPaid || 0);
+                                                        const price = Number(mem.plan.price);
+                                                        const discount = Number(mem.discount || 0);
+                                                        const debt = price - paid - discount;
+                                                        if (debt > 0) return <span className="badge badge-error" style={{ fontSize: '9px', alignSelf: 'flex-start' }}>Deuda S/ {debt.toFixed(2)}</span>;
+                                                        return null;
+                                                    })()
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {mem?.endDate ? (
+                                                <span style={{ fontSize: '12px', color: (!c.activeMembership && c.upcomingMembership) ? 'var(--color-secondary)' : (new Date(mem.endDate) < new Date() ? 'var(--color-danger)' : 'var(--color-text-secondary)') }}>
+                                                    {(() => {
+                                                        const dParts = mem.endDate.split('T')[0].split('-');
+                                                        return new Date(Number(dParts[0]), Number(dParts[1]) - 1, Number(dParts[2])).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+                                                    })()}
+                                                </span>
+                                            ) : '—'}
+                                        </td>
+                                        <td>
+                                            {isDisabled ? (
+                                                <span className="badge badge-cancelled" style={{ background: 'rgba(239,68,68,0.12)', color: 'var(--color-danger)' }}>Deshabilitado</span>
+                                            ) : c.activeMembership?.status === 'ACTIVE' ? (
+                                                <span className="badge badge-active">Activo</span>
+                                            ) : c.upcomingMembership ? (
+                                                <span className="badge" style={{ background: 'rgba(6,182,212,0.15)', color: 'var(--color-secondary)' }}>En Cola</span>
+                                            ) : c.activeMembership?.status === 'FROZEN' ? (
+                                                <span className="badge badge-frozen">Congelado</span>
+                                            ) : (
+                                                <span className="badge badge-cancelled">Inactivo</span>
+                                            )}
+                                        </td>
+                                        <td>
+                                            <div style={{ display: 'flex', gap: '4px' }}>
+                                                <button className="btn-icon info" onClick={() => router.push(`/dashboard/clients/${c.id}`)} title="Ver perfil"><Eye size={14} /></button>
+                                                {!isDisabled && <button className="btn-icon" onClick={() => openQr(c)} title="Ver QR" style={{ color: 'var(--color-primary)' }}><QrCode size={14} /></button>}
+                                                {!isDisabled && <button className="btn-icon success" onClick={() => openAssign(c)} title="Asignar membresía"><CreditCard size={14} /></button>}
+                                                {!isDisabled && <button className="btn-icon" onClick={() => openEdit(c)} title="Editar"><Edit size={14} /></button>}
+                                                <button
+                                                    className="btn-icon"
+                                                    onClick={() => handleToggleActive(c)}
+                                                    title={isDisabled ? 'Reactivar cliente' : 'Deshabilitar cliente'}
+                                                    style={{ color: isDisabled ? 'var(--color-success)' : 'var(--color-warning)' }}
+                                                >
+                                                    {isDisabled ? <UserCheck size={14} /> : <UserX size={14} />}
+                                                </button>
+                                                {!isDisabled && <button className="btn-icon danger" onClick={() => handleDelete(c.id, c.name)} title="Eliminar"><Trash2 size={14} /></button>}
+                                            </div>
+>>>>>>> Stashed changes
                                         </td>
                                     </tr>
                                 )}

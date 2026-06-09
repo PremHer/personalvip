@@ -80,6 +80,7 @@ model Client {
   medicalNotes     String?  @map("medical_notes")
   qrCode           String   @unique @map("qr_code")
   photoUrl         String?  @map("photo_url")
+  isActive         Boolean  @default(true) @map("is_active")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
