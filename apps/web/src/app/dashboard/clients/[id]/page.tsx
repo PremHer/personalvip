@@ -6,7 +6,7 @@ import { clientsApi, attendanceApi, membershipsApi } from '@/lib/api';
 import {
     ArrowLeft, User, Mail, Phone, Calendar, Activity,
     Clock, Shield, AlertTriangle, Heart, UserCheck,
-    TrendingUp, Star, DollarSign, X, Trash2, Download, Snowflake, Play
+    TrendingUp, Star, DollarSign, X, Trash2, Download, Snowflake, Play, Gift
 } from 'lucide-react';
 import MembershipCalendar from '@/components/MembershipCalendar';
 import PaymentReceipt from '@/components/PaymentReceipt';
@@ -30,6 +30,12 @@ export default function ClientProfilePage() {
     const [showFreezeModal, setShowFreezeModal] = useState(false);
     const [freezeMembershipId, setFreezeMembershipId] = useState('');
     const [freezeAutoDate, setFreezeAutoDate] = useState('');
+
+    // Extend membership (Gift)
+    const [showExtendModal, setShowExtendModal] = useState(false);
+    const [extendMembershipId, setExtendMembershipId] = useState('');
+    const [extendDays, setExtendDays] = useState(7);
+    const [extendReason, setExtendReason] = useState('Por referido');
 
     useEffect(() => {
         if (!clientId) return;
@@ -149,6 +155,25 @@ export default function ClientProfilePage() {
             setClient(c);
         } catch (err: any) {
             alert(err.message || 'Error al descongelar membresía');
+        }
+    };
+
+    const openExtendModal = (id: string) => {
+        setExtendMembershipId(id);
+        setExtendDays(7);
+        setExtendReason('Por referido');
+        setShowExtendModal(true);
+    };
+
+    const handleExtendSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            await membershipsApi.extend(extendMembershipId, { days: extendDays, reason: extendReason });
+            setShowExtendModal(false);
+            const c = await clientsApi.get(clientId);
+            setClient(c);
+        } catch (err: any) {
+            alert(err.message || 'Error al bonificar días');
         }
     };
 
@@ -433,14 +458,24 @@ export default function ClientProfilePage() {
                                                     {isActive ? 'Activa' : m.status === 'EXPIRED' ? 'Expirada' : m.status === 'FROZEN' ? 'Congelada' : m.status}
                                                 </span>
                                                 {m.status === 'ACTIVE' && (
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); openFreezeModal(m.id); }}
-                                                        className="btn-icon info"
-                                                        title="Congelar Membresía"
-                                                        style={{ padding: '4px', background: 'rgba(6,182,212,0.1)', color: '#06B6D4', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
-                                                    >
-                                                        <Snowflake size={13} />
-                                                    </button>
+                                                    <>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); openExtendModal(m.id); }}
+                                                            className="btn-icon warning"
+                                                            title="Bonificar Días (Semana Gratis)"
+                                                            style={{ padding: '4px', background: 'rgba(245,158,11,0.1)', color: '#F59E0B', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
+                                                        >
+                                                            <Gift size={13} />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); openFreezeModal(m.id); }}
+                                                            className="btn-icon info"
+                                                            title="Congelar Membresía"
+                                                            style={{ padding: '4px', background: 'rgba(6,182,212,0.1)', color: '#06B6D4', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
+                                                        >
+                                                            <Snowflake size={13} />
+                                                        </button>
+                                                    </>
                                                 )}
                                                 {m.status === 'FROZEN' && (
                                                     <button
@@ -657,6 +692,49 @@ export default function ClientProfilePage() {
                                 <button type="button" className="btn-secondary" onClick={() => setShowFreezeModal(false)}>Cancelar</button>
                                 <button type="submit" className="btn-primary" style={{ background: '#06B6D4' }}>
                                     <Snowflake size={14} style={{ marginRight: '4px' }} /> Congelar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Extend Membership Modal */}
+            {showExtendModal && (
+                <div className="modal-overlay" onClick={() => setShowExtendModal(false)}>
+                    <div className="modal-card slide-up" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                            <h2 style={{ fontSize: '16px', fontWeight: 700 }}>🎁 Bonificar Días Libres</h2>
+                            <button className="btn-icon" onClick={() => setShowExtendModal(false)}><X size={20} /></button>
+                        </div>
+                        <div style={{ padding: '12px', background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: '10px', marginBottom: '16px' }}>
+                            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                                Extiende la fecha de vencimiento de la membresía de forma gratuita (Ej: Semana gratis por referido).
+                            </p>
+                        </div>
+                        <form onSubmit={handleExtendSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px' }}>
+                                <div>
+                                    <label className="form-label">Días a otorgar *</label>
+                                    <input type="number" className="input-field" 
+                                        value={extendDays} 
+                                        onChange={e => setExtendDays(Number(e.target.value))} 
+                                        min={1} required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="form-label">Motivo *</label>
+                                    <input type="text" className="input-field" 
+                                        value={extendReason} 
+                                        onChange={e => setExtendReason(e.target.value)} 
+                                        placeholder="Ej: Por referido" required
+                                    />
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                <button type="button" className="btn-secondary" onClick={() => setShowExtendModal(false)}>Cancelar</button>
+                                <button type="submit" className="btn-primary" style={{ background: '#F59E0B' }}>
+                                    <Gift size={14} style={{ marginRight: '4px' }} /> Otorgar Días
                                 </button>
                             </div>
                         </form>

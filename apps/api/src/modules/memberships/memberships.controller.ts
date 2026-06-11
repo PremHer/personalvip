@@ -33,6 +33,16 @@ export class MembershipsController {
         return this.service.unfreeze(id);
     }
 
+    @Patch(':id/extend')
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
+    extend(
+        @Param('id') id: string,
+        @Body() data: { days: number; reason: string },
+        @CurrentUser() user: { id: string },
+    ) {
+        return this.service.extend(id, { ...data, createdBy: user.id });
+    }
+
     @Patch(':id/cancel')
     @Roles('ADMIN', 'OWNER')
     cancel(@Param('id') id: string) {

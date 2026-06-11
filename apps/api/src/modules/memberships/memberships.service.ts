@@ -314,4 +314,31 @@ export class MembershipsService {
             },
         });
     }
+
+    async extend(id: string, data: { days: number; reason: string; createdBy: string }) {
+        const membership = await this.prisma.membership.findUnique({ where: { id } });
+        if (!membership) throw new NotFoundException('Membresía no encontrada');
+        
+        // Add days to endDate
+        const newEndDate = new Date(membership.endDate);
+        newEndDate.setDate(newEndDate.getDate() + data.days);
+
+        await this.prisma.membership.update({
+            where: { id },
+            data: { endDate: newEndDate }
+        });
+
+        // Record a 0 payment for auditing purposes
+        await this.prisma.payment.create({
+            data: {
+                membershipId: id,
+                amount: 0,
+                paymentMethod: 'CASH', // Placeholder
+                notes: `Bonificación: ${data.days} días - ${data.reason}`,
+                cashierId: data.createdBy
+            }
+        });
+
+        return { success: true, newEndDate };
+    }
 }

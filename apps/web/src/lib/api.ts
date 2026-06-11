@@ -153,6 +153,7 @@ export const membershipsApi = {
     freeze: (id: string, data?: { autoUnfreezeDate?: string }) => api<any>(`/memberships/${id}/freeze`, { method: 'PATCH', body: data }),
     unfreeze: (id: string) => api<any>(`/memberships/${id}/unfreeze`, { method: 'PATCH' }),
     cancel: (id: string) => api<any>(`/memberships/${id}/cancel`, { method: 'PATCH' }),
+    extend: (id: string, data: { days: number; reason: string }) => api<any>(`/memberships/${id}/extend`, { method: 'PATCH', body: data }),
     delete: (id: string) => api(`/memberships/${id}`, { method: 'DELETE' }),
     expiring: (days = 7) => api<any[]>(`/memberships/expiring?days=${days}`),
 };
