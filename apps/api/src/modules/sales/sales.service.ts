@@ -24,13 +24,13 @@ export class SalesService {
                     throw new BadRequestException(`Stock insuficiente para ${product.name}. Disponible: ${product.stock}`);
                 }
 
-                const subtotal = Number(product.price) * item.quantity;
+                const subtotal = Number(product.salePrice) * item.quantity;
                 total += subtotal;
 
                 saleItems.push({
                     productId: item.productId,
                     quantity: item.quantity,
-                    unitPrice: product.price,
+                    unitPrice: product.salePrice,
                     subtotal,
                 });
 

@@ -40,13 +40,13 @@ export class ProductsController {
 
     @Post()
     @Roles('ADMIN', 'OWNER')
-    create(@Body() data: { name: string; barcode?: string; price: number; stock: number; category?: string }) {
+    create(@Body() data: { name: string; barcode?: string; costPrice: number; salePrice: number; stock: number; minStock: number; category?: string }) {
         return this.service.create(data);
     }
 
     @Patch(':id')
     @Roles('ADMIN', 'OWNER')
-    update(@Param('id') id: string, @Body() data: { name?: string; price?: number; stock?: number; category?: string }) {
+    update(@Param('id') id: string, @Body() data: { name?: string; costPrice?: number; salePrice?: number; stock?: number; minStock?: number; category?: string }) {
         return this.service.update(id, data);
     }
 

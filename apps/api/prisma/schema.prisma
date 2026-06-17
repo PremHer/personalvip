@@ -162,8 +162,10 @@ model Product {
   id        String  @id @default(uuid())
   name      String
   barcode   String? @unique
-  price     Decimal @db.Decimal(10, 2)
+  salePrice Decimal @map("sale_price") @db.Decimal(10, 2)
+  costPrice Decimal @default(0) @map("cost_price") @db.Decimal(10, 2)
   stock     Int     @default(0)
+  minStock  Int     @default(5) @map("min_stock")
   category  String?
   imageUrl  String? @map("image_url")
   isActive  Boolean @default(true) @map("is_active")

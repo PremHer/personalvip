@@ -153,14 +153,14 @@ async function main() {
 
     // ===== Products =====
     const products = [
-        { name: 'Proteína Whey 2lb', barcode: 'PROD001', price: 35.00, stock: 15, category: 'Suplementos' },
-        { name: 'Creatina 300g', barcode: 'PROD002', price: 18.00, stock: 20, category: 'Suplementos' },
-        { name: 'BCAA 30 servings', barcode: 'PROD003', price: 22.00, stock: 10, category: 'Suplementos' },
-        { name: 'Agua Mineral 500ml', barcode: 'PROD004', price: 1.00, stock: 50, category: 'Bebidas' },
-        { name: 'Bebida Energética', barcode: 'PROD005', price: 2.50, stock: 30, category: 'Bebidas' },
-        { name: 'Barra de Proteína', barcode: 'PROD006', price: 3.00, stock: 25, category: 'Snacks' },
-        { name: 'Guantes de Gym', barcode: 'PROD007', price: 12.00, stock: 8, category: 'Accesorios' },
-        { name: 'Shaker Bottle', barcode: 'PROD008', price: 8.00, stock: 12, category: 'Accesorios' },
+        { name: 'Proteína Whey 2lb', barcode: 'PROD001', salePrice: 35.00, costPrice: 25.00, stock: 15, category: 'Suplementos' },
+        { name: 'Creatina 300g', barcode: 'PROD002', salePrice: 18.00, costPrice: 12.00, stock: 20, category: 'Suplementos' },
+        { name: 'BCAA 30 servings', barcode: 'PROD003', salePrice: 22.00, costPrice: 15.00, stock: 10, category: 'Suplementos' },
+        { name: 'Agua Mineral 500ml', barcode: 'PROD004', salePrice: 1.00, costPrice: 0.50, stock: 50, category: 'Bebidas' },
+        { name: 'Bebida Energética', barcode: 'PROD005', salePrice: 2.50, costPrice: 1.50, stock: 30, category: 'Bebidas' },
+        { name: 'Barra de Proteína', barcode: 'PROD006', salePrice: 3.00, costPrice: 1.80, stock: 25, category: 'Snacks' },
+        { name: 'Guantes de Gym', barcode: 'PROD007', salePrice: 12.00, costPrice: 7.00, stock: 8, category: 'Accesorios' },
+        { name: 'Shaker Bottle', barcode: 'PROD008', salePrice: 8.00, costPrice: 4.00, stock: 12, category: 'Accesorios' },
     ];
 
     for (const product of products) {

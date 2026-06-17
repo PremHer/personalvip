@@ -40,11 +40,11 @@ export class ProductsService {
         return product;
     }
 
-    async create(data: { name: string; barcode?: string; price: number; stock: number; category?: string }) {
+    async create(data: { name: string; barcode?: string; costPrice: number; salePrice: number; stock: number; minStock: number; category?: string }) {
         return this.prisma.product.create({ data });
     }
 
-    async update(id: string, data: { name?: string; price?: number; stock?: number; category?: string }) {
+    async update(id: string, data: { name?: string; costPrice?: number; salePrice?: number; stock?: number; minStock?: number; category?: string }) {
         return this.prisma.product.update({ where: { id }, data });
     }
 
@@ -55,11 +55,14 @@ export class ProductsService {
         });
     }
 
-    async getLowStock(threshold = 5) {
-        return this.prisma.product.findMany({
-            where: { stock: { lte: threshold }, isActive: true },
-            orderBy: { stock: 'asc' },
+    async getLowStock(threshold?: number) {
+        // Find all active products
+        const products = await this.prisma.product.findMany({ 
+            where: { isActive: true },
+            orderBy: { stock: 'asc' }
         });
+        // Filter those whose stock is <= minStock (or <= threshold if provided)
+        return products.filter(p => p.stock <= (threshold !== undefined ? threshold : p.minStock));
     }
 
     async delete(id: string) {
