@@ -41,11 +41,19 @@ export class ProductsService {
     }
 
     async create(data: { name: string; barcode?: string; costPrice: number; salePrice: number; stock: number; minStock: number; category?: string }) {
-        return this.prisma.product.create({ data });
+        const payload: any = { ...data };
+        if (!payload.barcode || payload.barcode.trim() === '') {
+            payload.barcode = null;
+        }
+        return this.prisma.product.create({ data: payload });
     }
 
-    async update(id: string, data: { name?: string; costPrice?: number; salePrice?: number; stock?: number; minStock?: number; category?: string }) {
-        return this.prisma.product.update({ where: { id }, data });
+    async update(id: string, data: { name?: string; barcode?: string; costPrice?: number; salePrice?: number; stock?: number; minStock?: number; category?: string }) {
+        const payload: any = { ...data };
+        if (payload.barcode !== undefined && payload.barcode.trim() === '') {
+            payload.barcode = null;
+        }
+        return this.prisma.product.update({ where: { id }, data: payload });
     }
 
     async adjustStock(id: string, quantity: number) {
