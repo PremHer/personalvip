@@ -206,6 +206,7 @@ export const salesApi = {
     create: (data: any) => api<any>('/sales', { method: 'POST', body: data }),
     list: (page = 1, limit = 20) => api<{ data: any[]; total: number; page: number; totalPages: number }>(`/sales?page=${page}&limit=${limit}`),
     get: (id: string) => api<any>(`/sales/${id}`),
+    delete: (id: string) => api(`/sales/${id}`, { method: 'DELETE' }),
 };
 
 // ===== Finance =====

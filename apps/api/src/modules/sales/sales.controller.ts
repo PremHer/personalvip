@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { SalesService } from './sales.service';
@@ -41,5 +41,11 @@ export class SalesController {
     @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
     findOne(@Param('id') id: string) {
         return this.service.findOne(id);
+    }
+
+    @Delete(':id')
+    @Roles('ADMIN', 'OWNER')
+    delete(@Param('id') id: string) {
+        return this.service.delete(id);
     }
 }

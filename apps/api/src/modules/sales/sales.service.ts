@@ -112,4 +112,26 @@ export class SalesService {
             },
         });
     }
+
+    async delete(id: string) {
+        return this.prisma.$transaction(async (tx) => {
+            const sale = await tx.sale.findUnique({
+                where: { id },
+                include: { items: true },
+            });
+
+            if (!sale) throw new BadRequestException('Venta no encontrada');
+
+            // Restore product stock
+            for (const item of sale.items) {
+                await tx.product.update({
+                    where: { id: item.productId },
+                    data: { stock: { increment: item.quantity } },
+                });
+            }
+
+            // SaleItems and Payment are cascade deleted by Prisma
+            return tx.sale.delete({ where: { id } });
+        });
+    }
 }

@@ -18,6 +18,10 @@ export default function SalesPage() {
     const [paymentMethod, setPaymentMethod] = useState('CASH');
     const [clientName, setClientName] = useState('');
     const [payFilter, setPayFilter] = useState('');
+    
+    // New state for explicit product selection
+    const [selectedProductId, setSelectedProductId] = useState('');
+    const [selectedQty, setSelectedQty] = useState(1);
 
     useEffect(() => { loadSales(); }, [page]);
 
@@ -30,15 +34,25 @@ export default function SalesPage() {
     const openNewSale = async () => {
         const res = await productsApi.list(1, 100);
         setProducts(res.data.filter((p: any) => p.stock > 0));
-        setSaleItems([]); setPaymentMethod('CASH'); setClientName(''); setShowModal(true);
+        setSaleItems([]); setPaymentMethod('CASH'); setClientName(''); setSelectedProductId(''); setSelectedQty(1); setShowModal(true);
     };
 
-    const addItem = (productId: string) => {
-        const product = products.find(p => p.id === productId);
+    const handleAddItem = () => {
+        if (!selectedProductId || selectedQty < 1) return;
+        const product = products.find(p => p.id === selectedProductId);
         if (!product) return;
-        const exists = saleItems.find(i => i.productId === productId);
-        if (exists) { setSaleItems(saleItems.map(i => i.productId === productId ? { ...i, quantity: i.quantity + 1 } : i)); }
-        else { setSaleItems([...saleItems, { productId, quantity: 1, name: product.name, price: Number(product.salePrice) }]); }
+        if (selectedQty > product.stock) return toast('Stock insuficiente', 'warning');
+        
+        const exists = saleItems.find(i => i.productId === selectedProductId);
+        if (exists) { 
+            const newQty = exists.quantity + selectedQty;
+            if (newQty > product.stock) return toast('Stock insuficiente', 'warning');
+            setSaleItems(saleItems.map(i => i.productId === selectedProductId ? { ...i, quantity: newQty } : i)); 
+        } else { 
+            setSaleItems([...saleItems, { productId: selectedProductId, quantity: selectedQty, name: product.name, price: Number(product.salePrice) }]); 
+        }
+        setSelectedProductId('');
+        setSelectedQty(1);
     };
 
     const saleTotal = saleItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
@@ -51,6 +65,19 @@ export default function SalesPage() {
             setShowModal(false); loadSales();
             toast('Venta registrada correctamente');
         } catch (e: any) { toast(e.message || 'Error al registrar venta', 'error'); }
+    };
+
+    const handleDeleteSale = async (id: string) => {
+        const { confirm } = useUI.getState();
+        const ok = await confirm({ title: '¿Eliminar Venta?', message: 'Se revertirá el stock de los productos vendidos y se anulará el ingreso de caja. Esta acción no se puede deshacer.', confirmText: 'Eliminar Venta', danger: true });
+        if (!ok) return;
+        try {
+            await salesApi.delete(id);
+            toast('Venta eliminada y stock revertido');
+            loadSales();
+        } catch (e: any) {
+            toast(e.message || 'Error al eliminar', 'error');
+        }
     };
 
     return (
@@ -75,7 +102,7 @@ export default function SalesPage() {
             {loading ? <SkeletonTable rows={6} cols={6} /> : (
                 <div className="table-container">
                     <table className="data-table">
-                        <thead><tr><th>ID</th><th>Fecha</th><th>Cliente</th><th>Items</th><th>Método</th><th>Total</th></tr></thead>
+                        <thead><tr><th>ID</th><th>Fecha</th><th>Cliente</th><th>Items</th><th>Método</th><th>Total</th><th style={{ width: '60px' }}></th></tr></thead>
                         <tbody>
                             {sales.filter(s => !payFilter || s.paymentMethod === payFilter).map((s) => (
                                 <tr key={s.id}>
@@ -99,9 +126,14 @@ export default function SalesPage() {
                                         </div>
                                     </td>
                                     <td style={{ fontWeight: 700, color: 'var(--color-success)' }}>S/{Number(s.total).toFixed(2)}</td>
+                                    <td>
+                                        <button className="btn-icon danger" onClick={() => handleDeleteSale(s.id)} title="Eliminar Venta">
+                                            <X size={14} />
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
-                            {sales.length === 0 && <tr><td colSpan={6} className="empty-state">No hay ventas registradas</td></tr>}
+                            {sales.length === 0 && <tr><td colSpan={7} className="empty-state">No hay ventas registradas</td></tr>}
                         </tbody>
                     </table>
                 </div>
@@ -127,10 +159,16 @@ export default function SalesPage() {
                         {/* Product selector */}
                         <div style={{ marginBottom: '14px' }}>
                             <label className="form-label">Agregar Producto</label>
-                            <select className="input-field" onChange={(e) => { if (e.target.value) addItem(e.target.value); e.target.value = ''; }}>
-                                <option value="">Seleccionar...</option>
-                                {products.map(p => <option key={p.id} value={p.id}>{p.name} — S/{Number(p.salePrice).toFixed(2)} (Stock: {p.stock})</option>)}
-                            </select>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <select className="input-field" style={{ flex: 1 }} value={selectedProductId} onChange={(e) => setSelectedProductId(e.target.value)}>
+                                    <option value="">Seleccionar producto...</option>
+                                    {products.map(p => <option key={p.id} value={p.id}>{p.name} — S/{Number(p.salePrice).toFixed(2)} (Stock: {p.stock})</option>)}
+                                </select>
+                                <input type="number" min="1" className="input-field" style={{ width: '80px', textAlign: 'center' }} value={selectedQty} onChange={(e) => setSelectedQty(Math.max(1, parseInt(e.target.value) || 1))} title="Cantidad" />
+                                <button className="btn-primary" type="button" onClick={handleAddItem} disabled={!selectedProductId} style={{ padding: '0 16px' }} title="Agregar al carrito">
+                                    <Plus size={16} />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Cart Items */}
