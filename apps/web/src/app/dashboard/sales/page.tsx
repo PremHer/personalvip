@@ -7,7 +7,7 @@ import { SkeletonTable } from '@/lib/skeleton';
 import { Plus, X, DollarSign, Package, ShoppingCart, Minus } from 'lucide-react';
 
 export default function SalesPage() {
-    const { toast } = useUI();
+    const { toast, confirm } = useUI();
     const [sales, setSales] = useState<any[]>([]);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
@@ -68,7 +68,7 @@ export default function SalesPage() {
     };
 
     const handleDeleteSale = async (id: string) => {
-        const { confirm } = useUI.getState();
+        if (!confirm) return;
         const ok = await confirm({ title: '¿Eliminar Venta?', message: 'Se revertirá el stock de los productos vendidos y se anulará el ingreso de caja. Esta acción no se puede deshacer.', confirmText: 'Eliminar Venta', danger: true });
         if (!ok) return;
         try {
