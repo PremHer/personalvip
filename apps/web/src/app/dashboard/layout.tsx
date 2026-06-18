@@ -22,7 +22,7 @@ const navItems = [
     { href: '/dashboard/attendance', icon: ClipboardList, label: 'Asistencia', roles: ['SUPERADMIN', 'ADMIN', 'OWNER', 'RECEPTIONIST'] },
     { href: '/dashboard/sales', icon: ShoppingCart, label: 'Ventas', roles: ['SUPERADMIN', 'ADMIN', 'OWNER', 'RECEPTIONIST'] },
     { href: '/dashboard/receptionist-income', icon: Receipt, label: 'Ingresos', roles: ['SUPERADMIN', 'ADMIN', 'OWNER', 'RECEPTIONIST'] },
-    { href: '/dashboard/products', icon: Package, label: 'Productos', roles: ['SUPERADMIN', 'ADMIN', 'OWNER'] },
+    { href: '/dashboard/products', icon: Package, label: 'Productos', roles: ['SUPERADMIN', 'ADMIN', 'OWNER', 'RECEPTIONIST'] },
     { href: '/dashboard/assets', icon: Wrench, label: 'Activos', roles: ['SUPERADMIN', 'ADMIN', 'OWNER'] },
     { href: '/dashboard/finance', icon: BarChart3, label: 'Finanzas', roles: ['SUPERADMIN', 'ADMIN', 'OWNER', 'RECEPTIONIST'] },
     { href: '/dashboard/audit', icon: Shield, label: 'Auditoría', roles: ['SUPERADMIN', 'ADMIN', 'OWNER'] },

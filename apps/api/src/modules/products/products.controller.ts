@@ -39,13 +39,13 @@ export class ProductsController {
     }
 
     @Post()
-    @Roles('ADMIN', 'OWNER')
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
     create(@Body() data: { name: string; barcode?: string; costPrice: number; salePrice: number; stock: number; minStock: number; category?: string }) {
         return this.service.create(data);
     }
 
     @Patch(':id')
-    @Roles('ADMIN', 'OWNER')
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
     update(@Param('id') id: string, @Body() data: { name?: string; costPrice?: number; salePrice?: number; stock?: number; minStock?: number; category?: string }) {
         return this.service.update(id, data);
     }
@@ -57,7 +57,7 @@ export class ProductsController {
     }
 
     @Delete(':id')
-    @Roles('ADMIN', 'OWNER')
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
     delete(@Param('id') id: string) {
         return this.service.delete(id);
     }
