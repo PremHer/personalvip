@@ -9,16 +9,21 @@ export class ClientsService {
     constructor(private prisma: PrismaService) { }
 
     async findAll(page = 1, limit = 20, search?: string, showInactive = false) {
-        const baseWhere: any = showInactive ? {} : { isActive: true };
+        const trimmedSearch = search?.trim();
 
-        const where = search
+        // If there's an active search keyword, search ALL clients (active & inactive)
+        // so the user can find disabled clients (e.g. searching by DNI, phone, name)
+        // If there's no search keyword, follow showInactive flag (default to active only).
+        const baseWhere: any = (showInactive || Boolean(trimmedSearch)) ? {} : { isActive: true };
+
+        const where = trimmedSearch
             ? {
                 ...baseWhere,
                 OR: [
-                    { name: { contains: search, mode: 'insensitive' as const } },
-                    { email: { contains: search, mode: 'insensitive' as const } },
-                    { phone: { contains: search, mode: 'insensitive' as const } },
-                    { dni: { contains: search, mode: 'insensitive' as const } },
+                    { name: { contains: trimmedSearch, mode: 'insensitive' as const } },
+                    { email: { contains: trimmedSearch, mode: 'insensitive' as const } },
+                    { phone: { contains: trimmedSearch, mode: 'insensitive' as const } },
+                    { dni: { contains: trimmedSearch, mode: 'insensitive' as const } },
                 ],
             }
             : baseWhere;
@@ -154,8 +159,11 @@ export class ClientsService {
     }
 
     async findByDni(dni: string) {
+        const trimmedDni = dni?.trim();
+        if (!trimmedDni) return null;
+
         const client = await this.prisma.client.findFirst({
-            where: { dni: { equals: dni, mode: 'insensitive' } },
+            where: { dni: { equals: trimmedDni, mode: 'insensitive' } },
             include: {
                 memberships: {
                     where: { status: 'ACTIVE' },
@@ -191,18 +199,61 @@ export class ClientsService {
         migrationEndDate?: string;
         createdBy?: string;
     }) {
+        const trimmedDni = data.dni?.trim();
         // DNI is required for regular clients, but optional for daily passes and migrations
-        if (!data.isMigration && !data.isDailyPass && !data.dni) {
+        if (!data.isMigration && !data.isDailyPass && !trimmedDni) {
             throw new BadRequestException('El DNI es obligatorio para clientes nuevos.');
         }
 
-        if (data.dni) {
+        if (trimmedDni) {
             const existingDni = await this.prisma.client.findFirst({
-                where: { dni: data.dni }
+                where: { dni: { equals: trimmedDni, mode: 'insensitive' } }
             });
 
             if (existingDni) {
-                throw new BadRequestException(`El DNI ${data.dni} ya está registrado para el cliente ${existingDni.name}.`);
+                if (!existingDni.isActive) {
+                    // Client exists in database but was deactivated: reactivate and update!
+                    const updated = await this.prisma.client.update({
+                        where: { id: existingDni.id },
+                        data: {
+                            name: data.name.trim(),
+                            email: data.email?.trim() || existingDni.email,
+                            phone: data.phone?.trim() || existingDni.phone,
+                            emergencyContact: data.emergencyContact?.trim() || existingDni.emergencyContact,
+                            birthDate: data.birthDate ? new Date(data.birthDate) : existingDni.birthDate,
+                            medicalNotes: data.medicalNotes?.trim() || existingDni.medicalNotes,
+                            isActive: true,
+                        }
+                    });
+
+                    // Handle Legacy Excel Migration if specified
+                    if (data.isMigration && data.migrationPlanId && data.migrationEndDate) {
+                        const plan = await this.prisma.membershipPlan.findUnique({
+                            where: { id: data.migrationPlanId }
+                        });
+
+                        if (plan) {
+                            const startDate = dayStartPeru(new Date());
+                            const endDate = dayEndPeru(data.migrationEndDate);
+
+                            await this.prisma.membership.create({
+                                data: {
+                                    clientId: updated.id,
+                                    planId: plan.id,
+                                    startDate,
+                                    endDate,
+                                    status: 'ACTIVE',
+                                    amountPaid: plan.price,
+                                    createdBy: data.createdBy || 'SYSTEM'
+                                }
+                            });
+                        }
+                    }
+
+                    return updated;
+                } else {
+                    throw new BadRequestException(`El DNI ${trimmedDni} ya está registrado para el cliente "${existingDni.name}".`);
+                }
             }
         }
 
@@ -211,13 +262,13 @@ export class ClientsService {
         // Create client first
         const client = await this.prisma.client.create({
             data: {
-                name: data.name,
-                email: data.email,
-                phone: data.phone,
-                dni: data.dni,
-                emergencyContact: data.emergencyContact,
+                name: data.name.trim(),
+                email: data.email?.trim() || undefined,
+                phone: data.phone?.trim() || undefined,
+                dni: trimmedDni || undefined,
+                emergencyContact: data.emergencyContact?.trim() || undefined,
                 birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
-                medicalNotes: data.medicalNotes,
+                medicalNotes: data.medicalNotes?.trim() || undefined,
                 qrCode,
             },
         });
@@ -254,14 +305,44 @@ export class ClientsService {
         name?: string;
         email?: string;
         phone?: string;
+        dni?: string;
         emergencyContact?: string;
+        birthDate?: string;
         medicalNotes?: string;
+        isActive?: boolean;
     }) {
+        const client = await this.prisma.client.findUnique({ where: { id } });
+        if (!client) throw new NotFoundException('Cliente no encontrado');
+
+        if (data.dni && data.dni.trim() !== '') {
+            const trimmedDni = data.dni.trim();
+            const existingDni = await this.prisma.client.findFirst({
+                where: {
+                    dni: { equals: trimmedDni, mode: 'insensitive' },
+                    NOT: { id }
+                }
+            });
+            if (existingDni) {
+                throw new BadRequestException(`El DNI ${trimmedDni} ya está registrado para el cliente "${existingDni.name}".`);
+            }
+        }
+
+        const updatePayload: any = {};
+        if (data.name !== undefined) updatePayload.name = data.name.trim();
+        if (data.email !== undefined) updatePayload.email = data.email?.trim() || null;
+        if (data.phone !== undefined) updatePayload.phone = data.phone?.trim() || null;
+        if (data.dni !== undefined) updatePayload.dni = data.dni?.trim() || null;
+        if (data.emergencyContact !== undefined) updatePayload.emergencyContact = data.emergencyContact?.trim() || null;
+        if (data.birthDate !== undefined) updatePayload.birthDate = data.birthDate ? new Date(data.birthDate) : null;
+        if (data.medicalNotes !== undefined) updatePayload.medicalNotes = data.medicalNotes?.trim() || null;
+        if (data.isActive !== undefined) updatePayload.isActive = data.isActive;
+
         return this.prisma.client.update({
             where: { id },
-            data,
+            data: updatePayload,
         });
     }
+
 
     async getQrCodeImage(id: string) {
         const client = await this.prisma.client.findUnique({

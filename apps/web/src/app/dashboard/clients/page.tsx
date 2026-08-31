@@ -217,6 +217,7 @@ export default function ClientsPage() {
         try {
             const dataToSave = {
                 ...form,
+                name: form.name?.trim(),
                 email: form.email?.trim() || undefined,
                 phone: form.phone?.trim() || undefined,
                 dni: form.dni?.trim() || undefined,
@@ -224,13 +225,22 @@ export default function ClientsPage() {
                 medicalNotes: form.medicalNotes?.trim() || undefined,
                 ...(isMigration ? { isMigration: true, migrationPlanId, migrationEndDate } : {})
             };
-            if (editingClient) { await clientsApi.update(editingClient.id, dataToSave); toast('Cliente actualizado correctamente'); }
-            else { await clientsApi.create(dataToSave); toast('Cliente creado correctamente'); }
-            setShowModal(false); setEditingClient(null);
+            if (editingClient) {
+                await clientsApi.update(editingClient.id, dataToSave);
+                toast('Cliente actualizado correctamente');
+            } else {
+                const res = await clientsApi.create(dataToSave);
+                toast(res?.isActive ? 'Cliente guardado correctamente' : 'Cliente creado correctamente');
+            }
+            setShowModal(false);
+            setEditingClient(null);
             setForm({ name: '', email: '', phone: '', dni: '', emergencyContact: '', medicalNotes: '' });
             loadClients();
-        } catch (e: any) { toast(e.message || 'Error al guardar', 'error'); }
+        } catch (e: any) {
+            toast(e.message || 'Error al guardar', 'error');
+        }
     };
+
 
     const handleDelete = async (id: string, name: string) => {
         const ok = await confirm({ title: '¿Eliminar cliente?', message: `Se eliminará permanentemente a "${name}" y todos sus datos asociados.`, confirmText: 'Eliminar', danger: true });
@@ -513,9 +523,10 @@ export default function ClientsPage() {
             {/* Search */}
             <div style={{ marginBottom: '16px', position: 'relative', maxWidth: '380px' }}>
                 <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
-                <input className="input-field" placeholder="Buscar por nombre, email o teléfono..." value={search}
+                <input className="input-field" placeholder="Buscar por DNI, nombre, email o teléfono..." value={search}
                     onChange={(e) => { setSearch(e.target.value); setPage(1); }} style={{ paddingLeft: '38px' }} />
             </div>
+
 
             {/* Filters */}
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>

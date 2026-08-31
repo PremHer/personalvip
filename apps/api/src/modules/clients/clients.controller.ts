@@ -13,18 +13,21 @@ class CreateClientDto {
     @IsEmail() email?: string;
     @IsOptional() @IsString() phone?: string;
 
-    @ValidateIf(o => !o.isMigration)
+    @ValidateIf(o => !o.isMigration && !o.isDailyPass)
     @IsString() @IsNotEmpty() dni?: string;
 
     @IsOptional() @IsString() emergencyContact?: string;
     @IsOptional() @IsString() birthDate?: string;
     @IsOptional() @IsString() medicalNotes?: string;
+    @IsOptional() @IsBoolean() isActive?: boolean;
 
-    // Migration fields
+    // Migration / Daily Pass fields
     @IsOptional() @IsBoolean() isMigration?: boolean;
+    @IsOptional() @IsBoolean() isDailyPass?: boolean;
     @IsOptional() @IsString() migrationPlanId?: string;
     @IsOptional() @IsString() migrationEndDate?: string;
 }
+
 
 class ToggleActiveDto {
     @IsBoolean() isActive!: boolean;
