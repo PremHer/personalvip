@@ -30,7 +30,8 @@ export class UsersController {
 
     @Patch(':id')
     @Roles('ADMIN', 'OWNER')
-    update(@Param('id') id: string, @Body() data: { name?: string; phone?: string; role?: 'ADMIN' | 'OWNER' | 'TRAINER' | 'RECEPTIONIST' | 'CLIENT'; isActive?: boolean }) {
+    update(@Param('id') id: string, @Body() data: { name?: string; phone?: string; role?: any; isActive?: boolean; password?: string }) {
         return this.usersService.update(id, data);
     }
 }
+

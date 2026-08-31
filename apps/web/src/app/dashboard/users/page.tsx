@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { usersApi } from '@/lib/api';
 import { useUI } from '@/lib/ui-context';
-import { Search, Plus, Edit, X, UserCog, Shield, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { Search, Plus, Edit, X, UserCog, ShieldCheck, Eye, EyeOff, UserCheck, UserX, Lock } from 'lucide-react';
 
 const roleLabels: Record<string, string> = {
     ADMIN: 'Administrador',
@@ -30,6 +30,7 @@ export default function UsersPage() {
     const [showModal, setShowModal] = useState(false);
     const [editingUser, setEditingUser] = useState<any>(null);
     const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', role: 'RECEPTIONIST' });
+    const [showPassword, setShowPassword] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const { toast, confirm } = useUI();
@@ -55,7 +56,9 @@ export default function UsersPage() {
         try {
             if (editingUser) {
                 const updateData: any = { name: form.name, phone: form.phone, role: form.role };
-                if (form.password) updateData.password = form.password;
+                if (form.password && form.password.trim() !== '') {
+                    updateData.password = form.password;
+                }
                 await usersApi.update(editingUser.id, updateData);
             } else {
                 if (!form.password) {
@@ -99,6 +102,7 @@ export default function UsersPage() {
     const openNew = () => {
         setEditingUser(null);
         setForm({ name: '', email: '', password: '', phone: '', role: 'RECEPTIONIST' });
+        setShowPassword(false);
         setError('');
         setShowModal(true);
     };
@@ -106,9 +110,11 @@ export default function UsersPage() {
     const openEdit = (u: any) => {
         setEditingUser(u);
         setForm({ name: u.name, email: u.email, password: '', phone: u.phone || '', role: u.role });
+        setShowPassword(false);
         setError('');
         setShowModal(true);
     };
+
 
     return (
         <div style={{ padding: '2rem' }}>
@@ -216,16 +222,16 @@ export default function UsersPage() {
                                     </td>
                                     <td style={{ padding: '.75rem 1rem' }}>
                                         <div style={{ display: 'flex', gap: '.4rem' }}>
-                                            <button onClick={() => openEdit(u)} title="Editar" style={{
+                                            <button onClick={() => openEdit(u)} title="Editar usuario" style={{
                                                 background: '#3B82F622', color: '#3B82F6', border: 'none',
                                                 borderRadius: '6px', padding: '.3rem', cursor: 'pointer',
                                             }}><Edit size={16} /></button>
-                                            <button onClick={() => toggleActive(u)} title={u.isActive ? 'Desactivar' : 'Activar'} style={{
+                                            <button onClick={() => toggleActive(u)} title={u.isActive ? 'Desactivar usuario' : 'Activar usuario'} style={{
                                                 background: u.isActive ? '#EF444422' : '#10B98122',
                                                 color: u.isActive ? '#EF4444' : '#10B981',
                                                 border: 'none', borderRadius: '6px', padding: '.3rem', cursor: 'pointer',
                                             }}>
-                                                {u.isActive ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                {u.isActive ? <UserX size={16} /> : <UserCheck size={16} />}
                                             </button>
                                         </div>
                                     </td>
@@ -302,16 +308,50 @@ export default function UsersPage() {
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
                                     <label className="form-label">
-                                        Contraseña {editingUser ? '' : '*'}
-                                        {editingUser && <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 400 }}> (vacío = sin cambio)</span>}
+                                        {editingUser ? 'Nueva Contraseña' : 'Contraseña *'}
+                                        {editingUser && <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 400 }}> (vacío = no cambiar)</span>}
                                     </label>
-                                    <input className="input-field" type="password" placeholder="••••••••" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required={!editingUser} />
+                                    <div style={{ position: 'relative' }}>
+                                        <input
+                                            className="input-field"
+                                            type={showPassword ? 'text' : 'password'}
+                                            placeholder={editingUser ? 'Nueva contraseña (opcional)' : '••••••••'}
+                                            value={form.password}
+                                            onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                                            required={!editingUser}
+                                            style={{ paddingRight: '38px' }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPassword(!showPassword)}
+                                            title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                                            aria-label={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
+                                            style={{
+                                                position: 'absolute',
+                                                right: '8px',
+                                                top: '50%',
+                                                transform: 'translateY(-50%)',
+                                                background: 'none',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                color: 'var(--color-text-muted)',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                padding: '4px',
+                                                borderRadius: '6px',
+                                            }}
+                                        >
+                                            {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="form-label">Teléfono</label>
                                     <input className="input-field" placeholder="987654321" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
                                 </div>
                             </div>
+
 
                             <div>
                                 <label className="form-label">Rol *</label>
