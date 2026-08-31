@@ -205,7 +205,37 @@ export class MembershipsService {
         });
     }
 
+    async updateDates(id: string, data: { startDate?: string; endDate?: string }) {
+        const membership = await this.prisma.membership.findUnique({ where: { id } });
+        if (!membership) throw new NotFoundException('Membresía no encontrada');
+
+        const updateData: any = {};
+        if (data.startDate) {
+            updateData.startDate = dayStartPeru(data.startDate);
+        }
+        if (data.endDate) {
+            updateData.endDate = dayEndPeru(data.endDate);
+        }
+
+        // Auto-update status if the new end date is in the past or future
+        if (updateData.endDate) {
+            const now = new Date();
+            if (updateData.endDate < now) {
+                updateData.status = 'EXPIRED';
+            } else if (membership.status === 'EXPIRED' && updateData.endDate >= now) {
+                updateData.status = 'ACTIVE';
+            }
+        }
+
+        return this.prisma.membership.update({
+            where: { id },
+            data: updateData,
+            include: { plan: true },
+        });
+    }
+
     async delete(id: string) {
+
         // Find if it exists
         const membership = await this.prisma.membership.findUnique({ where: { id } });
         if (!membership) throw new NotFoundException('Membresía no encontrada');

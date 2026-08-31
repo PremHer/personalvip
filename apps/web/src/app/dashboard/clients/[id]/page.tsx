@@ -6,7 +6,7 @@ import { clientsApi, attendanceApi, membershipsApi } from '@/lib/api';
 import {
     ArrowLeft, User, Mail, Phone, Calendar, Activity,
     Clock, Shield, AlertTriangle, Heart, UserCheck,
-    TrendingUp, Star, DollarSign, X, Trash2, Download, Snowflake, Play, Gift
+    TrendingUp, Star, DollarSign, X, Trash2, Download, Snowflake, Play, Gift, Pencil
 } from 'lucide-react';
 import MembershipCalendar from '@/components/MembershipCalendar';
 import PaymentReceipt from '@/components/PaymentReceipt';
@@ -36,6 +36,14 @@ export default function ClientProfilePage() {
     const [extendMembershipId, setExtendMembershipId] = useState('');
     const [extendDays, setExtendDays] = useState(7);
     const [extendReason, setExtendReason] = useState('Por referido');
+
+    // Edit membership dates
+    const [showEditDatesModal, setShowEditDatesModal] = useState(false);
+    const [editMembership, setEditMembership] = useState<any>(null);
+    const [editStartDate, setEditStartDate] = useState('');
+    const [editEndDate, setEditEndDate] = useState('');
+    const [savingDates, setSavingDates] = useState(false);
+
 
     useEffect(() => {
         if (!clientId) return;
@@ -75,12 +83,17 @@ export default function ClientProfilePage() {
         return m.status === 'ACTIVE' && start <= now && end >= now;
     });
 
+    const upcomingMembership = client.memberships?.find((m: any) => {
+        const start = new Date(m.startDate);
+        return m.status === 'ACTIVE' && start > now;
+    });
+
     const targetMembership = client.memberships?.filter((m: any) => {
         const totalPaid = m.payments?.length > 0
             ? m.payments.reduce((sum: number, p: any) => sum + Number(p.amount), 0)
             : Number(m.amountPaid || 0);
         return m.status === 'ACTIVE' && totalPaid < Number(m.plan?.price || 0);
-    }).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] || activeMembership;
+    }).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] || activeMembership || upcomingMembership;
 
     const daysLeft = activeMembership
         ? Math.ceil((new Date(activeMembership.endDate).getTime() - now.getTime()) / 86400000)
@@ -177,6 +190,33 @@ export default function ClientProfilePage() {
         }
     };
 
+    const openEditDatesModal = (m: any) => {
+        setEditMembership(m);
+        setEditStartDate(m.startDate ? m.startDate.split('T')[0] : '');
+        setEditEndDate(m.endDate ? m.endDate.split('T')[0] : '');
+        setShowEditDatesModal(true);
+    };
+
+    const handleEditDatesSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editMembership || !editStartDate || !editEndDate) return;
+        setSavingDates(true);
+        try {
+            await membershipsApi.updateDates(editMembership.id, {
+                startDate: editStartDate,
+                endDate: editEndDate,
+            });
+            setShowEditDatesModal(false);
+            const c = await clientsApi.get(clientId);
+            setClient(c);
+        } catch (err: any) {
+            alert(err.message || 'Error al actualizar fechas de membresía');
+        } finally {
+            setSavingDates(false);
+        }
+    };
+
+
     const formatDate = (d: string) => {
         const parts = d.split('T')[0].split('-');
         return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -253,10 +293,28 @@ export default function ClientProfilePage() {
                                 </div>
                                 <div style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>restantes</div>
                             </div>
+                        ) : upcomingMembership ? (
+                            <div style={{
+                                padding: '10px 16px', borderRadius: '12px',
+                                background: 'rgba(6,182,212,0.12)',
+                                border: '1px solid rgba(6,182,212,0.3)',
+                                textAlign: 'center',
+                            }}>
+                                <div style={{ fontSize: '11px', fontWeight: 600, color: '#06B6D4', textTransform: 'uppercase' }}>
+                                    {upcomingMembership.plan?.name}
+                                </div>
+                                <div style={{ fontSize: '14px', fontWeight: 800, color: '#06B6D4', marginTop: '2px' }}>
+                                    EN COLA
+                                </div>
+                                <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                                    Inicia {formatDate(upcomingMembership.startDate)}
+                                </div>
+                            </div>
                         ) : (
                             <span className="badge badge-expired" style={{ padding: '8px 14px' }}>Sin Membresía</span>
                         )}
                     </div>
+
                 </div>
             </div>
 
@@ -440,12 +498,15 @@ export default function ClientProfilePage() {
                         {(client.memberships?.length || 0) > 0 ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                 {client.memberships.map((m: any) => {
-                                    const isActive = m.status === 'ACTIVE' && new Date(m.startDate) <= now && new Date(m.endDate) >= now;
+                                    const isCurrentlyActive = m.status === 'ACTIVE' && new Date(m.startDate) <= now && new Date(m.endDate) >= now;
+                                    const isUpcoming = m.status === 'ACTIVE' && new Date(m.startDate) > now;
+                                    const isExpired = m.status === 'EXPIRED' || (m.status === 'ACTIVE' && new Date(m.endDate) < now);
+
                                     return (
                                         <div key={m.id} style={{
                                             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                                             padding: '10px 12px', borderRadius: '8px', background: 'var(--color-surface-2)',
-                                            borderLeft: `3px solid ${isActive ? '#10B981' : m.status === 'EXPIRED' ? '#64748b' : '#F59E0B'}`,
+                                            borderLeft: `3px solid ${isCurrentlyActive ? '#10B981' : isUpcoming ? '#06B6D4' : m.status === 'FROZEN' ? '#3B82F6' : '#64748b'}`,
                                         }}>
                                             <div>
                                                 <div style={{ fontSize: '13px', fontWeight: 600 }}>{m.plan?.name}</div>
@@ -453,10 +514,30 @@ export default function ClientProfilePage() {
                                                     {formatDate(m.startDate)} — {formatDate(m.endDate)}
                                                 </div>
                                             </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <span className={`badge ${isActive ? 'badge-active' : m.status === 'EXPIRED' ? 'badge-expired' : m.status === 'FROZEN' ? 'badge-frozen' : 'badge-warning'}`} style={{ fontSize: '10px' }}>
-                                                    {isActive ? 'Activa' : m.status === 'EXPIRED' ? 'Expirada' : m.status === 'FROZEN' ? 'Congelada' : m.status}
-                                                </span>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                {isCurrentlyActive ? (
+                                                    <span className="badge badge-active" style={{ fontSize: '10px' }}>Activa</span>
+                                                ) : isUpcoming ? (
+                                                    <span className="badge" style={{ fontSize: '10px', background: 'rgba(6,182,212,0.15)', color: 'var(--color-secondary)', border: '1px solid rgba(6,182,212,0.3)', fontWeight: 700 }}>
+                                                        En Cola
+                                                    </span>
+                                                ) : isExpired ? (
+                                                    <span className="badge badge-expired" style={{ fontSize: '10px' }}>Expirada</span>
+                                                ) : m.status === 'FROZEN' ? (
+                                                    <span className="badge badge-frozen" style={{ fontSize: '10px' }}>Congelada</span>
+                                                ) : m.status === 'CANCELLED' ? (
+                                                    <span className="badge badge-cancelled" style={{ fontSize: '10px' }}>Cancelada</span>
+                                                ) : (
+                                                    <span className="badge badge-warning" style={{ fontSize: '10px' }}>{m.status}</span>
+                                                )}
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); openEditDatesModal(m); }}
+                                                    className="btn-icon info"
+                                                    title="Editar Fechas de Membresía"
+                                                    style={{ padding: '4px', background: 'rgba(124,58,237,0.1)', color: 'var(--color-primary)', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
+                                                >
+                                                    <Pencil size={13} />
+                                                </button>
                                                 {m.status === 'ACTIVE' && (
                                                     <>
                                                         <button
@@ -504,6 +585,7 @@ export default function ClientProfilePage() {
                             <div className="empty-state" style={{ padding: '30px' }}>Sin membresías</div>
                         )}
                     </div>
+
 
                     {/* Payment History */}
                     <div className="glass-card" style={{ padding: '20px' }}>
@@ -741,6 +823,65 @@ export default function ClientProfilePage() {
                     </div>
                 </div>
             )}
+
+            {/* Edit Membership Dates Modal */}
+            {showEditDatesModal && editMembership && (
+                <div className="modal-overlay" onClick={() => setShowEditDatesModal(false)}>
+
+                    <div className="modal-card slide-up" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(124,58,237,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Pencil size={16} color="var(--color-primary)" />
+                                </div>
+                                <div>
+                                    <h3 style={{ fontSize: '15px', fontWeight: 700 }}>Editar Fechas de Membresía</h3>
+                                    <p style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{editMembership.plan?.name}</p>
+                                </div>
+                            </div>
+                            <button className="btn-icon" onClick={() => setShowEditDatesModal(false)}><X size={18} /></button>
+                        </div>
+
+                        <div style={{ padding: '10px 12px', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: '10px', marginBottom: '14px' }}>
+                            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                                Modifica las fechas de inicio o vencimiento. Si la fecha de inicio es hoy o anterior, la membresía pasará a estado <strong>Activa</strong> inmediatamente.
+                            </p>
+                        </div>
+
+                        <form onSubmit={handleEditDatesSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                            <div>
+                                <label className="form-label">Fecha de Inicio *</label>
+                                <input
+                                    type="date"
+                                    className="input-field"
+                                    required
+                                    value={editStartDate}
+                                    onChange={e => setEditStartDate(e.target.value)}
+                                />
+                            </div>
+
+                            <div>
+                                <label className="form-label">Fecha de Fin *</label>
+                                <input
+                                    type="date"
+                                    className="input-field"
+                                    required
+                                    value={editEndDate}
+                                    onChange={e => setEditEndDate(e.target.value)}
+                                />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
+                                <button type="button" className="btn-secondary" onClick={() => setShowEditDatesModal(false)}>Cancelar</button>
+                                <button type="submit" className="btn-primary" disabled={savingDates}>
+                                    {savingDates ? 'Guardando...' : 'Guardar Fechas'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+

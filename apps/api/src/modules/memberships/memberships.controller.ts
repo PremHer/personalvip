@@ -49,7 +49,17 @@ export class MembershipsController {
         return this.service.cancel(id);
     }
 
+    @Patch(':id/dates')
+    @Roles('ADMIN', 'OWNER', 'RECEPTIONIST')
+    updateDates(
+        @Param('id') id: string,
+        @Body() data: { startDate?: string; endDate?: string },
+    ) {
+        return this.service.updateDates(id, data);
+    }
+
     @Delete(':id')
+
     @Roles('ADMIN', 'OWNER')
     delete(@Param('id') id: string) {
         return this.service.delete(id);

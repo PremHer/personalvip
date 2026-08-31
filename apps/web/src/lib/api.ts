@@ -154,9 +154,11 @@ export const membershipsApi = {
     unfreeze: (id: string) => api<any>(`/memberships/${id}/unfreeze`, { method: 'PATCH' }),
     cancel: (id: string) => api<any>(`/memberships/${id}/cancel`, { method: 'PATCH' }),
     extend: (id: string, data: { days: number; reason: string }) => api<any>(`/memberships/${id}/extend`, { method: 'PATCH', body: data }),
+    updateDates: (id: string, data: { startDate?: string; endDate?: string }) => api<any>(`/memberships/${id}/dates`, { method: 'PATCH', body: data }),
     delete: (id: string) => api(`/memberships/${id}`, { method: 'DELETE' }),
     expiring: (days = 7) => api<any[]>(`/memberships/expiring?days=${days}`),
 };
+
 
 // ===== Attendance =====
 export const attendanceApi = {
